@@ -9,12 +9,10 @@ export default function Home() {
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    // Vérifie session existante
     supabase.auth.getSession().then(({ data }) => {
       setUser(data.session?.user ?? null);
     });
 
-    // Écoute login/logout
     const { data: listener } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setUser(session?.user ?? null);
@@ -74,6 +72,11 @@ export default function Home() {
           <button onClick={handleLogout} style={{ padding: 10 }}>
             Se déconnecter
           </button>
+
+          <hr style={{ margin: "20px 0" }} />
+
+          {/* 👇 NOUVEAU LIEN */}
+          <a href="/matchs">Voir les matchs de la semaine</a>
         </>
       )}
     </main>
