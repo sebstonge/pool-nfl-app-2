@@ -5,26 +5,41 @@ import { supabase } from "../../../lib/supabase";
 
 export default function AuthCallback() {
   const [message, setMessage] = useState("Connexion en cours...");
+  const [debug, setDebug] = useState("");
 
   useEffect(() => {
     async function handleAuth() {
-      const url = new URL(window.location.href);
+      const fullUrl = window.location.href;
+      const url = new URL(fullUrl);
       const code = url.searchParams.get("code");
 
-      if (!code) {
-        setMessage("Erreur : aucun code de connexion trouvé.");
+      setDebug(fullUrl);
+
+      if (code) {
+        const { error } = await supabase.auth.exchangeCodeForSession(code);
+
+        if (error) {
+          setMessage("Erreur exchangeCode : " + error.message);
+          return;
+        }
+
+        window.location.href = "/";
         return;
       }
 
-      const { error } = await supabase.auth.exchangeCodeForSession(code);
+      const { data, error } = await supabase.auth.getSession();
 
       if (error) {
-        console.error(error);
-        setMessage("Erreur de connexion : " + error.message);
+        setMessage("Erreur session : " + error.message);
         return;
       }
 
-      window.location.href = "/";
+      if (data.session) {
+        window.location.href = "/";
+        return;
+      }
+
+      setMessage("Aucune session trouvée après le lien magique.");
     }
 
     handleAuth();
@@ -34,6 +49,7 @@ export default function AuthCallback() {
     <main style={{ padding: 20 }}>
       <h1>Pool NFL 🏈</h1>
       <p>{message}</p>
+      <p style={{ wordBreak: "break-all" }}>URL reçue : {debug}</p>
     </main>
   );
 }
