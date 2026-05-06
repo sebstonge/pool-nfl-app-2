@@ -55,6 +55,7 @@ export default function Home() {
       <p><a href="/tous-les-choix">Tous les choix</a></p>
       <p><a href="/qb">Choisir mon QB</a></p>
       <p><a href="/classements">Classements</a></p>
+      <p><a href="/admin">Admin</a></p>
 
       <hr style={{ margin: "20px 0" }} />
 
