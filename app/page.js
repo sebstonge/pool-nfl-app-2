@@ -54,6 +54,7 @@ export default function Home() {
       <p><a href="/matchs">Mes choix</a></p>
       <p><a href="/tous-les-choix">Tous les choix</a></p>
       <p><a href="/qb">Choisir mon QB</a></p>
+      <p><a href="/classements">Classements</a></p>
 
       <hr style={{ margin: "20px 0" }} />
 
