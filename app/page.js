@@ -46,39 +46,67 @@ export default function Home() {
   };
 
   return (
-    <main style={{ padding: 20 }}>
-      <h1>Pool NFL 🏈</h1>
+    <main className="page">
+      <section className="header-card">
+        <h1>Pool NFL 🏈</h1>
+        <p>Choix des matchs, QB de la semaine et classements.</p>
+      </section>
 
       {user ? (
         <>
-          <p>Connecté : {user.email} ✅</p>
+          <section className="card">
+            <p className="status-ok">Connecté : {user.email} ✅</p>
+            <button className="button-secondary" onClick={handleLogout}>
+              Se déconnecter
+            </button>
+          </section>
 
-          <p><a href="/matchs">Mes choix</a></p>
-          <p><a href="/tous-les-choix">Tous les choix</a></p>
-          <p><a href="/qb">Choisir mon QB</a></p>
-          <p><a href="/classements">Classements</a></p>
-          <p><a href="/admin">Admin</a></p>
+          <section className="nav-grid">
+            <a className="nav-card" href="/matchs">
+              📝 Mes choix
+              <span>Choisir les gagnants et les écarts</span>
+            </a>
 
-          <button onClick={handleLogout} style={{ padding: 10 }}>
-            Se déconnecter
-          </button>
+            <a className="nav-card" href="/tous-les-choix">
+              👀 Tous les choix
+              <span>Voir les prédictions des autres joueurs</span>
+            </a>
+
+            <a className="nav-card" href="/qb">
+              🎯 Choisir mon QB
+              <span>Un QB par semaine, sans réutilisation</span>
+            </a>
+
+            <a className="nav-card" href="/classements">
+              🏆 Classements
+              <span>Hebdomadaire et général</span>
+            </a>
+
+            <a className="nav-card" href="/admin">
+              ⚙️ Admin
+              <span>Scores, QB ratings et calculs</span>
+            </a>
+          </section>
         </>
       ) : (
-        <>
+        <section className="card">
+          <h2>Connexion</h2>
+          <p>Entre ton email pour recevoir un lien magique.</p>
+
           <input
+            className="input"
             type="email"
             placeholder="Ton email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            style={{ padding: 10, marginRight: 10 }}
           />
 
-          <button onClick={handleLogin} style={{ padding: 10 }}>
+          <button className="button" onClick={handleLogin}>
             Se connecter
           </button>
 
-          <p>{message}</p>
-        </>
+          {message && <p>{message}</p>}
+        </section>
       )}
     </main>
   );
