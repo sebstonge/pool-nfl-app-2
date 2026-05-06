@@ -12,17 +12,22 @@ export default function Home() {
       email: email,
     });
 
-if (error) {
-  setMessage("Erreur ❌ " + error.message);
-  console.error(error);
-} else {
-  setMessage("Email envoyé 📩 Vérifie ta boîte");
-}
+    if (error) {
+      setMessage("Erreur ❌ " + error.message);
+      console.error(error);
+    } else {
+      setMessage("Email envoyé 📩 Vérifie ta boîte");
+    }
   };
 
   return (
     <main style={{ padding: 20 }}>
       <h1>Pool NFL 🏈</h1>
+
+      {/* 🔍 DEBUG URL */}
+      <p>
+        URL utilisée : {process.env.NEXT_PUBLIC_SUPABASE_URL}
+      </p>
 
       <input
         type="email"
