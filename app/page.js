@@ -51,13 +51,9 @@ export default function Home() {
 
       <p>Mode développement</p>
 
-      <p>
-        <a href="/matchs">Mes choix</a>
-      </p>
-
-      <p>
-        <a href="/tous-les-choix">Tous les choix</a>
-      </p>
+      <p><a href="/matchs">Mes choix</a></p>
+      <p><a href="/tous-les-choix">Tous les choix</a></p>
+      <p><a href="/qb">Choisir mon QB</a></p>
 
       <hr style={{ margin: "20px 0" }} />
 
