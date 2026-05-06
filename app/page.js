@@ -12,12 +12,12 @@ export default function Home() {
       email: email,
     });
 
-    if (error) {
-      setMessage("Erreur ❌");
-      console.error(error);
-    } else {
-      setMessage("Email envoyé 📩 Vérifie ta boîte");
-    }
+if (error) {
+  setMessage("Erreur ❌ " + error.message);
+  console.error(error);
+} else {
+  setMessage("Email envoyé 📩 Vérifie ta boîte");
+}
   };
 
   return (
