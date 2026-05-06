@@ -6,48 +6,54 @@ import { supabase } from "../../lib/supabase";
 export default function Matchs() {
   const [user, setUser] = useState(null);
   const [games, setGames] = useState([]);
-  const [picks, setPicks] = useState({});
+  const [savedPicks, setSavedPicks] = useState({});
+  const [draftPicks, setDraftPicks] = useState({});
   const [message, setMessage] = useState("");
 
-  useEffect(() => {
-    async function load() {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const currentUser = sessionData.session?.user ?? null;
-      setUser(currentUser);
+  async function loadData() {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const currentUser = sessionData.session?.user ?? null;
+    setUser(currentUser);
 
-      const { data: gamesData, error: gamesError } = await supabase
-        .from("games")
+    const { data: gamesData, error: gamesError } = await supabase
+      .from("games")
+      .select("*")
+      .eq("is_pool_eligible", true)
+      .order("game_date", { ascending: true });
+
+    if (gamesError) {
+      setMessage("Erreur matchs : " + gamesError.message);
+      return;
+    }
+
+    setGames(gamesData || []);
+
+    if (currentUser) {
+      const { data: picksData, error: picksError } = await supabase
+        .from("picks")
         .select("*")
-        .eq("is_pool_eligible", true)
-        .order("game_date", { ascending: true });
+        .eq("user_id", currentUser.id);
 
-      if (gamesError) {
-        setMessage("Erreur matchs : " + gamesError.message);
+      if (picksError) {
+        setMessage("Erreur choix : " + picksError.message);
         return;
       }
 
-      setGames(gamesData || []);
+      const picksByGame = {};
+      (picksData || []).forEach((pick) => {
+        picksByGame[pick.game_id] = pick;
+      });
 
-      if (currentUser) {
-        const { data: picksData } = await supabase
-          .from("picks")
-          .select("*")
-          .eq("user_id", currentUser.id);
-
-        const picksByGame = {};
-        (picksData || []).forEach((pick) => {
-          picksByGame[pick.game_id] = pick;
-        });
-
-        setPicks(picksByGame);
-      }
+      setSavedPicks(picksByGame);
     }
+  }
 
-    load();
+  useEffect(() => {
+    loadData();
   }, []);
 
-  const updateLocalPick = (gameId, field, value) => {
-    setPicks((prev) => ({
+  const updateDraftPick = (gameId, field, value) => {
+    setDraftPicks((prev) => ({
       ...prev,
       [gameId]: {
         ...prev[gameId],
@@ -62,9 +68,13 @@ export default function Matchs() {
       return;
     }
 
-    const pick = picks[game.id];
+    const pick = draftPicks[game.id];
 
-    if (!pick?.picked_team || pick.predicted_spread === undefined || pick.predicted_spread === "") {
+    if (
+      !pick?.picked_team ||
+      pick.predicted_spread === undefined ||
+      pick.predicted_spread === ""
+    ) {
       setMessage("Choisis une équipe et un écart avant de sauvegarder.");
       return;
     }
@@ -79,96 +89,134 @@ export default function Matchs() {
 
     if (error) {
       setMessage("Erreur sauvegarde : " + error.message);
-    } else {
-      setMessage("Choix sauvegardé ✅");
+      return;
     }
+
+    setMessage("Choix sauvegardé ✅");
+    await loadData();
   };
 
+  const gamesToPick = games.filter((game) => !savedPicks[game.id]);
+  const submittedGames = games.filter((game) => savedPicks[game.id]);
+
   return (
-    <main style={{ padding: 20 }}>
-      <h1>Mes choix</h1>
+    <main className="page">
+      <section className="header-card">
+        <h1>Mes choix 📝</h1>
+        <p>Choisis le gagnant et l’écart prédit.</p>
+      </section>
 
       <p>
-        <a href="/">Retour accueil</a>
+        <a href="/">← Retour accueil</a>
       </p>
 
       {!user && (
-        <p style={{ color: "darkred" }}>
-          Mode lecture seulement : connecte-toi pour sauvegarder tes choix.
-        </p>
+        <section className="card">
+          <p className="status-error">
+            Connecte-toi pour sauvegarder tes choix.
+          </p>
+        </section>
       )}
 
-      {message && <p>{message}</p>}
+      {message && (
+        <section className="card">
+          <p>{message}</p>
+        </section>
+      )}
 
-      {games.map((game) => {
-        const pick = picks[game.id] || {};
+      <section className="card">
+        <h2>À faire</h2>
+        <p>
+          {gamesToPick.length} match{gamesToPick.length > 1 ? "s" : ""} restant
+          {gamesToPick.length > 1 ? "s" : ""}.
+        </p>
+      </section>
+
+      {gamesToPick.length === 0 && (
+        <section className="card">
+          <h2>Tout est soumis ✅</h2>
+          <p>Tu as fait tous tes choix pour les matchs admissibles.</p>
+        </section>
+      )}
+
+      {gamesToPick.map((game) => {
+        const pick = draftPicks[game.id] || {};
 
         return (
-          <div
-            key={game.id}
-            style={{
-              border: "1px solid #ddd",
-              borderRadius: 10,
-              padding: 15,
-              marginBottom: 15,
-              maxWidth: 500,
-            }}
-          >
+          <section key={game.id} className="card">
             <h2 style={{ marginTop: 0 }}>
               {game.away_team} @ {game.home_team}
             </h2>
 
             <p>Semaine {game.week}</p>
 
-            <div style={{ marginBottom: 10 }}>
+            <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
               <button
                 onClick={() =>
-                  updateLocalPick(game.id, "picked_team", game.away_team)
+                  updateDraftPick(game.id, "picked_team", game.away_team)
                 }
-                style={{
-                  padding: 10,
-                  marginRight: 10,
-                  fontWeight:
-                    pick.picked_team === game.away_team ? "bold" : "normal",
-                }}
+                className={
+                  pick.picked_team === game.away_team
+                    ? "button"
+                    : "button-secondary"
+                }
               >
                 {game.away_team}
               </button>
 
               <button
                 onClick={() =>
-                  updateLocalPick(game.id, "picked_team", game.home_team)
+                  updateDraftPick(game.id, "picked_team", game.home_team)
                 }
-                style={{
-                  padding: 10,
-                  fontWeight:
-                    pick.picked_team === game.home_team ? "bold" : "normal",
-                }}
+                className={
+                  pick.picked_team === game.home_team
+                    ? "button"
+                    : "button-secondary"
+                }
               >
                 {game.home_team}
               </button>
             </div>
 
             <input
+              className="input"
               type="number"
               placeholder="Écart prédit"
               value={pick.predicted_spread ?? ""}
               onChange={(e) =>
-                updateLocalPick(
-                  game.id,
-                  "predicted_spread",
-                  e.target.value
-                )
+                updateDraftPick(game.id, "predicted_spread", e.target.value)
               }
-              style={{ padding: 10, marginRight: 10, width: 130 }}
             />
 
-            <button onClick={() => savePick(game)} style={{ padding: 10 }}>
-              Sauvegarder
+            <button className="button" onClick={() => savePick(game)}>
+              Soumettre ce choix
             </button>
-          </div>
+          </section>
         );
       })}
+
+      {submittedGames.length > 0 && (
+        <>
+          <section className="card">
+            <h2>Choix soumis ✅</h2>
+          </section>
+
+          {submittedGames.map((game) => {
+            const pick = savedPicks[game.id];
+
+            return (
+              <section key={game.id} className="card">
+                <strong>
+                  {game.away_team} @ {game.home_team}
+                </strong>
+                <p>
+                  Ton choix : {pick.picked_team} par {pick.predicted_spread}
+                </p>
+              </section>
+            );
+          })}
+        </>
+      )}
     </main>
   );
 }
