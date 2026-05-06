@@ -11,19 +11,38 @@ export default function AuthCallback() {
       const url = new URL(window.location.href);
       const code = url.searchParams.get("code");
 
-      if (!code) {
-        setMessage("Erreur : aucun code trouvé dans le lien.");
+      if (code) {
+        const { error } = await supabase.auth.exchangeCodeForSession(code);
+
+        if (error) {
+          setMessage("Erreur code : " + error.message);
+          return;
+        }
+
+        window.location.href = "/";
         return;
       }
 
-      const { error } = await supabase.auth.exchangeCodeForSession(code);
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const accessToken = hashParams.get("access_token");
+      const refreshToken = hashParams.get("refresh_token");
 
-      if (error) {
-        setMessage("Erreur de connexion : " + error.message);
+      if (accessToken && refreshToken) {
+        const { error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+
+        if (error) {
+          setMessage("Erreur token : " + error.message);
+          return;
+        }
+
+        window.location.href = "/";
         return;
       }
 
-      window.location.href = "/";
+      setMessage("Erreur : aucun code ou token trouvé dans le lien.");
     }
 
     handleAuth();
