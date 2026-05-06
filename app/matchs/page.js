@@ -124,18 +124,13 @@ export default function Matchs() {
         </section>
       )}
 
-      <section className="card">
-        <h2>À faire</h2>
-        <p>
-          {gamesToPick.length} match{gamesToPick.length > 1 ? "s" : ""} restant
-          {gamesToPick.length > 1 ? "s" : ""}.
-        </p>
-      </section>
-
-      {gamesToPick.length === 0 && (
+      {gamesToPick.length > 0 && (
         <section className="card">
-          <h2>Tout est soumis ✅</h2>
-          <p>Tu as fait tous tes choix pour les matchs admissibles.</p>
+          <h2>À faire</h2>
+          <p>
+            {gamesToPick.length} match{gamesToPick.length > 1 ? "s" : ""} à
+            compléter.
+          </p>
         </section>
       )}
 
