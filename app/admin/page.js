@@ -39,25 +39,15 @@ export default function AdminPage() {
       return;
     }
 
-    const { data: qbPicks, error: qbPicksError } = await supabase
+    const { data: qbPicks } = await supabase
       .from("qb_picks")
       .select("*")
       .eq("week", currentWeek);
 
-    if (qbPicksError) {
-      setMessage("Erreur QB picks : " + qbPicksError.message);
-      return;
-    }
-
-    const { data: qbRatings, error: qbRatingsError } = await supabase
+    const { data: qbRatings } = await supabase
       .from("qb_ratings")
       .select("*")
       .eq("week", currentWeek);
-
-    if (qbRatingsError) {
-      setMessage("Erreur QB ratings : " + qbRatingsError.message);
-      return;
-    }
 
     const scoresByUser = {};
 
@@ -68,9 +58,7 @@ export default function AdminPage() {
 
         if (
           game.home_score === null ||
-          game.away_score === null ||
-          game.home_score === undefined ||
-          game.away_score === undefined
+          game.away_score === null
         ) {
           return;
         }
@@ -104,29 +92,28 @@ export default function AdminPage() {
 
     const weeklyScoreRows = Object.entries(scoresByUser).map(
       ([userId, basePoints]) => {
-        const qbPick = qbPicks.find((pick) => pick.user_id === userId);
+        const qbPick = qbPicks.find((p) => p.user_id === userId);
         const qbRating = qbRatings.find(
-          (rating) => rating.qb_id === qbPick?.qb_id
+          (r) => r.qb_id === qbPick?.qb_id
         );
 
         const passerRating = Number(qbRating?.passer_rating || 0);
         const multiplier = passerRating > 0 ? passerRating / 100 : 1;
-        const finalScore = basePoints * multiplier;
+
+        // 🔥 précision 3 décimales ici
+        const finalScore = Number(
+          (basePoints * multiplier).toFixed(3)
+        );
 
         return {
           user_id: userId,
           week: currentWeek,
           base_points: basePoints,
-          multiplier: multiplier,
+          multiplier: Number(multiplier.toFixed(3)),
           final_score: finalScore,
         };
       }
     );
-
-    if (weeklyScoreRows.length === 0) {
-      setMessage("Aucun score à calculer. Vérifie les picks et les scores des matchs.");
-      return;
-    }
 
     const { error: upsertError } = await supabase
       .from("weekly_scores")
@@ -135,7 +122,7 @@ export default function AdminPage() {
       });
 
     if (upsertError) {
-      setMessage("Erreur sauvegarde scores : " + upsertError.message);
+      setMessage("Erreur : " + upsertError.message);
       return;
     }
 
