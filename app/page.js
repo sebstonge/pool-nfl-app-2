@@ -49,17 +49,21 @@ export default function Home() {
     <main style={{ padding: 20 }}>
       <h1>Pool NFL 🏈</h1>
 
-      <p>Mode développement</p>
+      {user ? (
+        <>
+          <p>Connecté : {user.email} ✅</p>
 
-      <p><a href="/matchs">Mes choix</a></p>
-      <p><a href="/tous-les-choix">Tous les choix</a></p>
-      <p><a href="/qb">Choisir mon QB</a></p>
-      <p><a href="/classements">Classements</a></p>
-      <p><a href="/admin">Admin</a></p>
+          <p><a href="/matchs">Mes choix</a></p>
+          <p><a href="/tous-les-choix">Tous les choix</a></p>
+          <p><a href="/qb">Choisir mon QB</a></p>
+          <p><a href="/classements">Classements</a></p>
+          <p><a href="/admin">Admin</a></p>
 
-      <hr style={{ margin: "20px 0" }} />
-
-      {!user ? (
+          <button onClick={handleLogout} style={{ padding: 10 }}>
+            Se déconnecter
+          </button>
+        </>
+      ) : (
         <>
           <input
             type="email"
@@ -74,14 +78,6 @@ export default function Home() {
           </button>
 
           <p>{message}</p>
-        </>
-      ) : (
-        <>
-          <p>Connecté : {user.email} ✅</p>
-
-          <button onClick={handleLogout} style={{ padding: 10 }}>
-            Se déconnecter
-          </button>
         </>
       )}
     </main>
