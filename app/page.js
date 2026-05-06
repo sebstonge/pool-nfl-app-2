@@ -36,22 +36,32 @@ export default function Home() {
     if (error) {
       setMessage("Erreur ❌ " + error.message);
     } else {
-      setMessage("Email envoyé 📩");
+      setMessage("Email envoyé 📩 Vérifie ta boîte");
     }
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
   };
 
   return (
     <main style={{ padding: 20 }}>
       <h1>Pool NFL 🏈</h1>
 
-      {/* 🔥 ACCÈS LIBRE EN DEV */}
-      <p>Mode développement 👇</p>
+      <p>Mode développement</p>
 
-      <a href="/matchs">Voir les matchs</a>
+      <p>
+        <a href="/matchs">Mes choix</a>
+      </p>
+
+      <p>
+        <a href="/tous-les-choix">Tous les choix</a>
+      </p>
 
       <hr style={{ margin: "20px 0" }} />
 
-      {!user && (
+      {!user ? (
         <>
           <input
             type="email"
@@ -67,9 +77,15 @@ export default function Home() {
 
           <p>{message}</p>
         </>
-      )}
+      ) : (
+        <>
+          <p>Connecté : {user.email} ✅</p>
 
-      {user && <p>Connecté : {user.email} ✅</p>}
+          <button onClick={handleLogout} style={{ padding: 10 }}>
+            Se déconnecter
+          </button>
+        </>
+      )}
     </main>
   );
 }
