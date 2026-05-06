@@ -58,6 +58,7 @@ export default function ClassementsPage() {
 
       {message && <p>{message}</p>}
 
+      {/* Classement général */}
       <section style={{ marginBottom: 30 }}>
         <h2>Classement général</h2>
 
@@ -78,11 +79,12 @@ export default function ClassementsPage() {
               #{index + 1} — Joueur : {player.user_id}
             </strong>
             <br />
-            Total : {player.total.toFixed(2)}
+            Total : {player.total.toFixed(3)}
           </div>
         ))}
       </section>
 
+      {/* Classement hebdomadaire */}
       <section>
         <h2>Classement hebdomadaire</h2>
 
@@ -107,9 +109,9 @@ export default function ClassementsPage() {
                 <br />
                 Points matchs : {score.base_points}
                 <br />
-                Multiplicateur QB : {score.multiplier}
+                Multiplicateur QB : {Number(score.multiplier).toFixed(3)}
                 <br />
-                Score final : {Number(score.final_score || 0).toFixed(2)}
+                Score final : {Number(score.final_score || 0).toFixed(3)}
               </div>
             ))}
           </div>
