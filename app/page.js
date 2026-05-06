@@ -4,20 +4,17 @@ import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 
 export default function Home() {
-  const [status, setStatus] = useState("Connexion en cours...");
+  const [status, setStatus] = useState("Test en cours...");
 
   useEffect(() => {
     async function testConnection() {
-      const { data, error } = await supabase
-        .from("settings")
-        .select("*")
-        .limit(1);
+      const { data, error } = await supabase.auth.getSession();
 
       if (error) {
         setStatus("Erreur Supabase ❌");
         console.error(error);
       } else {
-        setStatus("Connexion Supabase OK ✅");
+        setStatus("Supabase connecté ✅");
         console.log(data);
       }
     }
