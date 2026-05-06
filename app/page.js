@@ -1,31 +1,42 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { supabase } from "../lib/supabase";
 
 export default function Home() {
-  const [status, setStatus] = useState("Test en cours...");
+  const [email, setEmail] = useState("");
+  const [message, setMessage] = useState("");
 
-  useEffect(() => {
-    async function testConnection() {
-      const { data, error } = await supabase.auth.getSession();
+  const handleLogin = async () => {
+    const { error } = await supabase.auth.signInWithOtp({
+      email: email,
+    });
 
-      if (error) {
-        setStatus("Erreur Supabase ❌");
-        console.error(error);
-      } else {
-        setStatus("Supabase connecté ✅");
-        console.log(data);
-      }
+    if (error) {
+      setMessage("Erreur ❌");
+      console.error(error);
+    } else {
+      setMessage("Email envoyé 📩 Vérifie ta boîte");
     }
-
-    testConnection();
-  }, []);
+  };
 
   return (
     <main style={{ padding: 20 }}>
       <h1>Pool NFL 🏈</h1>
-      <p>{status}</p>
+
+      <input
+        type="email"
+        placeholder="Ton email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        style={{ padding: 10, marginRight: 10 }}
+      />
+
+      <button onClick={handleLogin} style={{ padding: 10 }}>
+        Se connecter
+      </button>
+
+      <p>{message}</p>
     </main>
   );
 }
