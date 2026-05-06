@@ -1,78 +1,30 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { supabase } from "../lib/supabase";
+import { useEffect } from "react";
+import { supabase } from "../../../lib/supabase";
 
-export default function Home() {
-  const [user, setUser] = useState(null);
-  const [email, setEmail] = useState("");
-  const [message, setMessage] = useState("");
-
+export default function AuthCallback() {
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setUser(data.session?.user ?? null);
-    });
+    async function handleAuth() {
+      const { error } = await supabase.auth.exchangeCodeForSession(
+        window.location.href
+      );
 
-    const { data: listener } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setUser(session?.user ?? null);
+      if (error) {
+        console.error("Erreur callback:", error);
       }
-    );
 
-    return () => {
-      listener.subscription.unsubscribe();
-    };
-  }, []);
-
-  const handleLogin = async () => {
-    const { error } = await supabase.auth.signInWithOtp({
-      email: email,
-      options: {
-        emailRedirectTo: "https://pool-nfl-app-2.vercel.app/auth/callback",
-      },
-    });
-
-    if (error) {
-      setMessage("Erreur ❌ " + error.message);
-    } else {
-      setMessage("Email envoyé 📩 Vérifie ta boîte");
+      // redirige vers la page principale
+      window.location.href = "/";
     }
-  };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-  };
+    handleAuth();
+  }, []);
 
   return (
     <main style={{ padding: 20 }}>
-      <h1>Pool NFL 🏈</h1>
-
-      {!user ? (
-        <>
-          <input
-            type="email"
-            placeholder="Ton email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            style={{ padding: 10, marginRight: 10 }}
-          />
-
-          <button onClick={handleLogin} style={{ padding: 10 }}>
-            Se connecter
-          </button>
-
-          <p>{message}</p>
-        </>
-      ) : (
-        <>
-          <p>Connecté : {user.email} ✅</p>
-
-          <button onClick={handleLogout} style={{ padding: 10 }}>
-            Se déconnecter
-          </button>
-        </>
-      )}
+      <h1>Connexion en cours...</h1>
+      <p>Finalisation du login...</p>
     </main>
   );
 }
