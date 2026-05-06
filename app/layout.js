@@ -1,3 +1,5 @@
+import "./globals.css";
+
 export const metadata = {
   title: "Pool NFL",
   description: "Application de pool NFL",
