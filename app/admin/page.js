@@ -23,16 +23,14 @@ export default function AdminPage() {
         .eq("id", currentUser.id)
         .single();
 
-      if (data?.is_admin) {
-        setIsAdmin(true);
-      }
+      if (data?.is_admin) setIsAdmin(true);
     }
 
     checkAdmin();
   }, []);
 
   const updateEspnScores = async () => {
-    setMessage("Mise à jour ESPN en cours...");
+    setMessage("Mise à jour ESPN des scores en cours...");
 
     const { data: settingsData, error: settingsError } = await supabase
       .from("settings")
@@ -62,8 +60,6 @@ export default function AdminPage() {
     let updatedCount = 0;
 
     for (const event of espnData.events) {
-      const externalGameId = event.id;
-
       const competition = event.competitions?.[0];
       const competitors = competition?.competitors || [];
 
@@ -72,27 +68,188 @@ export default function AdminPage() {
 
       if (!home || !away) continue;
 
-      const homeScore = Number(home.score);
-      const awayScore = Number(away.score);
-
       const completed = competition.status?.type?.completed === true;
-
       if (!completed) continue;
 
       const { error } = await supabase
         .from("games")
         .update({
-          home_score: homeScore,
-          away_score: awayScore,
+          home_score: Number(home.score),
+          away_score: Number(away.score),
         })
-        .eq("external_game_id", externalGameId);
+        .eq("external_game_id", event.id);
 
-      if (!error) {
+      if (!error) updatedCount++;
+    }
+
+    setMessage(`Scores ESPN mis à jour ✅ (${updatedCount} matchs)`);
+  };
+
+  const updateEspnQBRatings = async () => {
+    setMessage("Mise à jour ESPN des QB ratings en cours...");
+
+    const { data: settingsData, error: settingsError } = await supabase
+      .from("settings")
+      .select("*")
+      .single();
+
+    if (settingsError) {
+      setMessage("Erreur settings : " + settingsError.message);
+      return;
+    }
+
+    const currentWeek = settingsData.current_week;
+
+    const { data: qbPicks, error: qbPicksError } = await supabase
+      .from("qb_picks")
+      .select(`
+        *,
+        qbs (
+          id,
+          name,
+          team,
+          espn_athlete_id
+        )
+      `)
+      .eq("week", currentWeek);
+
+    if (qbPicksError) {
+      setMessage("Erreur qb_picks : " + qbPicksError.message);
+      return;
+    }
+
+    const { data: games, error: gamesError } = await supabase
+      .from("games")
+      .select("*")
+      .eq("week", currentWeek);
+
+    if (gamesError) {
+      setMessage("Erreur games : " + gamesError.message);
+      return;
+    }
+
+    let updatedCount = 0;
+    let notFound = [];
+
+    for (const pick of qbPicks || []) {
+      const selectedQB = pick.qbs;
+
+      if (!selectedQB?.team) {
+        notFound.push(selectedQB?.name || "QB sans équipe");
+        continue;
+      }
+
+      const qbTeam = selectedQB.team.toLowerCase();
+
+      const game = games.find((g) => {
+        const home = (g.home_team || "").toLowerCase();
+        const away = (g.away_team || "").toLowerCase();
+
+        return home.includes(qbTeam) || away.includes(qbTeam);
+      });
+
+      if (!game?.external_game_id) {
+        notFound.push(selectedQB.name);
+        continue;
+      }
+
+      const summaryUrl =
+        `https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary` +
+        `?event=${game.external_game_id}`;
+
+      const response = await fetch(summaryUrl);
+      const summary = await response.json();
+
+      const boxscoreTeams = summary.boxscore?.players || [];
+
+      let passingAthletes = [];
+
+      for (const teamBox of boxscoreTeams) {
+        const teamName =
+          teamBox.team?.shortDisplayName ||
+          teamBox.team?.displayName ||
+          teamBox.team?.name ||
+          "";
+
+        const teamMatches = teamName.toLowerCase().includes(qbTeam);
+
+        if (!teamMatches) continue;
+
+        const passingCategory = teamBox.statistics?.find(
+          (category) =>
+            category.name === "passing" ||
+            category.displayName === "Passing"
+        );
+
+        if (!passingCategory) continue;
+
+        const labels = passingCategory.labels || [];
+        const ratingIndex =
+          labels.findIndex((label) =>
+            ["RTG", "RAT", "RATE"].includes(String(label).toUpperCase())
+          );
+
+        if (ratingIndex === -1) continue;
+
+        passingAthletes = passingCategory.athletes
+          .map((athleteRow) => ({
+            id: athleteRow.athlete?.id,
+            name: athleteRow.athlete?.displayName,
+            rating: Number(athleteRow.stats?.[ratingIndex]),
+          }))
+          .filter((row) => !Number.isNaN(row.rating));
+      }
+
+      if (passingAthletes.length === 0) {
+        notFound.push(selectedQB.name);
+        continue;
+      }
+
+      let actualQB = passingAthletes[0];
+
+      if (selectedQB.espn_athlete_id) {
+        const exactMatch = passingAthletes.find(
+          (athlete) => athlete.id === selectedQB.espn_athlete_id
+        );
+
+        if (exactMatch) actualQB = exactMatch;
+      } else {
+        const nameMatch = passingAthletes.find((athlete) =>
+          athlete.name?.toLowerCase().includes(selectedQB.name.toLowerCase())
+        );
+
+        if (nameMatch) actualQB = nameMatch;
+      }
+
+      const { error: upsertError } = await supabase
+        .from("qb_ratings")
+        .upsert(
+          {
+            qb_id: selectedQB.id,
+            week: currentWeek,
+            passer_rating: actualQB.rating,
+            actual_qb_name: actualQB.name,
+            actual_espn_athlete_id: actualQB.id,
+          },
+          {
+            onConflict: "qb_id,week",
+          }
+        );
+
+      if (upsertError) {
+        notFound.push(`${selectedQB.name} (${upsertError.message})`);
+      } else {
         updatedCount++;
       }
     }
 
-    setMessage(`Scores ESPN mis à jour ✅ (${updatedCount} matchs)`);
+    let finalMessage = `QB ratings ESPN mis à jour ✅ (${updatedCount})`;
+
+    if (notFound.length > 0) {
+      finalMessage += ` | Non trouvés : ${notFound.join(", ")}`;
+    }
+
+    setMessage(finalMessage);
   };
 
   const calculateScores = async () => {
@@ -232,8 +389,18 @@ export default function AdminPage() {
         <a href="/">Retour accueil</a>
       </p>
 
-      <button onClick={updateEspnScores} style={{ padding: 12, marginRight: 10 }}>
+      <button
+        onClick={updateEspnScores}
+        style={{ padding: 12, marginRight: 10, marginBottom: 10 }}
+      >
         Mettre à jour les scores ESPN
+      </button>
+
+      <button
+        onClick={updateEspnQBRatings}
+        style={{ padding: 12, marginRight: 10, marginBottom: 10 }}
+      >
+        Mettre à jour les QB ratings ESPN
       </button>
 
       <button onClick={calculateScores} style={{ padding: 12 }}>
