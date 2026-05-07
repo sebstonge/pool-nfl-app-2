@@ -48,6 +48,10 @@ export default function QBRatingsPage() {
 
   useEffect(() => {
     async function loadData() {
+      const { data: usersData } = await supabase
+        .from("users")
+        .select("*");
+
       const { data: qbsData, error: qbsError } = await supabase
         .from("qbs")
         .select("*")
@@ -69,14 +73,7 @@ export default function QBRatingsPage() {
 
       const { data: qbPicksData, error: picksError } = await supabase
         .from("qb_picks")
-        .select(`
-          qb_id,
-          week,
-          user_id,
-          users (
-            email
-          )
-        `);
+        .select("*");
 
       if (picksError) {
         setMessage("Erreur picks QB : " + picksError.message);
@@ -86,32 +83,38 @@ export default function QBRatingsPage() {
       const builtRows = (qbsData || [])
         .map((qb) => {
           const qbRatings = (ratingsData || [])
-            .filter((r) => r.qb_id === qb.id && r.passer_rating != null)
-            .sort(
-              (a, b) =>
-                Number(b.passer_rating) - Number(a.passer_rating)
-            );
+            .filter((r) => r.qb_id === qb.id && r.passer_rating != null);
 
-          const best = qbRatings[0] || null;
+          const best =
+            [...qbRatings].sort(
+              (a, b) =>
+                Number(b.passer_rating) -
+                Number(a.passer_rating)
+            )[0] || null;
+
           const worst =
-            qbRatings.length > 0
-              ? [...qbRatings].sort(
-                  (a, b) =>
-                    Number(a.passer_rating) -
-                    Number(b.passer_rating)
-                )[0]
-              : null;
+            [...qbRatings].sort(
+              (a, b) =>
+                Number(a.passer_rating) -
+                Number(b.passer_rating)
+            )[0] || null;
 
           const attachSelector = (rating) => {
             if (!rating) return null;
 
             const pick = (qbPicksData || []).find(
-              (p) => p.qb_id === qb.id && p.week === rating.week
+              (p) =>
+                p.qb_id === qb.id &&
+                p.week === rating.week
+            );
+
+            const user = (usersData || []).find(
+              (u) => u.id === pick?.user_id
             );
 
             return {
               ...rating,
-              selected_by: shortName(pick?.users?.email),
+              selected_by: shortName(user?.email),
             };
           };
 
@@ -258,6 +261,7 @@ export default function QBRatingsPage() {
               <strong style={{ fontSize: 20 }}>
                 {row.qb.name}
               </strong>
+
               <p
                 style={{
                   margin: "4px 0 0 0",
