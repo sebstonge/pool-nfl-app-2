@@ -21,7 +21,7 @@ function RankingCard({ title, players, type }) {
   const leaderScore = players[0]?.score || 0;
 
   return (
-    <section className="card" style={{ flex: 1 }}>
+    <section className="card">
       <h2 style={{ marginTop: 0 }}>{title}</h2>
 
       {players.length === 0 && <p>Aucun score pour le moment.</p>}
@@ -39,7 +39,7 @@ function RankingCard({ title, players, type }) {
             style={{
               padding: "14px 0",
               borderBottom:
-                index === players.length - 1 ? "none" : "1px solid #e5e7eb",
+                index === players.length - 1 ? "none" : "1px solid #1e293b",
             }}
           >
             <div
@@ -47,7 +47,7 @@ function RankingCard({ title, players, type }) {
                 display: "flex",
                 justifyContent: "space-between",
                 gap: 12,
-                alignItems: "flex-start",
+                alignItems: "center",
               }}
             >
               <div>
@@ -56,28 +56,29 @@ function RankingCard({ title, players, type }) {
                 </strong>
 
                 {type === "season" && (
-                  <p style={{ margin: "4px 0 0 0", color: "#6b7280" }}>
+                  <p style={{ margin: "4px 0 0 0", color: "#94a3b8" }}>
                     Moyenne : {Number(player.average || 0).toFixed(3)} / semaine
                   </p>
                 )}
 
                 {type === "season" && (
-                  <p style={{ margin: "4px 0 0 0", color: "#6b7280" }}>
+                  <p style={{ margin: "4px 0 0 0", color: "#94a3b8" }}>
                     Mouvement : {movement(index + 1, player.previousRank)}
                   </p>
                 )}
               </div>
 
-              <strong style={{ fontSize: 22 }}>
+              <strong style={{ fontSize: 24, color: "#22c55e" }}>
                 {Number(player.score || 0).toFixed(3)}
               </strong>
             </div>
 
-            <p style={{ margin: "8px 0 0 0", color: "#6b7280" }}>
+            <p style={{ margin: "8px 0 0 0", color: "#94a3b8" }}>
               {index === 0
                 ? "Meneur"
                 : `À ${gapLeader.toFixed(3)} du meneur`}
-              {index > 0 && ` | ${gapPrevious.toFixed(3)} derrière la position précédente`}
+              {index > 0 &&
+                ` | ${gapPrevious.toFixed(3)} derrière la position précédente`}
             </p>
           </div>
         );
@@ -221,33 +222,28 @@ export default function ClassementsPage() {
         />
       </div>
 
-      {weekRanking.length > 0 && (
-        <section className="card" style={{ marginTop: 18 }}>
-          <h2>Détails semaine {currentWeek}</h2>
-
-          {weekRanking.map((player, index) => (
-            <div
-              key={player.user_id}
-              style={{
-                padding: "12px 0",
-                borderBottom:
-                  index === weekRanking.length - 1
-                    ? "none"
-                    : "1px solid #e5e7eb",
-              }}
-            >
-              <strong>
-                {medal(index)} {player.email}
-              </strong>
-              <p style={{ margin: "6px 0 0 0", color: "#6b7280" }}>
-                Points matchs : {player.base_points} | Multiplicateur QB :{" "}
-                {Number(player.multiplier || 1).toFixed(3)} | Final :{" "}
-                {Number(player.score || 0).toFixed(3)}
-              </p>
-            </div>
-          ))}
-        </section>
-      )}
+      <nav className="bottom-nav">
+        <a href="/">
+          <strong>🏠</strong>
+          Accueil
+        </a>
+        <a href="/matchs">
+          <strong>✅</strong>
+          Mes choix
+        </a>
+        <a href="/qb">
+          <strong>🎯</strong>
+          QB
+        </a>
+        <a href="/classements">
+          <strong>🏆</strong>
+          Classements
+        </a>
+        <a href="/tous-les-choix">
+          <strong>👀</strong>
+          Choix
+        </a>
+      </nav>
     </main>
   );
 }
