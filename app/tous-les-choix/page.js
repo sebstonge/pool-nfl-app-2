@@ -4,82 +4,150 @@ import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 
 export default function TousLesChoix() {
+  const [players, setPlayers] = useState([]);
   const [picks, setPicks] = useState([]);
+  const [qbPicks, setQbPicks] = useState([]);
+  const [currentWeek, setCurrentWeek] = useState(null);
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    async function loadPicks() {
-      const { data, error } = await supabase
+    async function loadData() {
+      const { data: settingsData } = await supabase
+        .from("settings")
+        .select("*")
+        .single();
+
+      const week = settingsData?.current_week || 1;
+      setCurrentWeek(week);
+
+      const { data: usersData } = await supabase
+        .from("users")
+        .select("id, email")
+        .order("email", { ascending: true });
+
+      setPlayers(usersData || []);
+
+      const { data: picksData, error: picksError } = await supabase
         .from("picks")
         .select(`
           id,
+          user_id,
           picked_team,
           predicted_spread,
-          user_id,
           games (
             week,
             away_team,
             home_team
           )
-        `)
-        .order("created_at", { ascending: true });
+        `);
 
-      if (error) {
-        setMessage("Erreur : " + error.message);
+      if (picksError) {
+        setMessage("Erreur choix : " + picksError.message);
         return;
       }
 
-      setPicks(data || []);
+      const weekPicks = (picksData || []).filter(
+        (pick) => pick.games?.week === week
+      );
+
+      setPicks(weekPicks);
+
+      const { data: qbData, error: qbError } = await supabase
+        .from("qb_picks")
+        .select(`
+          id,
+          user_id,
+          week,
+          qbs (
+            name,
+            team,
+            logo
+          )
+        `)
+        .eq("week", week);
+
+      if (qbError) {
+        setMessage("Erreur QB : " + qbError.message);
+        return;
+      }
+
+      setQbPicks(qbData || []);
     }
 
-    loadPicks();
+    loadData();
   }, []);
 
-  const grouped = picks.reduce((acc, pick) => {
-    const user = pick.user_id;
-    if (!acc[user]) acc[user] = [];
-    acc[user].push(pick);
-    return acc;
-  }, {});
+  const allUserIds = Array.from(
+    new Set([
+      ...players.map((p) => p.id),
+      ...picks.map((p) => p.user_id),
+      ...qbPicks.map((q) => q.user_id),
+    ])
+  );
 
   return (
-    <main style={{ padding: 20 }}>
-      <h1>Tous les choix</h1>
+    <main className="page">
+      <section className="header-card">
+        <h1>Tous les choix 👀</h1>
+        <p>Semaine {currentWeek}</p>
+      </section>
 
       <p>
-        <a href="/">Retour accueil</a>
+        <a href="/">← Retour accueil</a>
       </p>
 
-      {message && <p>{message}</p>}
-
-      {Object.keys(grouped).length === 0 && (
-        <p>Aucun choix soumis pour le moment.</p>
+      {message && (
+        <section className="card">
+          <p>{message}</p>
+        </section>
       )}
 
-      {Object.entries(grouped).map(([userId, userPicks]) => (
-        <section
-          key={userId}
-          style={{
-            border: "1px solid #ddd",
-            borderRadius: 10,
-            padding: 15,
-            marginBottom: 20,
-            maxWidth: 600,
-          }}
-        >
-          <h2>Joueur : {userId}</h2>
-
-          {userPicks.map((pick) => (
-            <div key={pick.id} style={{ marginBottom: 12 }}>
-              <strong>
-                {pick.games?.away_team} @ {pick.games?.home_team}
-              </strong>
-              <br />
-              Choix : {pick.picked_team} par {pick.predicted_spread}
-            </div>
-          ))}
+      {allUserIds.length === 0 && (
+        <section className="card">
+          <p>Aucun choix soumis pour le moment.</p>
         </section>
-      ))}
+      )}
+
+      {allUserIds.map((userId) => {
+        const player = players.find((p) => p.id === userId);
+        const playerPicks = picks.filter((pick) => pick.user_id === userId);
+        const playerQB = qbPicks.find((qb) => qb.user_id === userId);
+
+        return (
+          <section key={userId} className="card">
+            <h2 style={{ marginTop: 0 }}>
+              {player?.email || "Joueur"}
+            </h2>
+
+            <div style={{ marginBottom: 16 }}>
+              <strong>QB :</strong>{" "}
+              {playerQB?.qbs ? (
+                <span>
+                  {playerQB.qbs.name}
+                </span>
+              ) : (
+                <span className="status-warning">Aucun QB soumis</span>
+              )}
+            </div>
+
+            <hr style={{ border: "none", borderTop: "1px solid #e5e7eb" }} />
+
+            {playerPicks.length === 0 ? (
+              <p className="status-warning">Aucun choix de match soumis.</p>
+            ) : (
+              playerPicks.map((pick) => (
+                <div key={pick.id} style={{ marginBottom: 12 }}>
+                  <strong>
+                    {pick.games?.away_team} @ {pick.games?.home_team}
+                  </strong>
+                  <br />
+                  Choix : {pick.picked_team} par {pick.predicted_spread}
+                </div>
+              ))
+            )}
+          </section>
+        );
+      })}
     </main>
   );
 }
