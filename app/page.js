@@ -6,6 +6,7 @@ import { supabase } from "../lib/supabase";
 export default function Home() {
   const [user, setUser] = useState(null);
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
 
   useEffect(() => {
@@ -24,19 +25,33 @@ export default function Home() {
     };
   }, []);
 
-  const handleLogin = async () => {
-    const { error } = await supabase.auth.signInWithOtp({
-      email: email,
-      options: {
-        emailRedirectTo:
-          "https://pool-nfl-app-2.vercel.app/auth/callback",
-      },
+  const handleSignIn = async () => {
+    setMessage("");
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
     });
 
     if (error) {
-      setMessage("Erreur ❌ " + error.message);
+      setMessage("Erreur connexion ❌ " + error.message);
     } else {
-      setMessage("Email envoyé 📩 Vérifie ta boîte");
+      setMessage("Connexion réussie ✅");
+    }
+  };
+
+  const handleSignUp = async () => {
+    setMessage("");
+
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+    });
+
+    if (error) {
+      setMessage("Erreur création compte ❌ " + error.message);
+    } else {
+      setMessage("Compte créé ✅ Tu peux maintenant te connecter.");
     }
   };
 
@@ -79,7 +94,12 @@ export default function Home() {
 
             <a className="nav-card" href="/classements">
               🏆 Classements
-              <span>Hebdomadaire et général</span>
+              <span>Hebdomadaire et saison</span>
+            </a>
+
+            <a className="nav-card" href="/qb-ratings">
+              📊 QB Ratings
+              <span>Meilleurs et pires passer ratings</span>
             </a>
 
             <a className="nav-card" href="/admin">
@@ -91,7 +111,6 @@ export default function Home() {
       ) : (
         <section className="card">
           <h2>Connexion</h2>
-          <p>Entre ton email pour recevoir un lien magique.</p>
 
           <input
             className="input"
@@ -101,8 +120,24 @@ export default function Home() {
             onChange={(e) => setEmail(e.target.value)}
           />
 
-          <button className="button" onClick={handleLogin}>
+          <input
+            className="input"
+            type="password"
+            placeholder="Mot de passe"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+
+          <button className="button" onClick={handleSignIn}>
             Se connecter
+          </button>
+
+          <button
+            className="button-secondary"
+            onClick={handleSignUp}
+            style={{ marginLeft: 10 }}
+          >
+            Créer mon compte
           </button>
 
           {message && <p>{message}</p>}
