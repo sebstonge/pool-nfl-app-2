@@ -163,18 +163,44 @@ export default function TousLesChoix() {
 
         return (
           <section key={userId} className="card">
-            <h2 style={{ marginTop: 0 }}>{player?.email || "Joueur"}</h2>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                marginBottom: 14,
+              }}
+            >
+              <div
+                style={{
+                  width: 46,
+                  height: 46,
+                  borderRadius: "50%",
+                  background: "#22c55e",
+                  color: "#052e16",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontWeight: 900,
+                }}
+              >
+                {(player?.email || "J").slice(0, 2).toUpperCase()}
+              </div>
 
-            <div style={{ marginBottom: 16 }}>
-              <strong>QB :</strong>{" "}
-              {playerQB?.qbs ? (
-                <span>{playerQB.qbs.name}</span>
-              ) : (
-                <span className="status-warning">Aucun QB soumis</span>
-              )}
+              <div>
+                <h2 style={{ margin: 0 }}>{player?.email || "Joueur"}</h2>
+                <p style={{ margin: "4px 0 0 0", color: "#94a3b8" }}>
+                  QB :{" "}
+                  {playerQB?.qbs ? (
+                    <span>{playerQB.qbs.name}</span>
+                  ) : (
+                    <span className="status-warning">Aucun QB soumis</span>
+                  )}
+                </p>
+              </div>
             </div>
 
-            <hr style={{ border: "none", borderTop: "1px solid #e5e7eb" }} />
+            <hr style={{ border: "none", borderTop: "1px solid #1e293b" }} />
 
             {playerPicks.length === 0 ? (
               <p className="status-warning">Aucun choix de match soumis.</p>
@@ -193,6 +219,29 @@ export default function TousLesChoix() {
           </section>
         );
       })}
+
+      <nav className="bottom-nav">
+        <a href="/">
+          <strong>🏠</strong>
+          Accueil
+        </a>
+        <a href="/matchs">
+          <strong>✅</strong>
+          Mes choix
+        </a>
+        <a href="/qb">
+          <strong>🎯</strong>
+          QB
+        </a>
+        <a href="/classements">
+          <strong>🏆</strong>
+          Classements
+        </a>
+        <a href="/tous-les-choix">
+          <strong>👀</strong>
+          Choix
+        </a>
+      </nav>
     </main>
   );
 }
