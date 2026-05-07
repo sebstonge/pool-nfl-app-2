@@ -49,9 +49,57 @@ function GameResultLine({ game }) {
   );
 }
 
+function TeamButton({ teamName, teamLogo, selected, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className={selected ? "button" : "button-secondary"}
+      style={{
+        padding: 16,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: 8,
+        minHeight: 130,
+      }}
+    >
+      {teamLogo ? (
+        <img
+          src={teamLogo}
+          alt={teamName}
+          style={{
+            width: 62,
+            height: 62,
+            objectFit: "contain",
+          }}
+        />
+      ) : (
+        <div
+          style={{
+            width: 62,
+            height: 62,
+            borderRadius: 14,
+            background: "#f3f4f6",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "#111827",
+            fontWeight: 800,
+          }}
+        >
+          {teamName?.slice(0, 2)}
+        </div>
+      )}
+
+      <strong>{teamName}</strong>
+    </button>
+  );
+}
+
 export default function Matchs() {
   const [user, setUser] = useState(null);
   const [games, setGames] = useState([]);
+  const [teams, setTeams] = useState([]);
   const [savedPicks, setSavedPicks] = useState({});
   const [draftPicks, setDraftPicks] = useState({});
   const [message, setMessage] = useState("");
@@ -73,6 +121,17 @@ export default function Matchs() {
     }
 
     setGames(gamesData || []);
+
+    const { data: teamsData, error: teamsError } = await supabase
+      .from("teams")
+      .select("*");
+
+    if (teamsError) {
+      setMessage("Erreur équipes : " + teamsError.message);
+      return;
+    }
+
+    setTeams(teamsData || []);
 
     if (currentUser) {
       const { data: picksData, error: picksError } = await supabase
@@ -97,6 +156,11 @@ export default function Matchs() {
   useEffect(() => {
     loadData();
   }, []);
+
+  const getTeamLogo = (teamName) => {
+    const team = teams.find((t) => t.name === teamName);
+    return team?.logo || null;
+  };
 
   const updateDraftPick = (gameId, field, value) => {
     setDraftPicks((prev) => ({
@@ -181,32 +245,31 @@ export default function Matchs() {
               {game.away_team} @ {game.home_team}
             </h2>
 
-            <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
-              <button
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: 12,
+                marginBottom: 12,
+              }}
+            >
+              <TeamButton
+                teamName={game.away_team}
+                teamLogo={getTeamLogo(game.away_team)}
+                selected={pick.picked_team === game.away_team}
                 onClick={() =>
                   updateDraftPick(game.id, "picked_team", game.away_team)
                 }
-                className={
-                  pick.picked_team === game.away_team
-                    ? "button"
-                    : "button-secondary"
-                }
-              >
-                {game.away_team}
-              </button>
+              />
 
-              <button
+              <TeamButton
+                teamName={game.home_team}
+                teamLogo={getTeamLogo(game.home_team)}
+                selected={pick.picked_team === game.home_team}
                 onClick={() =>
                   updateDraftPick(game.id, "picked_team", game.home_team)
                 }
-                className={
-                  pick.picked_team === game.home_team
-                    ? "button"
-                    : "button-secondary"
-                }
-              >
-                {game.home_team}
-              </button>
+              />
             </div>
 
             <input
