@@ -49,6 +49,39 @@ function GameResultLine({ game }) {
   );
 }
 
+function TeamLogo({ logo, name }) {
+  if (!logo) {
+    return (
+      <div
+        style={{
+          width: 58,
+          height: 58,
+          borderRadius: 16,
+          background: "rgba(148,163,184,0.16)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontWeight: 900,
+        }}
+      >
+        {name?.slice(0, 2)}
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={logo}
+      alt={name}
+      style={{
+        width: 66,
+        height: 66,
+        objectFit: "contain",
+      }}
+    />
+  );
+}
+
 function TeamButton({ teamName, teamLogo, selected, onClick }) {
   return (
     <button
@@ -60,37 +93,10 @@ function TeamButton({ teamName, teamLogo, selected, onClick }) {
         flexDirection: "column",
         alignItems: "center",
         gap: 8,
-        minHeight: 130,
+        minHeight: 138,
       }}
     >
-      {teamLogo ? (
-        <img
-          src={teamLogo}
-          alt={teamName}
-          style={{
-            width: 62,
-            height: 62,
-            objectFit: "contain",
-          }}
-        />
-      ) : (
-        <div
-          style={{
-            width: 62,
-            height: 62,
-            borderRadius: 14,
-            background: "#f3f4f6",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "#111827",
-            fontWeight: 800,
-          }}
-        >
-          {teamName?.slice(0, 2)}
-        </div>
-      )}
-
+      <TeamLogo logo={teamLogo} name={teamName} />
       <strong>{teamName}</strong>
     </button>
   );
@@ -212,7 +218,7 @@ export default function Matchs() {
   return (
     <main className="page">
       <section className="header-card">
-        <h1>Mes choix 📝</h1>
+        <h1>Mes choix ✅</h1>
         <p>Choisis le gagnant et l’écart prédit.</p>
       </section>
 
@@ -228,11 +234,23 @@ export default function Matchs() {
 
       {gamesToPick.length > 0 && (
         <section className="card">
-          <h2>À faire</h2>
-          <p>
-            {gamesToPick.length} match{gamesToPick.length > 1 ? "s" : ""} à
-            compléter.
-          </p>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: 12,
+              alignItems: "center",
+            }}
+          >
+            <div>
+              <h2 style={{ margin: 0 }}>À faire</h2>
+              <p style={{ margin: "6px 0 0 0", color: "#94a3b8" }}>
+                {gamesToPick.length} match
+                {gamesToPick.length > 1 ? "s" : ""} à compléter
+              </p>
+            </div>
+            <span className="badge badge-yellow">Ouvert</span>
+          </div>
         </section>
       )}
 
@@ -241,9 +259,28 @@ export default function Matchs() {
 
         return (
           <section key={game.id} className="card">
-            <h2 style={{ marginTop: 0 }}>
-              {game.away_team} @ {game.home_team}
-            </h2>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                gap: 12,
+                alignItems: "center",
+                marginBottom: 14,
+              }}
+            >
+              <TeamLogo logo={getTeamLogo(game.away_team)} name={game.away_team} />
+
+              <div style={{ textAlign: "center", flex: 1 }}>
+                <h2 style={{ margin: 0 }}>
+                  {game.away_team} @ {game.home_team}
+                </h2>
+                <p style={{ margin: "6px 0 0 0", color: "#94a3b8" }}>
+                  Choix ouverts
+                </p>
+              </div>
+
+              <TeamLogo logo={getTeamLogo(game.home_team)} name={game.home_team} />
+            </div>
 
             <div
               style={{
@@ -292,7 +329,7 @@ export default function Matchs() {
       {submittedGames.length > 0 && (
         <>
           <section className="card">
-            <h2>Choix soumis ✅</h2>
+            <h2 style={{ margin: 0 }}>Choix soumis ✅</h2>
           </section>
 
           {submittedGames.map((game) => {
@@ -301,7 +338,7 @@ export default function Matchs() {
             return (
               <section key={game.id} className="card">
                 <GameResultLine game={game} />
-                <p>
+                <p style={{ marginBottom: 0 }}>
                   {getPickBadge(game, pick)} Choix : {pick.picked_team} par{" "}
                   {pick.predicted_spread}
                 </p>
@@ -310,6 +347,29 @@ export default function Matchs() {
           })}
         </>
       )}
+
+      <nav className="bottom-nav">
+        <a href="/">
+          <strong>🏠</strong>
+          Accueil
+        </a>
+        <a href="/matchs">
+          <strong>✅</strong>
+          Mes choix
+        </a>
+        <a href="/qb">
+          <strong>🎯</strong>
+          QB
+        </a>
+        <a href="/classements">
+          <strong>🏆</strong>
+          Classements
+        </a>
+        <a href="/tous-les-choix">
+          <strong>👀</strong>
+          Choix
+        </a>
+      </nav>
     </main>
   );
 }
