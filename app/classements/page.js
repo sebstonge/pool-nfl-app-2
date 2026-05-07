@@ -3,7 +3,23 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 
-function RankingCard({ title, players, scoreLabel }) {
+function medal(index) {
+  if (index === 0) return "🥇";
+  if (index === 1) return "🥈";
+  if (index === 2) return "🥉";
+  return `#${index + 1}`;
+}
+
+function movement(currentRank, previousRank) {
+  if (!previousRank) return "—";
+  if (currentRank < previousRank) return `⬆️ +${previousRank - currentRank}`;
+  if (currentRank > previousRank) return `⬇️ -${currentRank - previousRank}`;
+  return "➡️";
+}
+
+function RankingCard({ title, players, type }) {
+  const leaderScore = players[0]?.score || 0;
+
   return (
     <section className="card" style={{ flex: 1 }}>
       <h2 style={{ marginTop: 0 }}>{title}</h2>
@@ -11,33 +27,58 @@ function RankingCard({ title, players, scoreLabel }) {
       {players.length === 0 && <p>Aucun score pour le moment.</p>}
 
       {players.map((player, index) => {
-        const medal =
-          index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : `#${index + 1}`;
+        const gapLeader = leaderScore - player.score;
+        const previousPlayer = players[index - 1];
+        const gapPrevious = previousPlayer
+          ? previousPlayer.score - player.score
+          : 0;
 
         return (
           <div
             key={player.user_id}
             style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
               padding: "14px 0",
               borderBottom:
                 index === players.length - 1 ? "none" : "1px solid #e5e7eb",
             }}
           >
-            <div>
-              <strong style={{ fontSize: 18 }}>
-                {medal} {player.email || "Joueur"}
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                gap: 12,
+                alignItems: "flex-start",
+              }}
+            >
+              <div>
+                <strong style={{ fontSize: 18 }}>
+                  {medal(index)} {player.email || "Joueur"}
+                </strong>
+
+                {type === "season" && (
+                  <p style={{ margin: "4px 0 0 0", color: "#6b7280" }}>
+                    Moyenne : {Number(player.average || 0).toFixed(3)} / semaine
+                  </p>
+                )}
+
+                {type === "season" && (
+                  <p style={{ margin: "4px 0 0 0", color: "#6b7280" }}>
+                    Mouvement : {movement(index + 1, player.previousRank)}
+                  </p>
+                )}
+              </div>
+
+              <strong style={{ fontSize: 22 }}>
+                {Number(player.score || 0).toFixed(3)}
               </strong>
-              <p style={{ margin: "4px 0 0 0", color: "#6b7280" }}>
-                {scoreLabel}
-              </p>
             </div>
 
-            <strong style={{ fontSize: 22 }}>
-              {Number(player.score || 0).toFixed(3)}
-            </strong>
+            <p style={{ margin: "8px 0 0 0", color: "#6b7280" }}>
+              {index === 0
+                ? "Meneur"
+                : `À ${gapLeader.toFixed(3)} du meneur`}
+              {index > 0 && ` | ${gapPrevious.toFixed(3)} derrière la position précédente`}
+            </p>
           </div>
         );
       })}
@@ -70,7 +111,7 @@ export default function ClassementsPage() {
       const { data, error } = await supabase
         .from("weekly_scores")
         .select("*")
-        .order("final_score", { ascending: false });
+        .order("week", { ascending: true });
 
       if (error) {
         setMessage("Erreur : " + error.message);
@@ -88,23 +129,6 @@ export default function ClassementsPage() {
     return player?.email || userId;
   };
 
-  const seasonTotals = weeklyScores.reduce((acc, score) => {
-    if (!acc[score.user_id]) {
-      acc[score.user_id] = {
-        user_id: score.user_id,
-        email: getEmail(score.user_id),
-        score: 0,
-      };
-    }
-
-    acc[score.user_id].score += Number(score.final_score || 0);
-    return acc;
-  }, {});
-
-  const seasonRanking = Object.values(seasonTotals).sort(
-    (a, b) => b.score - a.score
-  );
-
   const weekRanking = weeklyScores
     .filter((score) => score.week === currentWeek)
     .map((score) => ({
@@ -116,11 +140,54 @@ export default function ClassementsPage() {
     }))
     .sort((a, b) => b.score - a.score);
 
+  const buildSeasonRanking = (scores) => {
+    const totals = scores.reduce((acc, score) => {
+      if (!acc[score.user_id]) {
+        acc[score.user_id] = {
+          user_id: score.user_id,
+          email: getEmail(score.user_id),
+          score: 0,
+          weeksPlayed: 0,
+        };
+      }
+
+      acc[score.user_id].score += Number(score.final_score || 0);
+      acc[score.user_id].weeksPlayed += 1;
+
+      return acc;
+    }, {});
+
+    return Object.values(totals)
+      .map((player) => ({
+        ...player,
+        average:
+          player.weeksPlayed > 0 ? player.score / player.weeksPlayed : 0,
+      }))
+      .sort((a, b) => b.score - a.score);
+  };
+
+  const seasonRankingRaw = buildSeasonRanking(weeklyScores);
+
+  const previousSeasonRanking = buildSeasonRanking(
+    weeklyScores.filter((score) => score.week < currentWeek)
+  );
+
+  const previousRanks = {};
+  previousSeasonRanking.forEach((player, index) => {
+    previousRanks[player.user_id] = index + 1;
+  });
+
+  const seasonRanking = seasonRankingRaw.map((player, index) => ({
+    ...player,
+    currentRank: index + 1,
+    previousRank: previousRanks[player.user_id],
+  }));
+
   return (
     <main className="page" style={{ maxWidth: 1100 }}>
       <section className="header-card">
         <h1>Classements 🏆</h1>
-        <p>Saison complète et semaine {currentWeek}</p>
+        <p>Semaine {currentWeek} et saison complète</p>
       </section>
 
       <p>
@@ -142,15 +209,15 @@ export default function ClassementsPage() {
         }}
       >
         <RankingCard
-          title="Classement saison"
-          players={seasonRanking}
-          scoreLabel="Total saison"
+          title={`Classement semaine ${currentWeek}`}
+          players={weekRanking}
+          type="week"
         />
 
         <RankingCard
-          title={`Classement semaine ${currentWeek}`}
-          players={weekRanking}
-          scoreLabel="Score hebdo"
+          title="Classement saison"
+          players={seasonRanking}
+          type="season"
         />
       </div>
 
@@ -170,7 +237,7 @@ export default function ClassementsPage() {
               }}
             >
               <strong>
-                #{index + 1} — {player.email}
+                {medal(index)} {player.email}
               </strong>
               <p style={{ margin: "6px 0 0 0", color: "#6b7280" }}>
                 Points matchs : {player.base_points} | Multiplicateur QB :{" "}
