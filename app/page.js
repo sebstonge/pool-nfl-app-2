@@ -6,7 +6,6 @@ import { supabase } from "../lib/supabase";
 export default function Home() {
   const [user, setUser] = useState(null);
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
 
   useEffect(() => {
@@ -25,33 +24,21 @@ export default function Home() {
     };
   }, []);
 
-  const handleSignIn = async () => {
+  const handleLogin = async () => {
     setMessage("");
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { error } = await supabase.auth.signInWithOtp({
       email,
-      password,
+      options: {
+        emailRedirectTo:
+          "https://pool-nfl-app-2.vercel.app/auth/callback",
+      },
     });
 
     if (error) {
-      setMessage("Erreur connexion ❌ " + error.message);
+      setMessage("Erreur ❌ " + error.message);
     } else {
-      setMessage("Connexion réussie ✅");
-    }
-  };
-
-  const handleSignUp = async () => {
-    setMessage("");
-
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-    });
-
-    if (error) {
-      setMessage("Erreur création compte ❌ " + error.message);
-    } else {
-      setMessage("Compte créé ✅ Tu peux maintenant te connecter.");
+      setMessage("Email envoyé 📩 Vérifie ta boîte");
     }
   };
 
@@ -111,6 +98,7 @@ export default function Home() {
       ) : (
         <section className="card">
           <h2>Connexion</h2>
+          <p>Entre ton email pour recevoir un lien magique.</p>
 
           <input
             className="input"
@@ -120,24 +108,8 @@ export default function Home() {
             onChange={(e) => setEmail(e.target.value)}
           />
 
-          <input
-            className="input"
-            type="password"
-            placeholder="Mot de passe"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-
-          <button className="button" onClick={handleSignIn}>
-            Se connecter
-          </button>
-
-          <button
-            className="button-secondary"
-            onClick={handleSignUp}
-            style={{ marginLeft: 10 }}
-          >
-            Créer mon compte
+          <button className="button" onClick={handleLogin}>
+            Recevoir mon lien
           </button>
 
           {message && <p>{message}</p>}
