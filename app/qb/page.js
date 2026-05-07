@@ -3,6 +3,42 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 
+function QBLogo({ qb }) {
+  const [hasError, setHasError] = useState(false);
+
+  if (!qb?.logo || hasError) {
+    return (
+      <div
+        style={{
+          width: 56,
+          height: 56,
+          borderRadius: 14,
+          background: "#f3f4f6",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontWeight: 800,
+        }}
+      >
+        {qb?.name?.slice(0, 2) || "QB"}
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={qb.logo}
+      alt={qb.name}
+      onError={() => setHasError(true)}
+      style={{
+        width: 56,
+        height: 56,
+        objectFit: "contain",
+      }}
+    />
+  );
+}
+
 export default function QBPage() {
   const [user, setUser] = useState(null);
   const [currentWeek, setCurrentWeek] = useState(null);
@@ -76,10 +112,7 @@ export default function QBPage() {
     const myUsedIds = (myHistoryData || []).map((q) => q.qb_id);
 
     const filteredQbs = (allQbsData || []).filter((qb) => {
-      const takenThisWeek = takenThisWeekIds.includes(qb.id);
-      const alreadyUsedByMe = myUsedIds.includes(qb.id);
-
-      return !takenThisWeek && !alreadyUsedByMe;
+      return !takenThisWeekIds.includes(qb.id) && !myUsedIds.includes(qb.id);
     });
 
     setAvailableQbs(filteredQbs);
@@ -145,7 +178,7 @@ export default function QBPage() {
     <main className="page">
       <section className="header-card">
         <h1>Choisir mon QB 🎯</h1>
-        <p>Un QB par semaine. Choix irréversible.</p>
+        <p>Un QB par semaine.</p>
       </section>
 
       <p>
@@ -163,17 +196,7 @@ export default function QBPage() {
           <h2>QB soumis ✅</h2>
 
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            {selectedQb.logo && (
-              <img
-                src={selectedQb.logo}
-                alt={selectedQb.name}
-                style={{
-                  width: 56,
-                  height: 56,
-                  objectFit: "contain",
-                }}
-              />
-            )}
+            <QBLogo qb={selectedQb} />
 
             <div>
               <strong>{selectedQb.name}</strong>
@@ -221,18 +244,7 @@ export default function QBPage() {
                     marginBottom: 12,
                   }}
                 >
-                  {selectedQb.logo && (
-                    <img
-                      src={selectedQb.logo}
-                      alt={selectedQb.name}
-                      style={{
-                        width: 56,
-                        height: 56,
-                        objectFit: "contain",
-                      }}
-                    />
-                  )}
-
+                  <QBLogo qb={selectedQb} />
                   <strong>{selectedQb.name}</strong>
                 </div>
               )}
