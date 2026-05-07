@@ -3,6 +3,52 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 
+function getPickBadge(game, pick) {
+  if (game.home_score == null || game.away_score == null) return "⚪";
+
+  const winner =
+    game.home_score > game.away_score ? game.home_team : game.away_team;
+
+  const realSpread = Math.abs(game.home_score - game.away_score);
+
+  if (pick.picked_team !== winner) return "🔴";
+  if (Number(pick.predicted_spread) === realSpread) return "🟢";
+  return "🟡";
+}
+
+function GameResultLine({ game }) {
+  const hasScore = game.home_score != null && game.away_score != null;
+
+  if (!hasScore) {
+    return (
+      <strong>
+        {game.away_team} @ {game.home_team}
+      </strong>
+    );
+  }
+
+  const homeWon = game.home_score > game.away_score;
+  const awayWon = game.away_score > game.home_score;
+  const realSpread = Math.abs(game.home_score - game.away_score);
+
+  return (
+    <strong>
+      {awayWon ? (
+        <strong>{game.away_team} ({game.away_score})</strong>
+      ) : (
+        <span>{game.away_team} ({game.away_score})</span>
+      )}{" "}
+      @{" "}
+      {homeWon ? (
+        <strong>{game.home_team} ({game.home_score})</strong>
+      ) : (
+        <span>{game.home_team} ({game.home_score})</span>
+      )}{" "}
+      - par {realSpread}
+    </strong>
+  );
+}
+
 export default function TousLesChoix() {
   const [players, setPlayers] = useState([]);
   const [picks, setPicks] = useState([]);
@@ -37,7 +83,9 @@ export default function TousLesChoix() {
           games (
             week,
             away_team,
-            home_team
+            home_team,
+            away_score,
+            home_score
           )
         `);
 
@@ -115,16 +163,12 @@ export default function TousLesChoix() {
 
         return (
           <section key={userId} className="card">
-            <h2 style={{ marginTop: 0 }}>
-              {player?.email || "Joueur"}
-            </h2>
+            <h2 style={{ marginTop: 0 }}>{player?.email || "Joueur"}</h2>
 
             <div style={{ marginBottom: 16 }}>
               <strong>QB :</strong>{" "}
               {playerQB?.qbs ? (
-                <span>
-                  {playerQB.qbs.name}
-                </span>
+                <span>{playerQB.qbs.name}</span>
               ) : (
                 <span className="status-warning">Aucun QB soumis</span>
               )}
@@ -136,12 +180,13 @@ export default function TousLesChoix() {
               <p className="status-warning">Aucun choix de match soumis.</p>
             ) : (
               playerPicks.map((pick) => (
-                <div key={pick.id} style={{ marginBottom: 12 }}>
-                  <strong>
-                    {pick.games?.away_team} @ {pick.games?.home_team}
-                  </strong>
+                <div key={pick.id} style={{ marginBottom: 14 }}>
+                  <GameResultLine game={pick.games} />
                   <br />
-                  Choix : {pick.picked_team} par {pick.predicted_spread}
+                  <span>
+                    {getPickBadge(pick.games, pick)} Choix :{" "}
+                    {pick.picked_team} par {pick.predicted_spread}
+                  </span>
                 </div>
               ))
             )}
