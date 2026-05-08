@@ -19,55 +19,17 @@ function NavItem({ href, icon, title, subtitle, color }) {
 
 export default function Home() {
   const [user, setUser] = useState(null);
-  const [isAdmin, setIsAdmin] = useState(false);
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
 
-  async function checkAdmin(currentUser) {
-    if (!currentUser) {
-      setIsAdmin(false);
-      return;
-    }
-
-    // 1. Vérifie par ID
-    const { data: adminById } = await supabase
-      .from("users")
-      .select("is_admin")
-      .eq("id", currentUser.id)
-      .maybeSingle();
-
-    if (adminById?.is_admin === true) {
-      setIsAdmin(true);
-      return;
-    }
-
-    // 2. Fallback : vérifie par email
-    const { data: adminByEmail } = await supabase
-      .from("users")
-      .select("is_admin")
-      .eq("email", currentUser.email)
-      .maybeSingle();
-
-    setIsAdmin(adminByEmail?.is_admin === true);
-  }
-
   useEffect(() => {
-    async function loadSession() {
-      const { data } = await supabase.auth.getSession();
-      const currentUser = data.session?.user ?? null;
-
-      setUser(currentUser);
-      await checkAdmin(currentUser);
-    }
-
-    loadSession();
+    supabase.auth.getSession().then(({ data }) => {
+      setUser(data.session?.user ?? null);
+    });
 
     const { data: listener } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        const currentUser = session?.user ?? null;
-
-        setUser(currentUser);
-        await checkAdmin(currentUser);
+      (_event, session) => {
+        setUser(session?.user ?? null);
       }
     );
 
@@ -97,7 +59,6 @@ export default function Home() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setUser(null);
-    setIsAdmin(false);
     window.location.href = "/";
   };
 
@@ -113,10 +74,7 @@ export default function Home() {
           <section className="card">
             <p className="status-ok">Connecté : {user.email} ✅</p>
 
-            <button
-              className="button-secondary"
-              onClick={handleLogout}
-            >
+            <button className="button-secondary" onClick={handleLogout}>
               Se déconnecter
             </button>
           </section>
@@ -162,15 +120,13 @@ export default function Home() {
               color="rgba(236,72,153,0.20)"
             />
 
-            {isAdmin && (
-              <NavItem
-                href="/admin"
-                icon="⚙️"
-                title="Admin"
-                subtitle="Scores, stats et calculs"
-                color="rgba(148,163,184,0.18)"
-              />
-            )}
+            <NavItem
+              href="/admin"
+              icon="⚙️"
+              title="Admin"
+              subtitle="Scores, stats et calculs"
+              color="rgba(148,163,184,0.18)"
+            />
           </section>
 
           <nav className="bottom-nav">
