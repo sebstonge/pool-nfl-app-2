@@ -1,176 +1,161 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { supabase } from "../lib/supabase";
 import BottomNav from "./components/BottomNav";
 
+function NavItem({ href, icon, title, subtitle, color }) {
+  return (
+    <a className="nav-card" href={href}>
+      <div className="nav-icon" style={{ background: color }}>
+        {icon}
+      </div>
+
+      <div>
+        {title}
+        <span>{subtitle}</span>
+      </div>
+    </a>
+  );
+}
+
 export default function HomePage() {
   const [user, setUser] = useState(null);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [email, setEmail] = useState("");
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
-    async function loadUser() {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+    supabase.auth.getSession().then(({ data }) => {
+      setUser(data.session?.user ?? null);
+    });
 
-      const currentUser = session?.user ?? null;
-      setUser(currentUser);
-
-      if (currentUser) {
-        const { data: profile } = await supabase
-          .from("users")
-          .select("is_admin")
-          .eq("id", currentUser.id)
-          .maybeSingle();
-
-        setIsAdmin(profile?.is_admin === true);
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setUser(session?.user ?? null);
       }
-    }
+    );
 
-    loadUser();
+    return () => {
+      listener.subscription.unsubscribe();
+    };
   }, []);
 
-  async function signOut() {
+  const handleLogin = async () => {
+    setMessage("");
+
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo:
+          "https://pool-nfl-app-2.vercel.app/auth/callback",
+      },
+    });
+
+    if (error) {
+      setMessage("Erreur ❌ " + error.message);
+    } else {
+      setMessage("Email envoyé 📩 Vérifie ta boîte");
+    }
+  };
+
+  const handleLogout = async () => {
     await supabase.auth.signOut();
-    window.location.reload();
-  }
+    setUser(null);
+    window.location.href = "/";
+  };
 
   return (
     <main className="page">
       <section className="header-card">
         <h1>Pool NFL 🏈</h1>
         <p>Prêt pour la semaine?</p>
+      </section>
 
-        {user ? (
-          <div style={{ marginTop: 18 }}>
-            <p className="status-ok">
-              Connecté : {user.email} ✅
-            </p>
+      {user ? (
+        <>
+          <section className="card">
+            <p className="status-ok">Connecté : {user.email} ✅</p>
 
-            <button
-              className="button-secondary"
-              onClick={signOut}
-              style={{ marginTop: 10 }}
-            >
+            <button className="button-secondary" onClick={handleLogout}>
               Se déconnecter
             </button>
-          </div>
-        ) : (
-          <Link href="/auth" className="button">
-            Se connecter
-          </Link>
-        )}
-      </section>
+          </section>
 
-      <section className="nav-grid">
-        <Link href="/matchs" className="nav-card">
-          <div
-            className="nav-icon"
-            style={{
-              background:
-                "linear-gradient(135deg,#16a34a,#22c55e)",
-            }}
-          >
-            ✅
-          </div>
+          <section className="nav-grid">
+            <NavItem
+              href="/matchs"
+              icon="✅"
+              title="Mes choix"
+              subtitle="Faire mes prédictions"
+              color="rgba(34,197,94,0.18)"
+            />
 
-          <div>
-            Mes choix
-            <span>Faire mes prédictions</span>
-          </div>
-        </Link>
+            <NavItem
+              href="/qb"
+              icon="🎯"
+              title="QB"
+              subtitle="Choisir mon QB de la semaine"
+              color="rgba(168,85,247,0.20)"
+            />
 
-        <Link href="/qb" className="nav-card">
-          <div
-            className="nav-icon"
-            style={{
-              background:
-                "linear-gradient(135deg,#7c3aed,#a855f7)",
-            }}
-          >
-            🎯
-          </div>
+            <NavItem
+              href="/tous-les-choix"
+              icon="👀"
+              title="Tous les choix"
+              subtitle="Voir les prédictions de tous"
+              color="rgba(59,130,246,0.20)"
+            />
 
-          <div>
-            QB
-            <span>Choisir mon QB de la semaine</span>
-          </div>
-        </Link>
+            <NavItem
+              href="/qb-ratings"
+              icon="📊"
+              title="QB Ratings"
+              subtitle="Meilleurs et pires ratings"
+              color="rgba(236,72,153,0.20)"
+            />
 
-        <Link href="/tous-les-choix" className="nav-card">
-          <div
-            className="nav-icon"
-            style={{
-              background:
-                "linear-gradient(135deg,#2563eb,#60a5fa)",
-            }}
-          >
-            👀
-          </div>
+            <NavItem
+              href="/classements"
+              icon="🏆"
+              title="Classements"
+              subtitle="Hebdo et saison"
+              color="rgba(234,179,8,0.20)"
+            />
 
-          <div>
-            Tous les choix
-            <span>Voir les prédictions de tous</span>
-          </div>
-        </Link>
+            <NavItem
+              href="/admin"
+              icon="⚙️"
+              title="Admin"
+              subtitle="Scores, stats et calculs"
+              color="rgba(148,163,184,0.18)"
+            />
+          </section>
 
-        <Link href="/qb-ratings" className="nav-card">
-          <div
-            className="nav-icon"
-            style={{
-              background:
-                "linear-gradient(135deg,#0f766e,#14b8a6)",
-            }}
-          >
-            📊
-          </div>
+          <BottomNav />
+        </>
+      ) : (
+        <section className="card">
+          <h2>Connexion</h2>
 
-          <div>
-            QB Ratings
-            <span>Meilleurs et pires ratings</span>
-          </div>
-        </Link>
+          <p style={{ color: "#94a3b8" }}>
+            Entre ton email pour recevoir un lien magique.
+          </p>
 
-        <Link href="/classements" className="nav-card">
-          <div
-            className="nav-icon"
-            style={{
-              background:
-                "linear-gradient(135deg,#ca8a04,#facc15)",
-            }}
-          >
-            🏆
-          </div>
+          <input
+            className="input"
+            type="email"
+            placeholder="Ton email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
 
-          <div>
-            Classements
-            <span>Hebdo et saison</span>
-          </div>
-        </Link>
+          <button className="button" onClick={handleLogin}>
+            Recevoir mon lien
+          </button>
 
-        {isAdmin && (
-          <Link href="/admin" className="nav-card">
-            <div
-              className="nav-icon"
-              style={{
-                background:
-                  "linear-gradient(135deg,#475569,#94a3b8)",
-              }}
-            >
-              ⚙️
-            </div>
-
-            <div>
-              Admin
-              <span>Scores, stats et calculs</span>
-            </div>
-          </Link>
-        )}
-      </section>
-
-      <BottomNav />
+          {message && <p>{message}</p>}
+        </section>
+      )}
     </main>
   );
 }
