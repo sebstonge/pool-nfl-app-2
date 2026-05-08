@@ -10,11 +10,7 @@ function shortName(email) {
 
 function RatingBlock({ type, rating }) {
   if (!rating) {
-    return (
-      <div style={{ color: "#9ca3af" }}>
-        Aucun rating
-      </div>
-    );
+    return <div style={{ color: "#9ca3af" }}>Aucun rating</div>;
   }
 
   const isBest = type === "best";
@@ -48,9 +44,7 @@ export default function QBRatingsPage() {
 
   useEffect(() => {
     async function loadData() {
-      const { data: usersData } = await supabase
-        .from("users")
-        .select("*");
+      const { data: usersData } = await supabase.from("users").select("*");
 
       const { data: qbsData, error: qbsError } = await supabase
         .from("qbs")
@@ -82,35 +76,28 @@ export default function QBRatingsPage() {
 
       const builtRows = (qbsData || [])
         .map((qb) => {
-          const qbRatings = (ratingsData || [])
-            .filter((r) => r.qb_id === qb.id && r.passer_rating != null);
+          const qbRatings = (ratingsData || []).filter(
+            (r) => r.qb_id === qb.id && r.passer_rating != null
+          );
 
           const best =
             [...qbRatings].sort(
-              (a, b) =>
-                Number(b.passer_rating) -
-                Number(a.passer_rating)
+              (a, b) => Number(b.passer_rating) - Number(a.passer_rating)
             )[0] || null;
 
           const worst =
             [...qbRatings].sort(
-              (a, b) =>
-                Number(a.passer_rating) -
-                Number(b.passer_rating)
+              (a, b) => Number(a.passer_rating) - Number(b.passer_rating)
             )[0] || null;
 
           const attachSelector = (rating) => {
             if (!rating) return null;
 
             const pick = (qbPicksData || []).find(
-              (p) =>
-                p.qb_id === qb.id &&
-                p.week === rating.week
+              (p) => p.qb_id === qb.id && p.week === rating.week
             );
 
-            const user = (usersData || []).find(
-              (u) => u.id === pick?.user_id
-            );
+            const user = (usersData || []).find((u) => u.id === pick?.user_id);
 
             return {
               ...rating,
@@ -138,17 +125,11 @@ export default function QBRatingsPage() {
   }, []);
 
   return (
-    <main
-      className="page"
-      style={{
-        maxWidth: 1200,
-      }}
-    >
+    <main className="page" style={{ maxWidth: 1200 }}>
       <section
         className="header-card"
         style={{
-          background:
-            "linear-gradient(135deg, #020617, #0f172a)",
+          background: "linear-gradient(135deg, #020617, #0f172a)",
         }}
       >
         <h1>QB Ratings 📊</h1>
@@ -176,12 +157,7 @@ export default function QBRatingsPage() {
           overflowX: "auto",
         }}
       >
-        <h2
-          style={{
-            marginTop: 0,
-            color: "#22c55e",
-          }}
-        >
+        <h2 style={{ marginTop: 0, color: "#22c55e" }}>
           📈 Passer ratings par QB
         </h2>
 
@@ -216,9 +192,7 @@ export default function QBRatingsPage() {
               alignItems: "center",
               padding: "18px 0",
               borderBottom:
-                index === rows.length - 1
-                  ? "none"
-                  : "1px solid #1e293b",
+                index === rows.length - 1 ? "none" : "1px solid #1e293b",
               minWidth: 850,
             }}
           >
@@ -231,8 +205,7 @@ export default function QBRatingsPage() {
                   borderRadius: 10,
                   alignItems: "center",
                   justifyContent: "center",
-                  background:
-                    index < 3 ? "#166534" : "#1e293b",
+                  background: index < 3 ? "#166534" : "#1e293b",
                   color: "white",
                   fontWeight: 900,
                 }}
@@ -258,9 +231,7 @@ export default function QBRatingsPage() {
             </div>
 
             <div>
-              <strong style={{ fontSize: 20 }}>
-                {row.qb.name}
-              </strong>
+              <strong style={{ fontSize: 20 }}>{row.qb.name}</strong>
 
               <p
                 style={{
@@ -278,6 +249,29 @@ export default function QBRatingsPage() {
           </div>
         ))}
       </section>
+
+      <nav className="bottom-nav">
+        <a href="/">
+          <strong>🏠</strong>
+          Accueil
+        </a>
+        <a href="/matchs">
+          <strong>✅</strong>
+          Mes choix
+        </a>
+        <a href="/qb">
+          <strong>🎯</strong>
+          QB
+        </a>
+        <a href="/classements">
+          <strong>🏆</strong>
+          Classements
+        </a>
+        <a href="/tous-les-choix">
+          <strong>👀</strong>
+          Choix
+        </a>
+      </nav>
     </main>
   );
 }
