@@ -6,61 +6,63 @@ import { supabase } from "../../lib/supabase";
 export default function AdminPage() {
   const [user, setUser] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [settings, setSettings] = useState(null);
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    async function checkAdmin() {
+    async function load() {
       const { data: sessionData } = await supabase.auth.getSession();
       const currentUser = sessionData.session?.user ?? null;
-
       setUser(currentUser);
 
-      if (!currentUser) return;
+      if (currentUser) {
+        const { data: adminData } = await supabase
+          .from("users")
+          .select("is_admin")
+          .eq("id", currentUser.id)
+          .maybeSingle();
 
-      const { data } = await supabase
-        .from("users")
-        .select("is_admin")
-        .eq("id", currentUser.id)
+        setIsAdmin(adminData?.is_admin === true);
+      }
+
+      const { data: settingsData } = await supabase
+        .from("settings")
+        .select("*")
         .single();
 
-      if (data?.is_admin) setIsAdmin(true);
+      setSettings(settingsData);
     }
 
-    checkAdmin();
+    load();
   }, []);
 
-  const updateEspnScores = async () => {
-    setMessage("Mise à jour ESPN des scores en cours...");
+  async function loadSettings() {
+    const { data } = await supabase.from("settings").select("*").single();
+    setSettings(data);
+    return data;
+  }
 
-    const { data: settingsData, error: settingsError } = await supabase
-      .from("settings")
+  async function updateScoresFromEspn(currentWeek) {
+    const { data: games, error: gamesError } = await supabase
+      .from("games")
       .select("*")
-      .single();
+      .eq("week", currentWeek);
 
-    if (settingsError) {
-      setMessage("Erreur settings : " + settingsError.message);
-      return;
-    }
+    if (gamesError) throw new Error("Games : " + gamesError.message);
 
-    const currentWeek = settingsData.current_week;
-    const currentSeason = settingsData.current_season || 2026;
+    let updated = 0;
 
-    const espnUrl =
-      `https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard` +
-      `?seasontype=2&week=${currentWeek}&dates=${currentSeason}`;
+    for (const game of games || []) {
+      if (!game.external_game_id) continue;
 
-    const response = await fetch(espnUrl);
-    const espnData = await response.json();
+      const url =
+        `https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary` +
+        `?event=${game.external_game_id}`;
 
-    if (!espnData.events) {
-      setMessage("Aucun match trouvé dans ESPN.");
-      return;
-    }
+      const response = await fetch(url);
+      const data = await response.json();
 
-    let updatedCount = 0;
-
-    for (const event of espnData.events) {
-      const competition = event.competitions?.[0];
+      const competition = data.header?.competitions?.[0];
       const competitors = competition?.competitors || [];
 
       const home = competitors.find((c) => c.homeAway === "home");
@@ -69,6 +71,7 @@ export default function AdminPage() {
       if (!home || !away) continue;
 
       const completed = competition.status?.type?.completed === true;
+
       if (!completed) continue;
 
       const { error } = await supabase
@@ -77,29 +80,148 @@ export default function AdminPage() {
           home_score: Number(home.score),
           away_score: Number(away.score),
         })
-        .eq("external_game_id", event.id);
+        .eq("id", game.id);
 
-      if (!error) updatedCount++;
+      if (!error) updated++;
     }
 
-    setMessage(`Scores ESPN mis à jour ✅ (${updatedCount} matchs)`);
-  };
+    return updated;
+  }
 
-  const calculateScores = async () => {
-    setMessage("Calcul en cours...");
+  async function updateQBRatingsFromEspn(currentWeek) {
+    const { data: qbPicks, error: qbPicksError } = await supabase
+      .from("qb_picks")
+      .select(`
+        *,
+        qbs (
+          id,
+          name,
+          team,
+          espn_athlete_id
+        )
+      `)
+      .eq("week", currentWeek);
 
-    const { data: settingsData, error: settingsError } = await supabase
-      .from("settings")
+    if (qbPicksError) throw new Error("QB picks : " + qbPicksError.message);
+
+    const { data: games, error: gamesError } = await supabase
+      .from("games")
       .select("*")
-      .single();
+      .eq("week", currentWeek);
 
-    if (settingsError) {
-      setMessage("Erreur settings : " + settingsError.message);
-      return;
+    if (gamesError) throw new Error("Games : " + gamesError.message);
+
+    let updated = 0;
+    const notFound = [];
+
+    for (const pick of qbPicks || []) {
+      const selectedQB = pick.qbs;
+
+      if (!selectedQB?.team) {
+        notFound.push(selectedQB?.name || "QB sans équipe");
+        continue;
+      }
+
+      const qbTeam = selectedQB.team.toLowerCase();
+
+      const game = (games || []).find((g) => {
+        const home = (g.home_team || "").toLowerCase();
+        const away = (g.away_team || "").toLowerCase();
+
+        return home.includes(qbTeam) || away.includes(qbTeam);
+      });
+
+      if (!game?.external_game_id) {
+        notFound.push(selectedQB.name);
+        continue;
+      }
+
+      const url =
+        `https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary` +
+        `?event=${game.external_game_id}`;
+
+      const response = await fetch(url);
+      const summary = await response.json();
+
+      const boxscoreTeams = summary.boxscore?.players || [];
+      let passingAthletes = [];
+
+      for (const teamBox of boxscoreTeams) {
+        const teamName =
+          teamBox.team?.shortDisplayName ||
+          teamBox.team?.displayName ||
+          teamBox.team?.name ||
+          "";
+
+        if (!teamName.toLowerCase().includes(qbTeam)) continue;
+
+        const passingCategory = teamBox.statistics?.find(
+          (category) =>
+            category.name === "passing" ||
+            category.displayName === "Passing"
+        );
+
+        if (!passingCategory) continue;
+
+        const labels = passingCategory.labels || [];
+        const ratingIndex = labels.findIndex((label) =>
+          ["RTG", "RAT", "RATE"].includes(String(label).toUpperCase())
+        );
+
+        if (ratingIndex === -1) continue;
+
+        passingAthletes = passingCategory.athletes
+          .map((row) => ({
+            id: row.athlete?.id,
+            name: row.athlete?.displayName,
+            rating: Number(row.stats?.[ratingIndex]),
+          }))
+          .filter((row) => !Number.isNaN(row.rating));
+      }
+
+      if (passingAthletes.length === 0) {
+        notFound.push(selectedQB.name);
+        continue;
+      }
+
+      let actualQB = passingAthletes[0];
+
+      if (selectedQB.espn_athlete_id) {
+        const exactMatch = passingAthletes.find(
+          (athlete) => athlete.id === selectedQB.espn_athlete_id
+        );
+
+        if (exactMatch) actualQB = exactMatch;
+      } else {
+        const nameMatch = passingAthletes.find((athlete) =>
+          athlete.name?.toLowerCase().includes(selectedQB.name.toLowerCase())
+        );
+
+        if (nameMatch) actualQB = nameMatch;
+      }
+
+      const { error } = await supabase.from("qb_ratings").upsert(
+        {
+          qb_id: selectedQB.id,
+          week: currentWeek,
+          passer_rating: actualQB.rating,
+          actual_qb_name: actualQB.name,
+          actual_espn_athlete_id: actualQB.id,
+        },
+        { onConflict: "qb_id,week" }
+      );
+
+      if (error) {
+        notFound.push(`${selectedQB.name} (${error.message})`);
+      } else {
+        updated++;
+      }
     }
 
-    const currentWeek = settingsData.current_week;
+    return { updated, notFound };
+  }
 
+  async function calculateScores(currentWeek) {
     const { data: picks, error: picksError } = await supabase.from("picks")
       .select(`
         *,
@@ -112,10 +234,7 @@ export default function AdminPage() {
         )
       `);
 
-    if (picksError) {
-      setMessage("Erreur picks : " + picksError.message);
-      return;
-    }
+    if (picksError) throw new Error("Picks : " + picksError.message);
 
     const { data: qbPicks } = await supabase
       .from("qb_picks")
@@ -129,7 +248,7 @@ export default function AdminPage() {
 
     const scoresByUser = {};
 
-    picks
+    (picks || [])
       .filter((pick) => pick.games?.week === currentWeek)
       .forEach((pick) => {
         const game = pick.games;
@@ -155,8 +274,10 @@ export default function AdminPage() {
       });
 
     const rows = Object.entries(scoresByUser).map(([userId, basePoints]) => {
-      const qbPick = qbPicks.find((p) => p.user_id === userId);
-      const qbRating = qbRatings.find((r) => r.qb_id === qbPick?.qb_id);
+      const qbPick = (qbPicks || []).find((p) => p.user_id === userId);
+      const qbRating = (qbRatings || []).find(
+        (r) => r.qb_id === qbPick?.qb_id
+      );
 
       const passerRating = Number(qbRating?.passer_rating || 0);
       const multiplier = passerRating > 0 ? passerRating / 100 : 1;
@@ -170,23 +291,70 @@ export default function AdminPage() {
       };
     });
 
-    if (rows.length === 0) {
-      setMessage("Aucun score à calculer.");
+    if (rows.length === 0) return 0;
+
+    const { error } = await supabase.from("weekly_scores").upsert(rows, {
+      onConflict: "user_id,week",
+    });
+
+    if (error) throw new Error("Weekly scores : " + error.message);
+
+    return rows.length;
+  }
+
+  const fullUpdate = async () => {
+    try {
+      setMessage("Mise à jour complète en cours...");
+
+      const currentSettings = await loadSettings();
+      const currentWeek = currentSettings.current_week;
+
+      const scoresUpdated = await updateScoresFromEspn(currentWeek);
+      const qbResult = await updateQBRatingsFromEspn(currentWeek);
+      const rankingsCalculated = await calculateScores(currentWeek);
+
+      let finalMessage =
+        `Mise à jour complète ✅ ` +
+        `Scores ESPN : ${scoresUpdated}. ` +
+        `QB ratings : ${qbResult.updated}. ` +
+        `Classements : ${rankingsCalculated}.`;
+
+      if (qbResult.notFound.length > 0) {
+        finalMessage += ` Non trouvés : ${qbResult.notFound.join(", ")}`;
+      }
+
+      setMessage(finalMessage);
+    } catch (error) {
+      setMessage("Erreur mise à jour : " + error.message);
+    }
+  };
+
+  const nextWeek = async () => {
+    const confirmation = window.confirm(
+      "Passer à la semaine suivante? Assure-toi que les scores sont calculés."
+    );
+
+    if (!confirmation) return;
+
+    const currentSettings = await loadSettings();
+    const newWeek = Number(currentSettings.current_week || 1) + 1;
+
+    const { error } = await supabase
+      .from("settings")
+      .update({ current_week: newWeek })
+      .eq("id", 1);
+
+    if (error) {
+      setMessage("Erreur semaine suivante : " + error.message);
       return;
     }
 
-    const { error: upsertError } = await supabase
-      .from("weekly_scores")
-      .upsert(rows, {
-        onConflict: "user_id,week",
-      });
+    setSettings({
+      ...currentSettings,
+      current_week: newWeek,
+    });
 
-    if (upsertError) {
-      setMessage("Erreur : " + upsertError.message);
-      return;
-    }
-
-    setMessage("Classements calculés ✅");
+    setMessage(`Semaine active changée à ${newWeek} ✅`);
   };
 
   if (!user) {
@@ -215,7 +383,10 @@ export default function AdminPage() {
     <main className="page">
       <section className="header-card">
         <h1>Admin ⚙️</h1>
-        <p>Scores, QB ratings et calculs.</p>
+        <p>
+          Saison {settings?.current_season || "..."} — semaine{" "}
+          {settings?.current_week || "..."}
+        </p>
       </section>
 
       <p>
@@ -229,16 +400,25 @@ export default function AdminPage() {
       )}
 
       <section className="card">
-        <h2>ESPN</h2>
-        <button className="button" onClick={updateEspnScores}>
-          Mettre à jour les scores ESPN
+        <h2>Mise à jour complète</h2>
+        <p style={{ color: "#94a3b8" }}>
+          Met à jour les scores ESPN, les passer ratings QB et les classements
+          pour la semaine active.
+        </p>
+
+        <button className="button" onClick={fullUpdate}>
+          Mettre à jour résultats + QB + classements
         </button>
       </section>
 
       <section className="card">
-        <h2>Classements</h2>
-        <button className="button" onClick={calculateScores}>
-          Calculer les classements
+        <h2>Semaine active</h2>
+        <p style={{ color: "#94a3b8" }}>
+          À utiliser quand la semaine est terminée et validée.
+        </p>
+
+        <button className="button-secondary" onClick={nextWeek}>
+          Passer à la semaine suivante
         </button>
       </section>
 
