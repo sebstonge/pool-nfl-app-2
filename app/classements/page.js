@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
+import BottomNav from "../components/BottomNav";
 
 function medal(index) {
   if (index === 0) return "🥇";
@@ -191,10 +192,6 @@ export default function ClassementsPage() {
         <p>Semaine {currentWeek} et saison complète</p>
       </section>
 
-      <p>
-        <a href="/">← Retour accueil</a>
-      </p>
-
       {message && (
         <section className="card">
           <p>{message}</p>
@@ -221,29 +218,7 @@ export default function ClassementsPage() {
           type="season"
         />
       </div>
-
-      <nav className="bottom-nav">
-        <a href="/">
-          <strong>🏠</strong>
-          Accueil
-        </a>
-        <a href="/matchs">
-          <strong>✅</strong>
-          Mes choix
-        </a>
-        <a href="/qb">
-          <strong>🎯</strong>
-          QB
-        </a>
-        <a href="/classements">
-          <strong>🏆</strong>
-          Classements
-        </a>
-        <a href="/tous-les-choix">
-          <strong>👀</strong>
-          Choix
-        </a>
-      </nav>
+      <BottomNav />
     </main>
   );
 }
