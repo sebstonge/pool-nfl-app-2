@@ -12,12 +12,12 @@ function QBLogo({ qb }) {
         style={{
           width: 56,
           height: 56,
-          borderRadius: 14,
-          background: "#f3f4f6",
+          borderRadius: 16,
+          background: "rgba(148,163,184,0.16)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          fontWeight: 800,
+          fontWeight: 900,
         }}
       >
         {qb?.name?.slice(0, 2) || "QB"}
@@ -31,8 +31,8 @@ function QBLogo({ qb }) {
       alt={qb.name}
       onError={() => setHasError(true)}
       style={{
-        width: 56,
-        height: 56,
+        width: 62,
+        height: 62,
         objectFit: "contain",
       }}
     />
@@ -178,7 +178,7 @@ export default function QBPage() {
     <main className="page">
       <section className="header-card">
         <h1>Choisir mon QB 🎯</h1>
-        <p>Un QB par semaine.</p>
+        <p>Semaine {currentWeek || "..."}</p>
       </section>
 
       <p>
@@ -193,15 +193,34 @@ export default function QBPage() {
 
       {existingPick && selectedQb && (
         <section className="card">
-          <h2>QB soumis ✅</h2>
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+            <div>
+              <span className="badge badge-green">QB soumis</span>
+              <h2 style={{ marginBottom: 6 }}>Ton QB est verrouillé</h2>
+              <p style={{ color: "#94a3b8", marginTop: 0 }}>
+                Semaine {currentWeek}
+              </p>
+            </div>
+          </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 16,
+              marginTop: 16,
+              padding: 16,
+              borderRadius: 18,
+              background: "rgba(34,197,94,0.08)",
+              border: "1px solid rgba(34,197,94,0.22)",
+            }}
+          >
             <QBLogo qb={selectedQb} />
 
             <div>
-              <strong>{selectedQb.name}</strong>
-              <p style={{ margin: "4px 0 0 0", color: "#6b7280" }}>
-                Semaine {currentWeek}
+              <strong style={{ fontSize: 22 }}>{selectedQb.name}</strong>
+              <p style={{ margin: "4px 0 0 0", color: "#94a3b8" }}>
+                {selectedQb.team}
               </p>
             </div>
           </div>
@@ -210,16 +229,18 @@ export default function QBPage() {
 
       {!existingPick && (
         <section className="card">
-          <h2>Semaine {currentWeek}</h2>
+          <div style={{ marginBottom: 14 }}>
+            <span className="badge badge-yellow">À sélectionner</span>
+            <h2 style={{ marginBottom: 6 }}>Choisis ton QB</h2>
+            <p style={{ color: "#94a3b8", marginTop: 0 }}>
+              Les QB déjà pris cette semaine ou déjà utilisés par toi sont masqués.
+            </p>
+          </div>
 
           {availableQbs.length === 0 ? (
-            <p>Aucun QB disponible.</p>
+            <p className="status-warning">Aucun QB disponible.</p>
           ) : (
             <>
-              <label>
-                <strong>Choisis ton QB</strong>
-              </label>
-
               <select
                 className="input"
                 value={selectedQbId}
@@ -239,13 +260,23 @@ export default function QBPage() {
                   style={{
                     display: "flex",
                     alignItems: "center",
-                    gap: 14,
-                    marginTop: 12,
-                    marginBottom: 12,
+                    gap: 16,
+                    marginTop: 14,
+                    marginBottom: 14,
+                    padding: 16,
+                    borderRadius: 18,
+                    background: "rgba(168,85,247,0.10)",
+                    border: "1px solid rgba(168,85,247,0.25)",
                   }}
                 >
                   <QBLogo qb={selectedQb} />
-                  <strong>{selectedQb.name}</strong>
+
+                  <div>
+                    <strong style={{ fontSize: 22 }}>{selectedQb.name}</strong>
+                    <p style={{ margin: "4px 0 0 0", color: "#94a3b8" }}>
+                      {selectedQb.team}
+                    </p>
+                  </div>
                 </div>
               )}
 
@@ -253,13 +284,36 @@ export default function QBPage() {
                 Sauvegarder mon QB
               </button>
 
-              <p className="status-warning">
+              <p className="status-warning" style={{ marginBottom: 0 }}>
                 Attention : ce choix est irréversible.
               </p>
             </>
           )}
         </section>
       )}
+
+      <nav className="bottom-nav">
+        <a href="/">
+          <strong>🏠</strong>
+          Accueil
+        </a>
+        <a href="/matchs">
+          <strong>✅</strong>
+          Mes choix
+        </a>
+        <a href="/qb">
+          <strong>🎯</strong>
+          QB
+        </a>
+        <a href="/classements">
+          <strong>🏆</strong>
+          Classements
+        </a>
+        <a href="/tous-les-choix">
+          <strong>👀</strong>
+          Choix
+        </a>
+      </nav>
     </main>
   );
 }
