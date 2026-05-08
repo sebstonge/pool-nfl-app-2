@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
-import BottomNav from "../components/BottomNav";
+import BottomNav from "./components/BottomNav";
 
 function NavItem({ href, icon, title, subtitle, color }) {
   return (
