@@ -9,7 +9,6 @@ function NavItem({ href, icon, title, subtitle, color }) {
       <div className="nav-icon" style={{ background: color }}>
         {icon}
       </div>
-
       <div>
         {title}
         <span>{subtitle}</span>
@@ -20,27 +19,38 @@ function NavItem({ href, icon, title, subtitle, color }) {
 
 export default function Home() {
   const [user, setUser] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
-  const [isAdmin, setIsAdmin] = useState(false);
+
+  async function checkAdmin(currentUser) {
+    if (!currentUser) {
+      setIsAdmin(false);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("users")
+      .select("is_admin")
+      .eq("id", currentUser.id)
+      .maybeSingle();
+
+    if (error) {
+      console.error("Erreur admin:", error);
+      setIsAdmin(false);
+      return;
+    }
+
+    setIsAdmin(data?.is_admin === true);
+  }
 
   useEffect(() => {
     async function loadSession() {
       const { data } = await supabase.auth.getSession();
-
       const currentUser = data.session?.user ?? null;
 
       setUser(currentUser);
-
-      if (currentUser) {
-        const { data: userData } = await supabase
-          .from("users")
-          .select("is_admin")
-          .eq("id", currentUser.id)
-          .single();
-
-        setIsAdmin(userData?.is_admin || false);
-      }
+      await checkAdmin(currentUser);
     }
 
     loadSession();
@@ -50,18 +60,7 @@ export default function Home() {
         const currentUser = session?.user ?? null;
 
         setUser(currentUser);
-
-        if (currentUser) {
-          const { data: userData } = await supabase
-            .from("users")
-            .select("is_admin")
-            .eq("id", currentUser.id)
-            .single();
-
-          setIsAdmin(userData?.is_admin || false);
-        } else {
-          setIsAdmin(false);
-        }
+        await checkAdmin(currentUser);
       }
     );
 
@@ -104,13 +103,7 @@ export default function Home() {
       {user ? (
         <>
           <section className="card">
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 14,
-              }}
-            >
+            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
               <div
                 style={{
                   width: 54,
@@ -130,13 +123,7 @@ export default function Home() {
 
               <div style={{ flex: 1 }}>
                 <strong>Salut!</strong>
-
-                <p
-                  style={{
-                    margin: "4px 0 0 0",
-                    color: "#94a3b8",
-                  }}
-                >
+                <p style={{ margin: "4px 0 0 0", color: "#94a3b8" }}>
                   Connecté : {user.email}
                 </p>
               </div>
@@ -192,7 +179,7 @@ export default function Home() {
               color="rgba(236,72,153,0.20)"
             />
 
-            {isAdmin && (
+            {isAdmin === true && (
               <NavItem
                 href="/admin"
                 icon="⚙️"
@@ -208,22 +195,18 @@ export default function Home() {
               <strong>🏠</strong>
               Accueil
             </a>
-
             <a href="/matchs">
               <strong>✅</strong>
               Mes choix
             </a>
-
             <a href="/qb">
               <strong>🎯</strong>
               QB
             </a>
-
             <a href="/classements">
               <strong>🏆</strong>
               Classements
             </a>
-
             <a href="/tous-les-choix">
               <strong>👀</strong>
               Choix
@@ -233,7 +216,6 @@ export default function Home() {
       ) : (
         <section className="card">
           <h2>Connexion</h2>
-
           <p style={{ color: "#94a3b8" }}>
             Entre ton email pour recevoir un lien magique.
           </p>
