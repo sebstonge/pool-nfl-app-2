@@ -131,14 +131,17 @@ export default function Matchs() {
     loadData();
   }, []);
 
-  const getTeamLogo = (teamName) => {
-    const team = teams.find(
-      (t) =>
-        t.name?.toLowerCase().trim() === teamName?.toLowerCase().trim()
-    );
+const getTeamLogo = (teamName) => {
+  const team = teams.find(
+    (t) =>
+      t.name?.toLowerCase().trim() ===
+      teamName?.toLowerCase().trim()
+  );
 
-    return team?.logo || null;
-  };
+  return team?.espn_abbr
+    ? `https://a.espncdn.com/i/teamlogos/nfl/500/${team.espn_abbr.toLowerCase()}.png`
+    : null;
+};
 
   const updateDraftPick = (gameId, field, value) => {
     setDraftPicks((prev) => ({
