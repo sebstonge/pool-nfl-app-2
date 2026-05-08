@@ -1,160 +1,338 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase } from "../lib/supabase";
-import BottomNav from "./components/BottomNav";
+import { supabase } from "../../lib/supabase";
+import BottomNav from "../components/BottomNav";
 
-function NavItem({ href, icon, title, subtitle, color }) {
+function shortName(email) {
+  if (!email) return "Joueur";
+  return email.split("@")[0];
+}
+
+function getPickBadge(game, pick) {
+  if (game.home_score == null || game.away_score == null) return "⚪";
+
+  const winner =
+    game.home_score > game.away_score ? game.home_team : game.away_team;
+
+  const realSpread = Math.abs(game.home_score - game.away_score);
+
+  if (pick.picked_team !== winner) return "❌";
+  if (Number(pick.predicted_spread) === realSpread) return "✅";
+  return "➖";
+}
+
+function getRealSpread(game) {
+  if (game.home_score == null || game.away_score == null) return null;
+  return Math.abs(game.home_score - game.away_score);
+}
+
+function TeamLogo({ logo, name }) {
+  const [error, setError] = useState(false);
+
+  if (!logo || error) {
+    return (
+      <div
+        style={{
+          width: 70,
+          height: 70,
+          borderRadius: 18,
+          background: "rgba(148,163,184,0.16)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontWeight: 900,
+          color: "#f8fafc",
+        }}
+      >
+        {name?.slice(0, 2)}
+      </div>
+    );
+  }
+
   return (
-    <a className="nav-card" href={href}>
-      <div className="nav-icon" style={{ background: color }}>
-        {icon}
-      </div>
-      <div>
-        {title}
-        <span>{subtitle}</span>
-      </div>
-    </a>
+    <img
+      src={logo}
+      alt={name}
+      onError={() => setError(true)}
+      style={{
+        width: 78,
+        height: 78,
+        objectFit: "contain",
+      }}
+    />
   );
 }
 
-export default function Home() {
-  const [user, setUser] = useState(null);
-  const [email, setEmail] = useState("");
+export default function TousLesChoix() {
+  const [players, setPlayers] = useState([]);
+  const [picks, setPicks] = useState([]);
+  const [qbPicks, setQbPicks] = useState([]);
+  const [teams, setTeams] = useState([]);
+  const [currentWeek, setCurrentWeek] = useState(null);
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setUser(data.session?.user ?? null);
-    });
+    async function loadData() {
+      const { data: settingsData } = await supabase
+        .from("settings")
+        .select("*")
+        .single();
 
-    const { data: listener } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setUser(session?.user ?? null);
+      const week = settingsData?.current_week || 1;
+      setCurrentWeek(week);
+
+      const { data: teamsData } = await supabase.from("teams").select("*");
+      setTeams(teamsData || []);
+
+      const { data: usersData } = await supabase
+        .from("users")
+        .select("id, email")
+        .order("email", { ascending: true });
+
+      setPlayers(usersData || []);
+
+      const { data: picksData, error: picksError } = await supabase
+        .from("picks")
+        .select(`
+          id,
+          user_id,
+          picked_team,
+          predicted_spread,
+          games (
+            week,
+            away_team,
+            home_team,
+            away_score,
+            home_score,
+            game_date
+          )
+        `);
+
+      if (picksError) {
+        setMessage("Erreur choix : " + picksError.message);
+        return;
       }
-    );
 
-    return () => {
-      listener.subscription.unsubscribe();
-    };
+      setPicks((picksData || []).filter((pick) => pick.games?.week === week));
+
+      const { data: qbData, error: qbError } = await supabase
+        .from("qb_picks")
+        .select(`
+          id,
+          user_id,
+          week,
+          qbs (
+            name,
+            team,
+            logo
+          )
+        `)
+        .eq("week", week);
+
+      if (qbError) {
+        setMessage("Erreur QB : " + qbError.message);
+        return;
+      }
+
+      setQbPicks(qbData || []);
+    }
+
+    loadData();
   }, []);
 
-  const handleLogin = async () => {
-    setMessage("");
+  const getTeamLogo = (teamName) => {
+    const team = teams.find(
+      (t) =>
+        t.name?.toLowerCase().trim() === teamName?.toLowerCase().trim()
+    );
 
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo:
-          "https://pool-nfl-app-2.vercel.app/auth/callback",
-      },
-    });
-
-    if (error) {
-      setMessage("Erreur ❌ " + error.message);
-    } else {
-      setMessage("Email envoyé 📩 Vérifie ta boîte");
-    }
+    return team?.logo || null;
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    window.location.href = "/";
-  };
+  const allUserIds = Array.from(
+    new Set([
+      ...players.map((p) => p.id),
+      ...picks.map((p) => p.user_id),
+      ...qbPicks.map((q) => q.user_id),
+    ])
+  );
 
   return (
     <main className="page">
       <section className="header-card">
-        <h1>Pool NFL 🏈</h1>
-        <p>Prêt pour la semaine?</p>
+        <h1>Tous les choix 👀</h1>
+        <p>Semaine {currentWeek}</p>
       </section>
 
-      {user ? (
-        <>
-          <section className="card">
-            <p className="status-ok">Connecté : {user.email} ✅</p>
-
-            <button className="button-secondary" onClick={handleLogout}>
-              Se déconnecter
-            </button>
-          </section>
-
-          <section className="nav-grid">
-            <NavItem
-              href="/matchs"
-              icon="✅"
-              title="Mes choix"
-              subtitle="Faire mes prédictions"
-              color="rgba(34,197,94,0.18)"
-            />
-
-            <NavItem
-              href="/qb"
-              icon="🎯"
-              title="Choisir mon QB"
-              subtitle="Choisir mon QB de la semaine"
-              color="rgba(168,85,247,0.20)"
-            />
-
-            <NavItem
-              href="/tous-les-choix"
-              icon="👀"
-              title="Tous les choix"
-              subtitle="Voir les prédictions de tous"
-              color="rgba(59,130,246,0.20)"
-            />
-
-            <NavItem
-              href="/classements"
-              icon="🏆"
-              title="Classements"
-              subtitle="Hebdo et saison"
-              color="rgba(234,179,8,0.20)"
-            />
-
-            <NavItem
-              href="/qb-ratings"
-              icon="📊"
-              title="QB Ratings"
-              subtitle="Meilleurs et pires ratings"
-              color="rgba(236,72,153,0.20)"
-            />
-
-            <NavItem
-              href="/admin"
-              icon="⚙️"
-              title="Admin"
-              subtitle="Scores, stats et calculs"
-              color="rgba(148,163,184,0.18)"
-            />
-          </section>
-
-        <BottomNav />
-        </>
-      ) : (
+      {message && (
         <section className="card">
-          <h2>Connexion</h2>
-
-          <p style={{ color: "#94a3b8" }}>
-            Entre ton email pour recevoir un lien magique.
-          </p>
-
-          <input
-            className="input"
-            type="email"
-            placeholder="Ton email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-
-          <button className="button" onClick={handleLogin}>
-            Recevoir mon lien
-          </button>
-
-          {message && <p>{message}</p>}
+          <p>{message}</p>
         </section>
       )}
+
+      {allUserIds.length === 0 && (
+        <section className="card">
+          <p>Aucun choix soumis pour le moment.</p>
+        </section>
+      )}
+
+      {allUserIds.map((userId) => {
+        const player = players.find((p) => p.id === userId);
+        const playerPicks = picks.filter((pick) => pick.user_id === userId);
+        const playerQB = qbPicks.find((qb) => qb.user_id === userId);
+
+        return (
+          <section key={userId} className="card">
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 14,
+                marginBottom: 18,
+              }}
+            >
+              <div
+                style={{
+                  width: 58,
+                  height: 58,
+                  borderRadius: "50%",
+                  background: "#22c55e",
+                  color: "#052e16",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontWeight: 900,
+                  fontSize: 18,
+                }}
+              >
+                {shortName(player?.email).slice(0, 2).toUpperCase()}
+              </div>
+
+              <div style={{ flex: 1 }}>
+                <h2 style={{ margin: 0 }}>{shortName(player?.email)}</h2>
+
+                <p style={{ margin: "4px 0 0 0", color: "#94a3b8" }}>
+                  QB :{" "}
+                  {playerQB?.qbs ? (
+                    <strong style={{ color: "#60a5fa" }}>
+                      {playerQB.qbs.name}
+                    </strong>
+                  ) : (
+                    <span className="status-warning">Aucun QB soumis</span>
+                  )}
+                </p>
+              </div>
+
+              {playerQB?.qbs?.logo && (
+                <img
+                  src={playerQB.qbs.logo}
+                  alt={playerQB.qbs.name}
+                  style={{
+                    width: 64,
+                    height: 64,
+                    objectFit: "contain",
+                  }}
+                />
+              )}
+            </div>
+
+            <div
+              style={{
+                borderTop: "1px solid rgba(148,163,184,0.18)",
+              }}
+            >
+              {playerPicks.length === 0 ? (
+                <p className="status-warning">
+                  Aucun choix de match soumis.
+                </p>
+              ) : (
+                playerPicks.map((pick) => {
+                  const game = pick.games;
+                  const realSpread = getRealSpread(game);
+
+                  return (
+                    <div
+                      key={pick.id}
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "90px 150px 90px 1fr",
+                        gap: 14,
+                        alignItems: "center",
+                        padding: "18px 0",
+                        borderBottom:
+                          "1px solid rgba(148,163,184,0.10)",
+                      }}
+                    >
+                      <TeamLogo
+                        logo={getTeamLogo(game.away_team)}
+                        name={game.away_team}
+                      />
+
+                      <div
+                        style={{
+                          fontSize: 34,
+                          fontWeight: 900,
+                          textAlign: "center",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {game.away_score != null && game.home_score != null
+                          ? `${game.away_score} - ${game.home_score}`
+                          : "vs"}
+                      </div>
+
+                      <TeamLogo
+                        logo={getTeamLogo(game.home_team)}
+                        name={game.home_team}
+                      />
+
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 14,
+                          justifyContent: "flex-end",
+                        }}
+                      >
+                        <span style={{ fontSize: 32 }}>
+                          {getPickBadge(game, pick)}
+                        </span>
+
+                        <div>
+                          <p
+                            style={{
+                              margin: 0,
+                              fontSize: 18,
+                              fontWeight: 800,
+                            }}
+                          >
+                            Choix : {pick.picked_team} par{" "}
+                            {pick.predicted_spread}
+                          </p>
+
+                          {realSpread != null && (
+                            <p
+                              style={{
+                                margin: "4px 0 0 0",
+                                color: "#94a3b8",
+                              }}
+                            >
+                              Écart réel : {realSpread}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </section>
+        );
+      })}
+
+      <BottomNav />
     </main>
   );
 }
