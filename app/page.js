@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
+import BottomNav from "../components/BottomNav";
 
 function NavItem({ href, icon, title, subtitle, color }) {
   return (
@@ -129,28 +130,7 @@ export default function Home() {
             />
           </section>
 
-          <nav className="bottom-nav">
-            <a href="/">
-              <strong>🏠</strong>
-              Accueil
-            </a>
-            <a href="/matchs">
-              <strong>✅</strong>
-              Mes choix
-            </a>
-            <a href="/qb">
-              <strong>🎯</strong>
-              QB
-            </a>
-            <a href="/classements">
-              <strong>🏆</strong>
-              Classements
-            </a>
-            <a href="/tous-les-choix">
-              <strong>👀</strong>
-              Choix
-            </a>
-          </nav>
+        <BottomNav />
         </>
       ) : (
         <section className="card">
