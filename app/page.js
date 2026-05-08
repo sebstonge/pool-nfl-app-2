@@ -29,19 +29,26 @@ export default function Home() {
       return;
     }
 
-    const { data, error } = await supabase
+    // 1. Vérifie par ID
+    const { data: adminById } = await supabase
       .from("users")
       .select("is_admin")
       .eq("id", currentUser.id)
       .maybeSingle();
 
-    if (error) {
-      console.error("Erreur admin:", error);
-      setIsAdmin(false);
+    if (adminById?.is_admin === true) {
+      setIsAdmin(true);
       return;
     }
 
-    setIsAdmin(data?.is_admin === true);
+    // 2. Fallback : vérifie par email
+    const { data: adminByEmail } = await supabase
+      .from("users")
+      .select("is_admin")
+      .eq("email", currentUser.email)
+      .maybeSingle();
+
+    setIsAdmin(adminByEmail?.is_admin === true);
   }
 
   useEffect(() => {
@@ -91,6 +98,7 @@ export default function Home() {
     await supabase.auth.signOut();
     setUser(null);
     setIsAdmin(false);
+    window.location.href = "/";
   };
 
   return (
@@ -103,36 +111,11 @@ export default function Home() {
       {user ? (
         <>
           <section className="card">
-            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-              <div
-                style={{
-                  width: 54,
-                  height: 54,
-                  borderRadius: "50%",
-                  background: "#22c55e",
-                  color: "#052e16",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontWeight: 900,
-                  fontSize: 18,
-                }}
-              >
-                {user.email?.slice(0, 2).toUpperCase()}
-              </div>
-
-              <div style={{ flex: 1 }}>
-                <strong>Salut!</strong>
-                <p style={{ margin: "4px 0 0 0", color: "#94a3b8" }}>
-                  Connecté : {user.email}
-                </p>
-              </div>
-            </div>
+            <p className="status-ok">Connecté : {user.email} ✅</p>
 
             <button
               className="button-secondary"
               onClick={handleLogout}
-              style={{ marginTop: 14 }}
             >
               Se déconnecter
             </button>
@@ -179,7 +162,7 @@ export default function Home() {
               color="rgba(236,72,153,0.20)"
             />
 
-            {isAdmin === true && (
+            {isAdmin && (
               <NavItem
                 href="/admin"
                 icon="⚙️"
@@ -216,6 +199,7 @@ export default function Home() {
       ) : (
         <section className="card">
           <h2>Connexion</h2>
+
           <p style={{ color: "#94a3b8" }}>
             Entre ton email pour recevoir un lien magique.
           </p>
