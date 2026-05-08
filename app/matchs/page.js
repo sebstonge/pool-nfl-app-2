@@ -12,42 +12,9 @@ function getPickBadge(game, pick) {
 
   const realSpread = Math.abs(game.home_score - game.away_score);
 
-  if (pick.picked_team !== winner) return "🔴";
-  if (Number(pick.predicted_spread) === realSpread) return "🟢";
-  return "🟡";
-}
-
-function GameResultLine({ game }) {
-  const hasScore = game.home_score != null && game.away_score != null;
-
-  if (!hasScore) {
-    return (
-      <strong>
-        {game.away_team} @ {game.home_team}
-      </strong>
-    );
-  }
-
-  const homeWon = game.home_score > game.away_score;
-  const awayWon = game.away_score > game.home_score;
-  const realSpread = Math.abs(game.home_score - game.away_score);
-
-  return (
-    <strong>
-      {awayWon ? (
-        <strong>{game.away_team} ({game.away_score})</strong>
-      ) : (
-        <span>{game.away_team} ({game.away_score})</span>
-      )}{" "}
-      @{" "}
-      {homeWon ? (
-        <strong>{game.home_team} ({game.home_score})</strong>
-      ) : (
-        <span>{game.home_team} ({game.home_score})</span>
-      )}{" "}
-      - par {realSpread}
-    </strong>
-  );
+  if (pick.picked_team !== winner) return "❌";
+  if (Number(pick.predicted_spread) === realSpread) return "✅";
+  return "➖";
 }
 
 function TeamLogo({ logo, name, size = 66 }) {
@@ -121,56 +88,37 @@ export default function Matchs() {
     const currentUser = sessionData.session?.user ?? null;
     setUser(currentUser);
 
-    const { data: settingsData, error: settingsError } = await supabase
+    const { data: settingsData } = await supabase
       .from("settings")
       .select("*")
       .single();
 
-    if (settingsError) {
-      setMessage("Erreur settings : " + settingsError.message);
-      return;
-    }
-
     const week = settingsData?.current_week || 1;
     setCurrentWeek(week);
 
-    const { data: gamesData, error: gamesError } = await supabase
+    const { data: gamesData } = await supabase
       .from("games")
       .select("*")
       .eq("is_pool_eligible", true)
       .eq("week", week)
       .order("game_date", { ascending: true });
 
-    if (gamesError) {
-      setMessage("Erreur matchs : " + gamesError.message);
-      return;
-    }
-
     setGames(gamesData || []);
 
-    const { data: teamsData, error: teamsError } = await supabase
+    const { data: teamsData } = await supabase
       .from("teams")
       .select("*");
-
-    if (teamsError) {
-      setMessage("Erreur équipes : " + teamsError.message);
-      return;
-    }
 
     setTeams(teamsData || []);
 
     if (currentUser) {
-      const { data: picksData, error: picksError } = await supabase
+      const { data: picksData } = await supabase
         .from("picks")
         .select("*")
         .eq("user_id", currentUser.id);
 
-      if (picksError) {
-        setMessage("Erreur choix : " + picksError.message);
-        return;
-      }
-
       const picksByGame = {};
+
       (picksData || []).forEach((pick) => {
         picksByGame[pick.game_id] = pick;
       });
@@ -237,6 +185,7 @@ export default function Matchs() {
   };
 
   const gamesToPick = games.filter((game) => !savedPicks[game.id]);
+
   const submittedGames = games.filter((game) => savedPicks[game.id]);
 
   return (
@@ -264,19 +213,15 @@ export default function Matchs() {
           >
             <div>
               <h2 style={{ margin: 0 }}>À faire</h2>
+
               <p style={{ margin: "6px 0 0 0", color: "#94a3b8" }}>
                 {gamesToPick.length} match
                 {gamesToPick.length > 1 ? "s" : ""} à compléter
               </p>
             </div>
+
             <span className="badge badge-yellow">Ouvert</span>
           </div>
-        </section>
-      )}
-
-      {gamesToPick.length === 0 && submittedGames.length === 0 && (
-        <section className="card">
-          <p>Aucun match admissible pour la semaine {currentWeek}.</p>
         </section>
       )}
 
@@ -303,6 +248,7 @@ export default function Matchs() {
                 <h2 style={{ margin: 0 }}>
                   {game.away_team} @ {game.home_team}
                 </h2>
+
                 <p style={{ margin: "6px 0 0 0", color: "#94a3b8" }}>
                   Choix ouverts
                 </p>
@@ -367,20 +313,90 @@ export default function Matchs() {
           {submittedGames.map((game) => {
             const pick = savedPicks[game.id];
 
+            const realSpread =
+              game.home_score != null && game.away_score != null
+                ? Math.abs(game.home_score - game.away_score)
+                : null;
+
             return (
               <section key={game.id} className="card">
-                <GameResultLine game={game} />
-                <p style={{ marginBottom: 0 }}>
-                  {getPickBadge(game, pick)} Choix : {pick.picked_team} par{" "}
-                  {pick.predicted_spread}
-                </p>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "90px 150px 90px 1fr",
+                    gap: 14,
+                    alignItems: "center",
+                  }}
+                >
+                  <TeamLogo
+                    logo={getTeamLogo(game.away_team)}
+                    name={game.away_team}
+                    size={78}
+                  />
+
+                  <div
+                    style={{
+                      fontSize: 34,
+                      fontWeight: 900,
+                      textAlign: "center",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {game.away_score != null && game.home_score != null
+                      ? `${game.away_score} - ${game.home_score}`
+                      : "vs"}
+                  </div>
+
+                  <TeamLogo
+                    logo={getTeamLogo(game.home_team)}
+                    name={game.home_team}
+                    size={78}
+                  />
+
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 14,
+                      justifyContent: "flex-end",
+                    }}
+                  >
+                    <span style={{ fontSize: 32 }}>
+                      {getPickBadge(game, pick)}
+                    </span>
+
+                    <div>
+                      <p
+                        style={{
+                          margin: 0,
+                          fontSize: 18,
+                          fontWeight: 800,
+                        }}
+                      >
+                        Choix : {pick.picked_team} par{" "}
+                        {pick.predicted_spread}
+                      </p>
+
+                      {realSpread != null && (
+                        <p
+                          style={{
+                            margin: "4px 0 0 0",
+                            color: "#94a3b8",
+                          }}
+                        >
+                          Écart réel : {realSpread}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </section>
             );
           })}
         </>
       )}
 
-     <BottomNav />
+      <BottomNav />
     </main>
   );
 }
