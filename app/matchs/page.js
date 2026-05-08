@@ -49,19 +49,22 @@ function GameResultLine({ game }) {
   );
 }
 
-function TeamLogo({ logo, name }) {
-  if (!logo) {
+function TeamLogo({ logo, name, size = 66 }) {
+  const [error, setError] = useState(false);
+
+  if (!logo || error) {
     return (
       <div
         style={{
-          width: 58,
-          height: 58,
+          width: size,
+          height: size,
           borderRadius: 16,
           background: "rgba(148,163,184,0.16)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           fontWeight: 900,
+          color: "#f8fafc",
         }}
       >
         {name?.slice(0, 2)}
@@ -73,9 +76,10 @@ function TeamLogo({ logo, name }) {
     <img
       src={logo}
       alt={name}
+      onError={() => setError(true)}
       style={{
-        width: 66,
-        height: 66,
+        width: size,
+        height: size,
         objectFit: "contain",
       }}
     />
@@ -104,6 +108,7 @@ function TeamButton({ teamName, teamLogo, selected, onClick }) {
 
 export default function Matchs() {
   const [user, setUser] = useState(null);
+  const [currentWeek, setCurrentWeek] = useState(null);
   const [games, setGames] = useState([]);
   const [teams, setTeams] = useState([]);
   const [savedPicks, setSavedPicks] = useState({});
@@ -115,10 +120,24 @@ export default function Matchs() {
     const currentUser = sessionData.session?.user ?? null;
     setUser(currentUser);
 
+    const { data: settingsData, error: settingsError } = await supabase
+      .from("settings")
+      .select("*")
+      .single();
+
+    if (settingsError) {
+      setMessage("Erreur settings : " + settingsError.message);
+      return;
+    }
+
+    const week = settingsData?.current_week || 1;
+    setCurrentWeek(week);
+
     const { data: gamesData, error: gamesError } = await supabase
       .from("games")
       .select("*")
       .eq("is_pool_eligible", true)
+      .eq("week", week)
       .order("game_date", { ascending: true });
 
     if (gamesError) {
@@ -164,7 +183,11 @@ export default function Matchs() {
   }, []);
 
   const getTeamLogo = (teamName) => {
-    const team = teams.find((t) => t.name === teamName);
+    const team = teams.find(
+      (t) =>
+        t.name?.toLowerCase().trim() === teamName?.toLowerCase().trim()
+    );
+
     return team?.logo || null;
   };
 
@@ -219,7 +242,7 @@ export default function Matchs() {
     <main className="page">
       <section className="header-card">
         <h1>Mes choix ✅</h1>
-        <p>Choisis le gagnant et l’écart prédit.</p>
+        <p>Semaine {currentWeek || "..."}</p>
       </section>
 
       <p>
@@ -254,6 +277,12 @@ export default function Matchs() {
         </section>
       )}
 
+      {gamesToPick.length === 0 && submittedGames.length === 0 && (
+        <section className="card">
+          <p>Aucun match admissible pour la semaine {currentWeek}.</p>
+        </section>
+      )}
+
       {gamesToPick.map((game) => {
         const pick = draftPicks[game.id] || {};
 
@@ -268,7 +297,10 @@ export default function Matchs() {
                 marginBottom: 14,
               }}
             >
-              <TeamLogo logo={getTeamLogo(game.away_team)} name={game.away_team} />
+              <TeamLogo
+                logo={getTeamLogo(game.away_team)}
+                name={game.away_team}
+              />
 
               <div style={{ textAlign: "center", flex: 1 }}>
                 <h2 style={{ margin: 0 }}>
@@ -279,7 +311,10 @@ export default function Matchs() {
                 </p>
               </div>
 
-              <TeamLogo logo={getTeamLogo(game.home_team)} name={game.home_team} />
+              <TeamLogo
+                logo={getTeamLogo(game.home_team)}
+                name={game.home_team}
+              />
             </div>
 
             <div
