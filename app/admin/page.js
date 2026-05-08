@@ -85,173 +85,6 @@ export default function AdminPage() {
     setMessage(`Scores ESPN mis à jour ✅ (${updatedCount} matchs)`);
   };
 
-  const updateEspnQBRatings = async () => {
-    setMessage("Mise à jour ESPN des QB ratings en cours...");
-
-    const { data: settingsData, error: settingsError } = await supabase
-      .from("settings")
-      .select("*")
-      .single();
-
-    if (settingsError) {
-      setMessage("Erreur settings : " + settingsError.message);
-      return;
-    }
-
-    const currentWeek = settingsData.current_week;
-
-    const { data: qbPicks, error: qbPicksError } = await supabase
-      .from("qb_picks")
-      .select(`
-        *,
-        qbs (
-          id,
-          name,
-          team,
-          espn_athlete_id
-        )
-      `)
-      .eq("week", currentWeek);
-
-    if (qbPicksError) {
-      setMessage("Erreur qb_picks : " + qbPicksError.message);
-      return;
-    }
-
-    const { data: games, error: gamesError } = await supabase
-      .from("games")
-      .select("*")
-      .eq("week", currentWeek);
-
-    if (gamesError) {
-      setMessage("Erreur games : " + gamesError.message);
-      return;
-    }
-
-    let updatedCount = 0;
-    let notFound = [];
-
-    for (const pick of qbPicks || []) {
-      const selectedQB = pick.qbs;
-
-      if (!selectedQB?.team) {
-        notFound.push(selectedQB?.name || "QB sans équipe");
-        continue;
-      }
-
-      const qbTeam = selectedQB.team.toLowerCase();
-
-      const game = games.find((g) => {
-        const home = (g.home_team || "").toLowerCase();
-        const away = (g.away_team || "").toLowerCase();
-
-        return home.includes(qbTeam) || away.includes(qbTeam);
-      });
-
-      if (!game?.external_game_id) {
-        notFound.push(selectedQB.name);
-        continue;
-      }
-
-      const summaryUrl =
-        `https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary` +
-        `?event=${game.external_game_id}`;
-
-      const response = await fetch(summaryUrl);
-      const summary = await response.json();
-
-      const boxscoreTeams = summary.boxscore?.players || [];
-
-      let passingAthletes = [];
-
-      for (const teamBox of boxscoreTeams) {
-        const teamName =
-          teamBox.team?.shortDisplayName ||
-          teamBox.team?.displayName ||
-          teamBox.team?.name ||
-          "";
-
-        const teamMatches = teamName.toLowerCase().includes(qbTeam);
-
-        if (!teamMatches) continue;
-
-        const passingCategory = teamBox.statistics?.find(
-          (category) =>
-            category.name === "passing" ||
-            category.displayName === "Passing"
-        );
-
-        if (!passingCategory) continue;
-
-        const labels = passingCategory.labels || [];
-        const ratingIndex =
-          labels.findIndex((label) =>
-            ["RTG", "RAT", "RATE"].includes(String(label).toUpperCase())
-          );
-
-        if (ratingIndex === -1) continue;
-
-        passingAthletes = passingCategory.athletes
-          .map((athleteRow) => ({
-            id: athleteRow.athlete?.id,
-            name: athleteRow.athlete?.displayName,
-            rating: Number(athleteRow.stats?.[ratingIndex]),
-          }))
-          .filter((row) => !Number.isNaN(row.rating));
-      }
-
-      if (passingAthletes.length === 0) {
-        notFound.push(selectedQB.name);
-        continue;
-      }
-
-      let actualQB = passingAthletes[0];
-
-      if (selectedQB.espn_athlete_id) {
-        const exactMatch = passingAthletes.find(
-          (athlete) => athlete.id === selectedQB.espn_athlete_id
-        );
-
-        if (exactMatch) actualQB = exactMatch;
-      } else {
-        const nameMatch = passingAthletes.find((athlete) =>
-          athlete.name?.toLowerCase().includes(selectedQB.name.toLowerCase())
-        );
-
-        if (nameMatch) actualQB = nameMatch;
-      }
-
-      const { error: upsertError } = await supabase
-        .from("qb_ratings")
-        .upsert(
-          {
-            qb_id: selectedQB.id,
-            week: currentWeek,
-            passer_rating: actualQB.rating,
-            actual_qb_name: actualQB.name,
-            actual_espn_athlete_id: actualQB.id,
-          },
-          {
-            onConflict: "qb_id,week",
-          }
-        );
-
-      if (upsertError) {
-        notFound.push(`${selectedQB.name} (${upsertError.message})`);
-      } else {
-        updatedCount++;
-      }
-    }
-
-    let finalMessage = `QB ratings ESPN mis à jour ✅ (${updatedCount})`;
-
-    if (notFound.length > 0) {
-      finalMessage += ` | Non trouvés : ${notFound.join(", ")}`;
-    }
-
-    setMessage(finalMessage);
-  };
-
   const calculateScores = async () => {
     setMessage("Calcul en cours...");
 
@@ -267,8 +100,7 @@ export default function AdminPage() {
 
     const currentWeek = settingsData.current_week;
 
-    const { data: picks, error: picksError } = await supabase
-      .from("picks")
+    const { data: picks, error: picksError } = await supabase.from("picks")
       .select(`
         *,
         games (
@@ -306,11 +138,8 @@ export default function AdminPage() {
 
         let winner = null;
 
-        if (game.home_score > game.away_score) {
-          winner = game.home_team;
-        } else if (game.away_score > game.home_score) {
-          winner = game.away_team;
-        }
+        if (game.home_score > game.away_score) winner = game.home_team;
+        if (game.away_score > game.home_score) winner = game.away_team;
 
         const realSpread = Math.abs(game.home_score - game.away_score);
 
@@ -318,10 +147,7 @@ export default function AdminPage() {
 
         if (pick.picked_team === winner) {
           points = 1;
-
-          if (Number(pick.predicted_spread) === realSpread) {
-            points = 2;
-          }
+          if (Number(pick.predicted_spread) === realSpread) points = 2;
         }
 
         scoresByUser[pick.user_id] =
@@ -365,49 +191,79 @@ export default function AdminPage() {
 
   if (!user) {
     return (
-      <main style={{ padding: 20 }}>
-        <h1>Admin</h1>
-        <p>Connecte-toi.</p>
+      <main className="page">
+        <section className="header-card">
+          <h1>Admin ⚙️</h1>
+          <p>Connecte-toi pour accéder à l’administration.</p>
+        </section>
       </main>
     );
   }
 
   if (!isAdmin) {
     return (
-      <main style={{ padding: 20 }}>
-        <h1>Accès refusé ❌</h1>
-        <p>Tu n'es pas administrateur.</p>
+      <main className="page">
+        <section className="header-card">
+          <h1>Accès refusé ❌</h1>
+          <p>Tu n'es pas administrateur.</p>
+        </section>
       </main>
     );
   }
 
   return (
-    <main style={{ padding: 20 }}>
-      <h1>Admin</h1>
+    <main className="page">
+      <section className="header-card">
+        <h1>Admin ⚙️</h1>
+        <p>Scores, QB ratings et calculs.</p>
+      </section>
 
       <p>
-        <a href="/">Retour accueil</a>
+        <a href="/">← Retour accueil</a>
       </p>
 
-      <button
-        onClick={updateEspnScores}
-        style={{ padding: 12, marginRight: 10, marginBottom: 10 }}
-      >
-        Mettre à jour les scores ESPN
-      </button>
+      {message && (
+        <section className="card">
+          <p>{message}</p>
+        </section>
+      )}
 
-      <button
-        onClick={updateEspnQBRatings}
-        style={{ padding: 12, marginRight: 10, marginBottom: 10 }}
-      >
-        Mettre à jour les QB ratings ESPN
-      </button>
+      <section className="card">
+        <h2>ESPN</h2>
+        <button className="button" onClick={updateEspnScores}>
+          Mettre à jour les scores ESPN
+        </button>
+      </section>
 
-      <button onClick={calculateScores} style={{ padding: 12 }}>
-        Calculer les classements
-      </button>
+      <section className="card">
+        <h2>Classements</h2>
+        <button className="button" onClick={calculateScores}>
+          Calculer les classements
+        </button>
+      </section>
 
-      <p>{message}</p>
+      <nav className="bottom-nav">
+        <a href="/">
+          <strong>🏠</strong>
+          Accueil
+        </a>
+        <a href="/matchs">
+          <strong>✅</strong>
+          Mes choix
+        </a>
+        <a href="/qb">
+          <strong>🎯</strong>
+          QB
+        </a>
+        <a href="/classements">
+          <strong>🏆</strong>
+          Classements
+        </a>
+        <a href="/tous-les-choix">
+          <strong>👀</strong>
+          Choix
+        </a>
+      </nav>
     </main>
   );
 }
