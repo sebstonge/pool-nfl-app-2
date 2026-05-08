@@ -9,6 +9,7 @@ function NavItem({ href, icon, title, subtitle, color }) {
       <div className="nav-icon" style={{ background: color }}>
         {icon}
       </div>
+
       <div>
         {title}
         <span>{subtitle}</span>
@@ -21,15 +22,46 @@ export default function Home() {
   const [user, setUser] = useState(null);
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setUser(data.session?.user ?? null);
-    });
+    async function loadSession() {
+      const { data } = await supabase.auth.getSession();
+
+      const currentUser = data.session?.user ?? null;
+
+      setUser(currentUser);
+
+      if (currentUser) {
+        const { data: userData } = await supabase
+          .from("users")
+          .select("is_admin")
+          .eq("id", currentUser.id)
+          .single();
+
+        setIsAdmin(userData?.is_admin || false);
+      }
+    }
+
+    loadSession();
 
     const { data: listener } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setUser(session?.user ?? null);
+      async (_event, session) => {
+        const currentUser = session?.user ?? null;
+
+        setUser(currentUser);
+
+        if (currentUser) {
+          const { data: userData } = await supabase
+            .from("users")
+            .select("is_admin")
+            .eq("id", currentUser.id)
+            .single();
+
+          setIsAdmin(userData?.is_admin || false);
+        } else {
+          setIsAdmin(false);
+        }
       }
     );
 
@@ -59,6 +91,7 @@ export default function Home() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setUser(null);
+    setIsAdmin(false);
   };
 
   return (
@@ -71,7 +104,13 @@ export default function Home() {
       {user ? (
         <>
           <section className="card">
-            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 14,
+              }}
+            >
               <div
                 style={{
                   width: 54,
@@ -91,7 +130,13 @@ export default function Home() {
 
               <div style={{ flex: 1 }}>
                 <strong>Salut!</strong>
-                <p style={{ margin: "4px 0 0 0", color: "#94a3b8" }}>
+
+                <p
+                  style={{
+                    margin: "4px 0 0 0",
+                    color: "#94a3b8",
+                  }}
+                >
                   Connecté : {user.email}
                 </p>
               </div>
@@ -147,13 +192,15 @@ export default function Home() {
               color="rgba(236,72,153,0.20)"
             />
 
-            <NavItem
-              href="/admin"
-              icon="⚙️"
-              title="Admin"
-              subtitle="Scores, stats et calculs"
-              color="rgba(148,163,184,0.18)"
-            />
+            {isAdmin && (
+              <NavItem
+                href="/admin"
+                icon="⚙️"
+                title="Admin"
+                subtitle="Scores, stats et calculs"
+                color="rgba(148,163,184,0.18)"
+              />
+            )}
           </section>
 
           <nav className="bottom-nav">
@@ -161,18 +208,22 @@ export default function Home() {
               <strong>🏠</strong>
               Accueil
             </a>
+
             <a href="/matchs">
               <strong>✅</strong>
               Mes choix
             </a>
+
             <a href="/qb">
               <strong>🎯</strong>
               QB
             </a>
+
             <a href="/classements">
               <strong>🏆</strong>
               Classements
             </a>
+
             <a href="/tous-les-choix">
               <strong>👀</strong>
               Choix
@@ -182,6 +233,7 @@ export default function Home() {
       ) : (
         <section className="card">
           <h2>Connexion</h2>
+
           <p style={{ color: "#94a3b8" }}>
             Entre ton email pour recevoir un lien magique.
           </p>
