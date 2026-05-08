@@ -6,6 +6,21 @@ import { supabase } from "../../../lib/supabase";
 export default function Import2025Page() {
   const [message, setMessage] = useState("");
 
+  function findEvents(obj) {
+    if (!obj || typeof obj !== "object") return [];
+
+    if (Array.isArray(obj.events)) {
+      return obj.events;
+    }
+
+    for (const key of Object.keys(obj)) {
+      const found = findEvents(obj[key]);
+      if (found.length > 0) return found;
+    }
+
+    return [];
+  }
+
   const importWeeks = async () => {
     setMessage("Import des semaines 1 à 6 en cours...");
 
@@ -13,13 +28,14 @@ export default function Import2025Page() {
 
     for (let week = 1; week <= 6; week++) {
       const url =
-        `https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard` +
-        `?seasontype=2&week=${week}&dates=2025`;
+        `https://www.espn.com/nfl/scoreboard/_/week/${week}/year/2025/seasontype/2?xhr=1`;
 
       const response = await fetch(url);
       const data = await response.json();
 
-      for (const event of data.events || []) {
+      const events = findEvents(data);
+
+      for (const event of events || []) {
         const competition = event.competitions?.[0];
         const competitors = competition?.competitors || [];
 
