@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
+import BottomNav from "../components/BottomNav";
 
 function shortName(email) {
   if (!email) return "—";
@@ -136,10 +137,6 @@ export default function QBRatingsPage() {
         <p>Meilleur et pire passer rating de chaque QB cette saison.</p>
       </section>
 
-      <p>
-        <a href="/">← Retour accueil</a>
-      </p>
-
       {message && (
         <section className="card">
           <p>{message}</p>
@@ -250,28 +247,7 @@ export default function QBRatingsPage() {
         ))}
       </section>
 
-      <nav className="bottom-nav">
-        <a href="/">
-          <strong>🏠</strong>
-          Accueil
-        </a>
-        <a href="/matchs">
-          <strong>✅</strong>
-          Mes choix
-        </a>
-        <a href="/qb">
-          <strong>🎯</strong>
-          QB
-        </a>
-        <a href="/classements">
-          <strong>🏆</strong>
-          Classements
-        </a>
-        <a href="/tous-les-choix">
-          <strong>👀</strong>
-          Choix
-        </a>
-      </nav>
+      <BottomNav />
     </main>
   );
 }
