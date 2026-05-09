@@ -4,16 +4,144 @@ import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import BottomNav from "../components/BottomNav";
 
-function shortName(email) {
-  if (!email) return "Joueur";
-  return email.split("@")[0];
+function displayName(user, fallbackId) {
+  if (user?.display_name) return user.display_name;
+  if (user?.email) return user.email.split("@")[0];
+  return fallbackId;
+}
+
+function initials(name) {
+  return String(name || "Joueur").slice(0, 2).toUpperCase();
 }
 
 function medal(rank) {
   if (rank === 1) return "🥇";
   if (rank === 2) return "🥈";
   if (rank === 3) return "🥉";
-  return rank;
+  return `#${rank}`;
+}
+
+function RankingRow({ row, mode }) {
+  return (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "46px 1fr auto",
+        gap: 12,
+        alignItems: "center",
+        padding: "14px 0",
+        borderBottom: "1px solid rgba(148,163,184,0.12)",
+      }}
+    >
+      <div
+        style={{
+          width: 42,
+          height: 42,
+          borderRadius: "50%",
+          background:
+            row.rank === 1 ? "#22c55e" : "rgba(148,163,184,0.16)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontWeight: 900,
+          color: row.rank === 1 ? "#052e16" : "#f8fafc",
+        }}
+      >
+        {row.rank <= 3 ? medal(row.rank) : row.rank}
+      </div>
+
+      <div>
+        <h3 style={{ margin: 0 }}>{row.name}</h3>
+
+        <p style={{ margin: "4px 0 0 0", color: "#94a3b8" }}>
+          {mode === "season"
+            ? `Moyenne : ${row.average.toFixed(3)}`
+            : row.rank === 1
+            ? "Meneur"
+            : `-${row.diff.toFixed(3)} du meneur`}
+        </p>
+
+        {mode === "season" && row.rank !== 1 && (
+          <p style={{ margin: "4px 0 0 0", color: "#ef4444" }}>
+            -{row.diff.toFixed(3)} du meneur
+          </p>
+        )}
+      </div>
+
+      <div
+        style={{
+          fontSize: 30,
+          fontWeight: 900,
+          color: "#22c55e",
+          textAlign: "right",
+        }}
+      >
+        {(mode === "season" ? row.total : row.score).toFixed(3)}
+      </div>
+    </div>
+  );
+}
+
+function PodiumCard({ row, size = "small" }) {
+  if (!row) return null;
+
+  const isBig = size === "big";
+
+  return (
+    <div
+      style={{
+        padding: isBig ? 24 : 18,
+        borderRadius: 24,
+        background:
+          row.rank === 1
+            ? "linear-gradient(180deg, rgba(34,197,94,0.20), rgba(15,23,42,0.70))"
+            : "rgba(15,23,42,0.72)",
+        border:
+          row.rank === 1
+            ? "1px solid rgba(34,197,94,0.35)"
+            : "1px solid rgba(148,163,184,0.16)",
+        textAlign: "center",
+        minHeight: isBig ? 230 : 190,
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+      }}
+    >
+      <div style={{ fontSize: isBig ? 42 : 32 }}>{medal(row.rank)}</div>
+
+      <div
+        style={{
+          width: isBig ? 72 : 58,
+          height: isBig ? 72 : 58,
+          borderRadius: "50%",
+          background: "#22c55e",
+          color: "#052e16",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontWeight: 900,
+          fontSize: isBig ? 24 : 20,
+          margin: "10px auto",
+        }}
+      >
+        {initials(row.name)}
+      </div>
+
+      <h3 style={{ margin: "4px 0", fontSize: isBig ? 24 : 18 }}>
+        {row.name}
+      </h3>
+
+      <div
+        style={{
+          fontSize: isBig ? 42 : 30,
+          fontWeight: 900,
+          color: "#22c55e",
+        }}
+      >
+        {(row.total ?? row.score).toFixed(3)}
+      </div>
+    </div>
+  );
 }
 
 export default function ClassementsPage() {
@@ -32,48 +160,53 @@ export default function ClassementsPage() {
       const currentWeek = settings?.current_week || 1;
       setWeek(currentWeek);
 
-      const { data: users } = await supabase.from("users").select("id, email");
+      const { data: users } = await supabase
+        .from("users")
+        .select("id, email, display_name");
 
       const { data: allScores } = await supabase
         .from("weekly_scores")
         .select("*")
         .order("week", { ascending: true });
 
-      const getName = (userId) => {
+      const getUserName = (userId) => {
         const user = users?.find((u) => u.id === userId);
-        return shortName(user?.email || userId);
+        return displayName(user, userId);
       };
 
       const weekScores = (allScores || [])
-        .filter((s) => s.week === currentWeek)
-        .sort((a, b) => Number(b.final_score) - Number(a.final_score));
+        .filter((score) => score.week === currentWeek)
+        .sort(
+          (a, b) =>
+            Number(b.final_score || 0) - Number(a.final_score || 0)
+        );
 
       const weekLeader = Number(weekScores?.[0]?.final_score || 0);
 
       setWeekly(
-        weekScores.map((row, index) => ({
+        weekScores.map((score, index) => ({
           rank: index + 1,
-          userId: row.user_id,
-          name: getName(row.user_id),
-          score: Number(row.final_score || 0),
-          diff: weekLeader - Number(row.final_score || 0),
+          userId: score.user_id,
+          name: getUserName(score.user_id),
+          score: Number(score.final_score || 0),
+          diff: weekLeader - Number(score.final_score || 0),
         }))
       );
 
       const grouped = {};
 
-      for (const row of allScores || []) {
-        if (!grouped[row.user_id]) {
-          grouped[row.user_id] = {
-            userId: row.user_id,
-            name: getName(row.user_id),
+      for (const score of allScores || []) {
+        if (!grouped[score.user_id]) {
+          grouped[score.user_id] = {
+            userId: score.user_id,
+            name: getUserName(score.user_id),
             total: 0,
             weeks: 0,
           };
         }
 
-        grouped[row.user_id].total += Number(row.final_score || 0);
-        grouped[row.user_id].weeks += 1;
+        grouped[score.user_id].total += Number(score.final_score || 0);
+        grouped[score.user_id].weeks += 1;
       }
 
       const seasonRows = Object.values(grouped).sort(
@@ -96,8 +229,8 @@ export default function ClassementsPage() {
   }, []);
 
   const rows = tab === "week" ? weekly : season;
-  const leader = rows[0];
-  const second = rows[1];
+  const topThree = rows.slice(0, 3);
+  const rest = rows.slice(3);
 
   return (
     <main className="page">
@@ -136,124 +269,55 @@ export default function ClassementsPage() {
         </section>
       ) : (
         <>
-          {tab === "season" && (
-            <section
+          <section className="card">
+            <h2 style={{ marginTop: 0 }}>
+              Podium {tab === "week" ? `semaine ${week}` : "saison"}
+            </h2>
+
+            <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "1fr 1fr",
+                gridTemplateColumns: "1fr 1.25fr 1fr",
                 gap: 12,
-                marginBottom: 16,
+                alignItems: "end",
               }}
             >
-              <div
-                className="card"
-                style={{
-                  marginBottom: 0,
-                  border: "1px solid rgba(34,197,94,0.25)",
-                  background: "rgba(34,197,94,0.08)",
-                }}
-              >
-                <p style={{ margin: 0, color: "#94a3b8" }}>Meneur</p>
-                <h2 style={{ margin: "8px 0" }}>{leader?.name}</h2>
-                <div
-                  style={{
-                    fontSize: 44,
-                    fontWeight: 900,
-                    color: "#22c55e",
-                  }}
-                >
-                  {leader?.total.toFixed(3)}
-                </div>
-              </div>
-
-              <div
-                className="card"
-                style={{
-                  marginBottom: 0,
-                  border: "1px solid rgba(34,197,94,0.25)",
-                  background: "rgba(34,197,94,0.08)",
-                }}
-              >
-                <p style={{ margin: 0, color: "#94a3b8" }}>Écart avec 2e</p>
-                <div
-                  style={{
-                    marginTop: 16,
-                    fontSize: 44,
-                    fontWeight: 900,
-                    color: "#22c55e",
-                  }}
-                >
-                  +
-                  {(
-                    Number(leader?.total || 0) - Number(second?.total || 0)
-                  ).toFixed(3)}
-                </div>
-                <p style={{ margin: 0, color: "#94a3b8" }}>
-                  sur {second?.name || "—"}
-                </p>
-              </div>
-            </section>
-          )}
+              <PodiumCard row={topThree[1]} />
+              <PodiumCard row={topThree[0]} size="big" />
+              <PodiumCard row={topThree[2]} />
+            </div>
+          </section>
 
           <section className="card">
+            <h2 style={{ marginTop: 0 }}>
+              {tab === "week"
+                ? `Classement complet — semaine ${week}`
+                : "Classement complet — saison"}
+            </h2>
+
             {rows.map((row) => (
-              <div
+              <RankingRow
                 key={row.userId}
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "54px 1fr auto",
-                  gap: 12,
-                  alignItems: "center",
-                  padding: "14px 0",
-                  borderBottom: "1px solid rgba(148,163,184,0.12)",
-                }}
-              >
-                <div
-                  style={{
-                    width: 46,
-                    height: 46,
-                    borderRadius: "50%",
-                    background:
-                      row.rank === 1 ? "#16a34a" : "rgba(148,163,184,0.16)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontWeight: 900,
-                  }}
-                >
-                  {medal(row.rank)}
-                </div>
-
-                <div>
-                  <h2 style={{ margin: 0 }}>{row.name}</h2>
-
-                  <p style={{ margin: "4px 0 0 0", color: "#94a3b8" }}>
-                    {tab === "season"
-                      ? `Moyenne : ${row.average.toFixed(3)}`
-                      : row.rank === 1
-                      ? "Meneur"
-                      : `-${row.diff.toFixed(3)} du meneur`}
-                  </p>
-
-                  {tab === "season" && row.rank !== 1 && (
-                    <p style={{ margin: "4px 0 0 0", color: "#ef4444" }}>
-                      -{row.diff.toFixed(3)} du meneur
-                    </p>
-                  )}
-                </div>
-
-                <div
-                  style={{
-                    fontSize: 36,
-                    fontWeight: 900,
-                    color: "#22c55e",
-                  }}
-                >
-                  {(tab === "season" ? row.total : row.score).toFixed(3)}
-                </div>
-              </div>
+                row={row}
+                mode={tab === "week" ? "week" : "season"}
+              />
             ))}
           </section>
+
+          {rest.length > 0 && (
+            <section
+              className="card"
+              style={{
+                background: "rgba(34,197,94,0.08)",
+                border: "1px solid rgba(34,197,94,0.22)",
+              }}
+            >
+              <p style={{ margin: 0, color: "#94a3b8" }}>
+                🏆 Classement mis à jour après chaque calcul admin. Les écarts
+                sont calculés par rapport au meneur.
+              </p>
+            </section>
+          )}
         </>
       )}
 
