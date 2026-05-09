@@ -43,51 +43,46 @@ export default function AdminPage() {
     return data;
   }
 
-  async function updateScoresFromEspn(currentWeek) {
-    const { data: games, error: gamesError } = await supabase
+async function updateScoresFromEspn(currentWeek) {
+  const { data: currentSettings } = await supabase
+    .from("settings")
+    .select("*")
+    .single();
+
+  const season = currentSettings?.current_season || 2025;
+
+  const url =
+    `https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard` +
+    `?seasontype=2&week=${currentWeek}&dates=${season}`;
+
+  const response = await fetch(url);
+  const data = await response.json();
+
+  let updated = 0;
+
+  for (const event of data.events || []) {
+    const competition = event.competitions?.[0];
+    const competitors = competition?.competitors || [];
+
+    const home = competitors.find((c) => c.homeAway === "home");
+    const away = competitors.find((c) => c.homeAway === "away");
+
+    if (!home || !away) continue;
+
+    const { error } = await supabase
       .from("games")
-      .select("*")
+      .update({
+        home_score: Number(home.score),
+        away_score: Number(away.score),
+      })
+      .eq("external_game_id", String(event.id))
       .eq("week", currentWeek);
 
-    if (gamesError) throw new Error("Games : " + gamesError.message);
-
-    let updated = 0;
-
-    for (const game of games || []) {
-      if (!game.external_game_id) continue;
-
-      const url =
-        `https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary` +
-        `?event=${game.external_game_id}`;
-
-      const response = await fetch(url);
-      const data = await response.json();
-
-      const competition = data.header?.competitions?.[0];
-      const competitors = competition?.competitors || [];
-
-      const home = competitors.find((c) => c.homeAway === "home");
-      const away = competitors.find((c) => c.homeAway === "away");
-
-      if (!home || !away) continue;
-
-      const completed = competition.status?.type?.completed === true;
-
-      if (!completed) continue;
-
-      const { error } = await supabase
-        .from("games")
-        .update({
-          home_score: Number(home.score),
-          away_score: Number(away.score),
-        })
-        .eq("id", game.id);
-
-      if (!error) updated++;
-    }
-
-    return updated;
+    if (!error) updated++;
   }
+
+  return updated;
+}
 
   async function updateQBRatingsFromEspn(currentWeek) {
     const { data: qbPicks, error: qbPicksError } = await supabase
