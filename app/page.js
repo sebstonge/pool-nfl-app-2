@@ -91,14 +91,6 @@ export default function HomePage() {
             />
 
             <NavItem
-              href="/qb"
-              icon="🎯"
-              title="QB"
-              subtitle="Choisir mon QB de la semaine"
-              color="rgba(168,85,247,0.20)"
-            />
-
-            <NavItem
               href="/tous-les-choix"
               icon="👀"
               title="Tous les choix"
