@@ -11,11 +11,6 @@ export default function BottomNav() {
         Mes choix
       </a>
 
-      <a href="/qb">
-        <strong>🎯</strong>
-        QB
-      </a>
-
       <a href="/tous-les-choix">
         <strong>👀</strong>
         Tous les choix
