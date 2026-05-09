@@ -351,7 +351,10 @@ export default function TousLesChoix() {
                     ? Math.abs(game.home_score - game.away_score)
                     : null;
 
-                return (
+                const hasScore =
+                  game.home_score != null && game.away_score != null;
+
+                return hasScore ? (
                   <div
                     key={pick.id}
                     style={{
@@ -377,9 +380,7 @@ export default function TousLesChoix() {
                         whiteSpace: "nowrap",
                       }}
                     >
-                      {game.away_score != null && game.home_score != null
-                        ? `${game.away_score} - ${game.home_score}`
-                        : "vs"}
+                      {game.away_score} - {game.home_score}
                     </div>
 
                     <TeamLogo
@@ -406,18 +407,80 @@ export default function TousLesChoix() {
                           {pick.predicted_spread}
                         </p>
 
-                        {realSpread != null && (
-                          <p
-                            style={{
-                              margin: "4px 0 0 0",
-                              color: "#94a3b8",
-                            }}
-                          >
-                            Écart réel : {realSpread}
-                          </p>
-                        )}
+                        <p
+                          style={{
+                            margin: "4px 0 0 0",
+                            color: "#94a3b8",
+                          }}
+                        >
+                          Écart réel : {realSpread}
+                        </p>
                       </div>
                     </div>
+                  </div>
+                ) : (
+                  <div
+                    key={pick.id}
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "90px 50px 90px 1fr 40px",
+                      gap: 12,
+                      alignItems: "center",
+                      padding: "14px 0",
+                      borderBottom: "1px solid rgba(148,163,184,0.12)",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 78,
+                        height: 78,
+                        borderRadius: "50%",
+                        background:
+                          pick.picked_team === game.away_team
+                            ? "white"
+                            : "transparent",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <TeamLogo
+                        logo={getTeamLogo(game.away_team)}
+                        name={game.away_team}
+                        size={66}
+                      />
+                    </div>
+
+                    <strong style={{ textAlign: "center", fontSize: 18 }}>
+                      vs
+                    </strong>
+
+                    <div
+                      style={{
+                        width: 78,
+                        height: 78,
+                        borderRadius: "50%",
+                        background:
+                          pick.picked_team === game.home_team
+                            ? "white"
+                            : "transparent",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <TeamLogo
+                        logo={getTeamLogo(game.home_team)}
+                        name={game.home_team}
+                        size={66}
+                      />
+                    </div>
+
+                    <strong style={{ fontSize: 22 }}>
+                      par {pick.predicted_spread}
+                    </strong>
+
+                    <span style={{ fontSize: 28 }}>⚪</span>
                   </div>
                 );
               })
