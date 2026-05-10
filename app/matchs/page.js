@@ -84,17 +84,68 @@ function QBPhoto({ qb }) {
   );
 }
 
-function getPickBadge(game, pick) {
-  if (game.home_score == null || game.away_score == null) return "⚪";
+ffunction getPickBadge(game, pick) {
+  if (game.home_score == null || game.away_score == null) {
+    return (
+      <span
+        style={{
+          width: 18,
+          height: 18,
+          borderRadius: "50%",
+          background: "#94a3b8",
+          display: "inline-block",
+        }}
+      />
+    );
+  }
 
   const winner =
     game.home_score > game.away_score ? game.home_team : game.away_team;
 
   const realSpread = Math.abs(game.home_score - game.away_score);
 
-  if (pick.picked_team !== winner) return "❌";
-  if (Number(pick.predicted_spread) === realSpread) return "✅";
-  return "➖";
+  if (pick.picked_team !== winner) {
+    return (
+      <span
+        style={{
+          fontSize: 34,
+          fontWeight: 900,
+          color: "#ef4444",
+          lineHeight: 1,
+        }}
+      >
+        ✕
+      </span>
+    );
+  }
+
+  if (Number(pick.predicted_spread) === realSpread) {
+    return (
+      <span
+        style={{
+          width: 22,
+          height: 22,
+          borderRadius: "50%",
+          background: "#22c55e",
+          display: "inline-block",
+          boxShadow: "0 0 12px rgba(34,197,94,0.55)",
+        }}
+      />
+    );
+  }
+
+  return (
+    <span
+      style={{
+        width: 22,
+        height: 22,
+        borderRadius: "50%",
+        background: "#facc15",
+        display: "inline-block",
+        boxShadow: "0 0 10px rgba(250,204,21,0.45)",
+      }}
+    />
+  );
 }
 
 export default function Matchs() {
