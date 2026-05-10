@@ -97,7 +97,7 @@ function getPickBadge(game, pick) {
 
   const realSpread = Math.abs(game.home_score - game.away_score);
 
-  if (pick.picked_team !== winner) return "❌";
+  if (pick.picked_team !== winner) return "🔴";
   if (Number(pick.predicted_spread) === realSpread) return "🟢";
   return "🟡";
 }
