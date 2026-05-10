@@ -22,6 +22,13 @@ function medal(rank) {
 }
 
 function RankingRow({ row, mode }) {
+  const movement =
+    row.movement > 0
+      ? `⬆️ +${row.movement}`
+      : row.movement < 0
+      ? `⬇️ ${row.movement}`
+      : "➖";
+
   return (
     <div
       style={{
@@ -37,21 +44,45 @@ function RankingRow({ row, mode }) {
         style={{
           width: 42,
           height: 42,
-          borderRadius: "50%",
-          background:
-            row.rank === 1 ? "#22c55e" : "rgba(148,163,184,0.16)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           fontWeight: 900,
-          color: row.rank === 1 ? "#052e16" : "#f8fafc",
+          color: "#f8fafc",
+          fontSize: row.rank <= 3 ? 24 : 18,
         }}
       >
         {row.rank <= 3 ? medal(row.rank) : row.rank}
       </div>
 
       <div>
-        <h3 style={{ margin: 0 }}>{row.name}</h3>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            flexWrap: "wrap",
+          }}
+        >
+          <h3 style={{ margin: 0 }}>{row.name}</h3>
+
+          {mode === "season" && (
+            <span
+              style={{
+                fontSize: 13,
+                fontWeight: 800,
+                color:
+                  row.movement > 0
+                    ? "#22c55e"
+                    : row.movement < 0
+                    ? "#ef4444"
+                    : "#94a3b8",
+              }}
+            >
+              {movement}
+            </span>
+          )}
+        </div>
 
         <p style={{ margin: "4px 0 0 0", color: "#94a3b8" }}>
           {mode === "season"
@@ -193,35 +224,51 @@ export default function ClassementsPage() {
         }))
       );
 
-      const grouped = {};
+      function buildSeasonRows(scores) {
+        const grouped = {};
 
-      for (const score of allScores || []) {
-        if (!grouped[score.user_id]) {
-          grouped[score.user_id] = {
-            userId: score.user_id,
-            name: getUserName(score.user_id),
-            total: 0,
-            weeks: 0,
-          };
+        for (const score of scores || []) {
+          if (!grouped[score.user_id]) {
+            grouped[score.user_id] = {
+              userId: score.user_id,
+              name: getUserName(score.user_id),
+              total: 0,
+              weeks: 0,
+            };
+          }
+
+          grouped[score.user_id].total += Number(score.final_score || 0);
+          grouped[score.user_id].weeks += 1;
         }
 
-        grouped[score.user_id].total += Number(score.final_score || 0);
-        grouped[score.user_id].weeks += 1;
+        return Object.values(grouped).sort((a, b) => b.total - a.total);
       }
 
-      const seasonRows = Object.values(grouped).sort(
-        (a, b) => b.total - a.total
+      const seasonRows = buildSeasonRows(allScores || []);
+      const previousSeasonRows = buildSeasonRows(
+        (allScores || []).filter((score) => score.week < currentWeek)
       );
+
+      const previousRanks = {};
+      previousSeasonRows.forEach((row, index) => {
+        previousRanks[row.userId] = index + 1;
+      });
 
       const seasonLeader = Number(seasonRows?.[0]?.total || 0);
 
       setSeason(
-        seasonRows.map((row, index) => ({
-          ...row,
-          rank: index + 1,
-          average: row.weeks > 0 ? row.total / row.weeks : 0,
-          diff: seasonLeader - row.total,
-        }))
+        seasonRows.map((row, index) => {
+          const currentRank = index + 1;
+          const previousRank = previousRanks[row.userId] || currentRank;
+
+          return {
+            ...row,
+            rank: currentRank,
+            average: row.weeks > 0 ? row.total / row.weeks : 0,
+            diff: seasonLeader - row.total,
+            movement: previousRank - currentRank,
+          };
+        })
       );
     }
 
