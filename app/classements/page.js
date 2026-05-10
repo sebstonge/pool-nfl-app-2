@@ -89,10 +89,16 @@ function RankingRow({ row, mode }) {
             ? `Moyenne : ${row.average.toFixed(3)}`
             : row.rank === 1
             ? "Meneur"
-            : `-${row.diff.toFixed(3)} du meneur`}
+            : ""}
         </p>
 
         {mode === "season" && row.rank !== 1 && (
+          <p style={{ margin: "4px 0 0 0", color: "#ef4444" }}>
+            -{row.diff.toFixed(3)} du meneur
+          </p>
+        )}
+
+        {mode === "week" && row.rank !== 1 && (
           <p style={{ margin: "4px 0 0 0", color: "#ef4444" }}>
             -{row.diff.toFixed(3)} du meneur
           </p>
