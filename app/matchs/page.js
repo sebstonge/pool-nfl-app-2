@@ -544,11 +544,12 @@ export default function Matchs() {
                     borderBottom: "1px solid rgba(148,163,184,0.12)",
                   }}
                 >
-                  <TeamLogo
-                    logo={getTeamLogo(game.away_team)}
-                    name={game.away_team}
-                    size={70}
-                  />
+<TeamLogo
+  logo={getTeamLogo(game.away_team)}
+  name={game.away_team}
+  size={70}
+  plain={true}
+/>
 
                   <div
                     style={{
@@ -561,11 +562,12 @@ export default function Matchs() {
                     {game.away_score} - {game.home_score}
                   </div>
 
-                  <TeamLogo
-                    logo={getTeamLogo(game.home_team)}
-                    name={game.home_team}
-                    size={70}
-                  />
+<TeamLogo
+  logo={getTeamLogo(game.home_team)}
+  name={game.home_team}
+  size={70}
+  plain={true}
+/>
 
                   <div
                     style={{
