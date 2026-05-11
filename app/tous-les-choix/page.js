@@ -4,9 +4,10 @@ import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import BottomNav from "../components/BottomNav";
 
-function shortName(email) {
-  if (!email) return "Joueur";
-  return email.split("@")[0];
+function displayName(user) {
+  if (user?.display_name) return user.display_name;
+  if (user?.email) return user.email.split("@")[0];
+  return "Joueur";
 }
 
 function getQbHeadshot(qb) {
@@ -126,7 +127,7 @@ export default function TousLesChoix() {
 
       const { data: usersData } = await supabase
         .from("users")
-        .select("id, email")
+        .select("id, email, display_name")
         .order("email", { ascending: true });
 
       setPlayers(usersData || []);
@@ -261,11 +262,11 @@ export default function TousLesChoix() {
                   fontSize: 18,
                 }}
               >
-                {shortName(player?.email).slice(0, 2).toUpperCase()}
+                {displayName(player).slice(0, 2).toUpperCase()}
               </div>
 
               <div>
-                <h2 style={{ margin: 0 }}>{shortName(player?.email)}</h2>
+                <h2 style={{ margin: 0 }}>{displayName(player)}</h2>
                 <p style={{ margin: "4px 0 0 0", color: "#94a3b8" }}>
                   Choix de la semaine {currentWeek}
                 </p>
