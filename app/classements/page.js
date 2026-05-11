@@ -342,19 +342,14 @@ export default function ClassementsPage() {
           </section>
 
           <section className="card">
-            <h2 style={{ marginTop: 0 }}>
-              {tab === "week"
-                ? `Classement complet — semaine ${week}`
-                : "Classement complet — saison"}
-            </h2>
 
-            {rows.map((row) => (
-              <RankingRow
-                key={row.userId}
-                row={row}
-                mode={tab === "week" ? "week" : "season"}
-              />
-            ))}
+          {rows.slice(3).map((row) => (
+  <RankingRow
+    key={row.userId}
+    row={row}
+    mode={tab === "week" ? "week" : "season"}
+  />
+))}
           </section>
 
           {rest.length > 0 && (
