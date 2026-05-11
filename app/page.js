@@ -38,10 +38,10 @@ useEffect(() => {
         .eq("id", currentUser.id)
         .maybeSingle();
 
-      if (!profile?.display_name) {
-        window.location.href = "/setup-profile";
-        return;
-      }
+      if (!profile || !profile.display_name?.trim()) {
+  window.location.href = "/setup-profile";
+  return;
+}
     }
   }
 
@@ -60,10 +60,10 @@ useEffect(() => {
           .eq("id", currentUser.id)
           .maybeSingle();
 
-        if (!profile?.display_name) {
-          window.location.href = "/setup-profile";
-          return;
-        }
+      if (!profile || !profile.display_name?.trim()) {
+  window.location.href = "/setup-profile";
+  return;
+}
       }
     }
   );
