@@ -341,17 +341,20 @@ export default function ClassementsPage() {
             </div>
           </section>
 
-{rows.length > 3 && (
-  <section className="card">
-    {rows.slice(3).map((row) => (
-      <RankingRow
-        key={row.userId}
-        row={row}
-        mode={tab === "week" ? "week" : "season"}
-      />
-    ))}
-  </section>
-)}
+          {rows.length > 3 && (
+            <section className="card">
+              {rows.slice(3).map((row) => (
+                <RankingRow
+                  key={row.userId}
+                  row={row}
+                  mode={tab === "week" ? "week" : "season"}
+                />
+              ))}
+            </section>
+          )}
+        </>
+      )}
+
       <BottomNav />
     </main>
   );
