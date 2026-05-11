@@ -22,7 +22,14 @@ function getPickBadge(game, pick) {
   return "🟡";
 }
 
-function TeamLogo({ logo, name, selected = false, onClick, size = 78 }) {
+function TeamLogo({
+  logo,
+  name,
+  selected = false,
+  onClick,
+  size = 78,
+  plain = false,
+}) {
   const [error, setError] = useState(false);
 
   return (
@@ -30,18 +37,22 @@ function TeamLogo({ logo, name, selected = false, onClick, size = 78 }) {
       type="button"
       onClick={onClick}
       style={{
-        width: size,
-        height: size,
-        borderRadius: "50%",
-        background: selected ? "#ffffff" : "transparent",
-        border: selected
+        width: plain ? "auto" : size,
+        height: plain ? "auto" : size,
+        borderRadius: plain ? 0 : "50%",
+        background: plain ? "transparent" : selected ? "#ffffff" : "transparent",
+        border: plain
+          ? "none"
+          : selected
           ? "3px solid #ffffff"
           : "2px solid rgba(148,163,184,0.18)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
         cursor: onClick ? "pointer" : "default",
-        boxShadow: selected ? "0 0 18px rgba(255,255,255,0.35)" : "none",
+        boxShadow:
+          plain || !selected ? "none" : "0 0 18px rgba(255,255,255,0.35)",
+        padding: 0,
       }}
     >
       {!error && logo ? (
@@ -50,8 +61,8 @@ function TeamLogo({ logo, name, selected = false, onClick, size = 78 }) {
           alt={name}
           onError={() => setError(true)}
           style={{
-            width: size - 18,
-            height: size - 18,
+            width: plain ? size : size - 18,
+            height: plain ? size : size - 18,
             objectFit: "contain",
           }}
         />
@@ -544,12 +555,12 @@ export default function Matchs() {
                     borderBottom: "1px solid rgba(148,163,184,0.12)",
                   }}
                 >
-<TeamLogo
-  logo={getTeamLogo(game.away_team)}
-  name={game.away_team}
-  size={70}
-  plain={true}
-/>
+                  <TeamLogo
+                    logo={getTeamLogo(game.away_team)}
+                    name={game.away_team}
+                    size={70}
+                    plain={true}
+                  />
 
                   <div
                     style={{
@@ -562,12 +573,12 @@ export default function Matchs() {
                     {game.away_score} - {game.home_score}
                   </div>
 
-<TeamLogo
-  logo={getTeamLogo(game.home_team)}
-  name={game.home_team}
-  size={70}
-  plain={true}
-/>
+                  <TeamLogo
+                    logo={getTeamLogo(game.home_team)}
+                    name={game.home_team}
+                    size={70}
+                    plain={true}
+                  />
 
                   <div
                     style={{
