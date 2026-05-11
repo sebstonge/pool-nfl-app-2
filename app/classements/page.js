@@ -144,27 +144,18 @@ function PodiumCard({ row, size = "small" }) {
         justifyContent: "center",
       }}
     >
-      <div style={{ fontSize: isBig ? 42 : 32 }}>{medal(row.rank)}</div>
-
-      <div
-        style={{
-          width: isBig ? 72 : 58,
-          height: isBig ? 72 : 58,
-          borderRadius: "50%",
-          background: "#22c55e",
-          color: "#052e16",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontWeight: 900,
-          fontSize: isBig ? 24 : 20,
-          margin: "10px auto",
-        }}
-      >
-        {initials(row.name)}
+      <div style={{ fontSize: isBig ? 42 : 32 }}>
+        {medal(row.rank)}
       </div>
 
-      <h3 style={{ margin: "4px 0", fontSize: isBig ? 24 : 18 }}>
+      <h3
+        style={{
+          margin: "28px 0 8px 0",
+          fontSize: isBig ? 24 : 18,
+          lineHeight: 1.1,
+          wordBreak: "break-word",
+        }}
+      >
         {row.name}
       </h3>
 
