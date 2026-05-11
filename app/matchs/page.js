@@ -450,104 +450,130 @@ export default function Matchs() {
     <div
       key={game.id}
       style={{
-        marginTop: 14,
-        padding: 16,
-        borderRadius: 18,
-        border: "1px solid rgba(148,163,184,0.16)",
-        background: "rgba(2,6,23,0.35)",
+        display: "grid",
+        gridTemplateColumns: "1fr 70px 1fr 120px",
+        alignItems: "center",
+        gap: 12,
+        padding: "24px 0",
+        borderBottom: "1px solid rgba(148,163,184,0.12)",
       }}
     >
-      <div
+      <button
+        type="button"
+        onClick={() =>
+          updateDraftPick(game.id, "picked_team", game.away_team)
+        }
         style={{
-          display: "grid",
-          gridTemplateColumns: "1fr auto 1fr",
-          gap: 12,
+          background: "transparent",
+          border: "none",
+          display: "flex",
+          justifyContent: "center",
           alignItems: "center",
-          marginBottom: 16,
+          cursor: "pointer",
+          padding: 0,
         }}
       >
-        <button
-          type="button"
-          onClick={() =>
-            updateDraftPick(game.id, "picked_team", game.away_team)
-          }
+        <img
+          src={getTeamLogo(game.away_team)}
+          alt={game.away_team}
           style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 12,
-            padding: 12,
-            borderRadius: 18,
-            border: awaySelected
-              ? "2px solid #ffffff"
-              : "1px solid rgba(148,163,184,0.18)",
-            background: awaySelected
-              ? "rgba(255,255,255,0.12)"
-              : "rgba(15,23,42,0.45)",
-            color: "#f8fafc",
-            cursor: "pointer",
+            width: 96,
+            height: 96,
+            objectFit: "contain",
+            opacity: awaySelected ? 1 : 0.82,
+            transform: awaySelected ? "scale(1.08)" : "scale(1)",
+            transition: "0.2s ease",
+            filter: awaySelected
+              ? "drop-shadow(0 0 12px rgba(255,255,255,0.35))"
+              : "none",
           }}
-        >
-          <TeamLogo
-            logo={getTeamLogo(game.away_team)}
-            name={game.away_team}
-            selected={awaySelected}
-            size={58}
-          />
-          <strong>{game.away_team}</strong>
-        </button>
+        />
+      </button>
 
-        <strong
-          style={{
-            fontSize: 24,
-            fontWeight: 900,
-            color: "#f8fafc",
-          }}
-        >
-          @
-        </strong>
-
-        <button
-          type="button"
-          onClick={() =>
-            updateDraftPick(game.id, "picked_team", game.home_team)
-          }
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "flex-end",
-            gap: 12,
-            padding: 12,
-            borderRadius: 18,
-            border: homeSelected
-              ? "2px solid #ffffff"
-              : "1px solid rgba(148,163,184,0.18)",
-            background: homeSelected
-              ? "rgba(255,255,255,0.12)"
-              : "rgba(15,23,42,0.45)",
-            color: "#f8fafc",
-            cursor: "pointer",
-          }}
-        >
-          <strong>{game.home_team}</strong>
-          <TeamLogo
-            logo={getTeamLogo(game.home_team)}
-            name={game.home_team}
-            selected={homeSelected}
-            size={58}
-          />
-        </button>
+      <div
+        style={{
+          textAlign: "center",
+          fontSize: 34,
+          fontWeight: 900,
+          color: "#ffffff",
+        }}
+      >
+        @
       </div>
 
-      <input
-        className="input"
-        type="number"
-        placeholder="Écart prédit"
-        value={pick.predicted_spread ?? ""}
-        onChange={(e) =>
-          updateDraftPick(game.id, "predicted_spread", e.target.value)
+      <button
+        type="button"
+        onClick={() =>
+          updateDraftPick(game.id, "picked_team", game.home_team)
         }
-        style={{ marginBottom: 0 }}
-      />
+        style={{
+          background: "transparent",
+          border: "none",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          cursor: "pointer",
+          padding: 0,
+        }}
+      >
+        <img
+          src={getTeamLogo(game.home_team)}
+          alt={game.home_team}
+          style={{
+            width: 96,
+            height: 96,
+            objectFit: "contain",
+            opacity: homeSelected ? 1 : 0.82,
+            transform: homeSelected ? "scale(1.08)" : "scale(1)",
+            transition: "0.2s ease",
+            filter: homeSelected
+              ? "drop-shadow(0 0 12px rgba(255,255,255,0.35))"
+              : "none",
+          }}
+        />
+      </button>
+
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: 8,
+        }}
+      >
+        <span
+          style={{
+            fontSize: 16,
+            color: "#cbd5e1",
+          }}
+        >
+          Écart prédit
+        </span>
+
+        <input
+          type="number"
+          value={pick.predicted_spread ?? ""}
+          onChange={(e) =>
+            updateDraftPick(
+              game.id,
+              "predicted_spread",
+              e.target.value
+            )
+          }
+          style={{
+            width: 72,
+            height: 72,
+            borderRadius: 18,
+            border: "2px solid rgba(148,163,184,0.18)",
+            background: "rgba(2,6,23,0.75)",
+            color: "#ffffff",
+            fontSize: 24,
+            fontWeight: 800,
+            textAlign: "center",
+            outline: "none",
+          }}
+        />
+      </div>
     </div>
   );
 })}
