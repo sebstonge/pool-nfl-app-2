@@ -441,74 +441,116 @@ export default function Matchs() {
         <section className="card">
           <h2 style={{ color: "#22c55e" }}>2. Choisis les matchs</h2>
 
-          {gamesToPick.map((game) => {
-            const pick = draftPicks[game.id] || {};
+{gamesToPick.map((game) => {
+  const pick = draftPicks[game.id] || {};
+  const awaySelected = pick.picked_team === game.away_team;
+  const homeSelected = pick.picked_team === game.home_team;
 
-            return (
-              <div
-                key={game.id}
-                style={{
-                  marginTop: 14,
-                  padding: 16,
-                  borderRadius: 18,
-                  border: "1px solid rgba(148,163,184,0.16)",
-                  background: "rgba(2,6,23,0.35)",
-                }}
-              >
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr 60px 1fr",
-                    gap: 12,
-                    alignItems: "center",
-                    textAlign: "center",
-                    marginBottom: 14,
-                  }}
-                >
-                  <div>
-                    <TeamLogo
-                      logo={getTeamLogo(game.away_team)}
-                      name={game.away_team}
-                      selected={pick.picked_team === game.away_team}
-                      onClick={() =>
-                        updateDraftPick(game.id, "picked_team", game.away_team)
-                      }
-                    />
-                    <p>{game.away_team}</p>
-                  </div>
+  return (
+    <div
+      key={game.id}
+      style={{
+        marginTop: 14,
+        padding: 16,
+        borderRadius: 18,
+        border: "1px solid rgba(148,163,184,0.16)",
+        background: "rgba(2,6,23,0.35)",
+      }}
+    >
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr auto 1fr",
+          gap: 12,
+          alignItems: "center",
+          marginBottom: 16,
+        }}
+      >
+        <button
+          type="button"
+          onClick={() =>
+            updateDraftPick(game.id, "picked_team", game.away_team)
+          }
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            padding: 12,
+            borderRadius: 18,
+            border: awaySelected
+              ? "2px solid #ffffff"
+              : "1px solid rgba(148,163,184,0.18)",
+            background: awaySelected
+              ? "rgba(255,255,255,0.12)"
+              : "rgba(15,23,42,0.45)",
+            color: "#f8fafc",
+            cursor: "pointer",
+          }}
+        >
+          <TeamLogo
+            logo={getTeamLogo(game.away_team)}
+            name={game.away_team}
+            selected={awaySelected}
+            size={58}
+          />
+          <strong>{game.away_team}</strong>
+        </button>
 
-                  <strong style={{ fontSize: 24 }}>@</strong>
+        <strong
+          style={{
+            fontSize: 24,
+            fontWeight: 900,
+            color: "#f8fafc",
+          }}
+        >
+          @
+        </strong>
 
-                  <div>
-                    <TeamLogo
-                      logo={getTeamLogo(game.home_team)}
-                      name={game.home_team}
-                      selected={pick.picked_team === game.home_team}
-                      onClick={() =>
-                        updateDraftPick(game.id, "picked_team", game.home_team)
-                      }
-                    />
-                    <p>{game.home_team}</p>
-                  </div>
-                </div>
+        <button
+          type="button"
+          onClick={() =>
+            updateDraftPick(game.id, "picked_team", game.home_team)
+          }
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "flex-end",
+            gap: 12,
+            padding: 12,
+            borderRadius: 18,
+            border: homeSelected
+              ? "2px solid #ffffff"
+              : "1px solid rgba(148,163,184,0.18)",
+            background: homeSelected
+              ? "rgba(255,255,255,0.12)"
+              : "rgba(15,23,42,0.45)",
+            color: "#f8fafc",
+            cursor: "pointer",
+          }}
+        >
+          <strong>{game.home_team}</strong>
+          <TeamLogo
+            logo={getTeamLogo(game.home_team)}
+            name={game.home_team}
+            selected={homeSelected}
+            size={58}
+          />
+        </button>
+      </div>
 
-                <input
-                  className="input"
-                  type="number"
-                  placeholder="Écart prédit"
-                  value={pick.predicted_spread ?? ""}
-                  onChange={(e) =>
-                    updateDraftPick(
-                      game.id,
-                      "predicted_spread",
-                      e.target.value
-                    )
-                  }
-                  style={{ marginBottom: 0 }}
-                />
-              </div>
-            );
-          })}
+      <input
+        className="input"
+        type="number"
+        placeholder="Écart prédit"
+        value={pick.predicted_spread ?? ""}
+        onChange={(e) =>
+          updateDraftPick(game.id, "predicted_spread", e.target.value)
+        }
+        style={{ marginBottom: 0 }}
+      />
+    </div>
+  );
+})}
         </section>
       )}
 
