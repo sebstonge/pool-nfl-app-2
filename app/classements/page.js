@@ -354,13 +354,7 @@ export default function ClassementsPage() {
 )}
           </section>
 
-          {rest.length > 0 && (
-            <section
-              className="card"
-              style={{
-                background: "rgba(34,197,94,0.08)",
-                border: "1px solid rgba(34,197,94,0.22)",
-              }}
+        
             >
               <p style={{ margin: 0, color: "#94a3b8" }}>
                 🏆 Classement mis à jour après chaque calcul admin. Les écarts
