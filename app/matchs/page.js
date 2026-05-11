@@ -32,7 +32,7 @@ function TeamLogo({
   name,
   selected = false,
   onClick,
-  size = 82,
+  size = 78,
 }) {
   const [error, setError] = useState(false);
 
@@ -40,20 +40,22 @@ function TeamLogo({
     <button
       onClick={onClick}
       style={{
-        background: selected ? "#ffffff" : "transparent",
+        width: size,
+        height: size,
+        borderRadius: "50%",
+        background: selected
+          ? "#ffffff"
+          : "transparent",
         border: selected
           ? "3px solid #ffffff"
           : "2px solid rgba(148,163,184,0.18)",
-        borderRadius: "50%",
-        width: size,
-        height: size,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        cursor: "pointer",
+        cursor: onClick ? "pointer" : "default",
         transition: "0.2s",
         boxShadow: selected
-          ? "0 0 18px rgba(255,255,255,0.35)"
+          ? "0 0 18px rgba(255,255,255,0.30)"
           : "none",
       }}
     >
@@ -61,8 +63,8 @@ function TeamLogo({
         <img
           src={logo}
           alt={name}
-          width={size - 20}
-          height={size - 20}
+          width={size - 18}
+          height={size - 18}
           onError={() => setError(true)}
           style={{
             objectFit: "contain",
@@ -71,8 +73,8 @@ function TeamLogo({
       ) : (
         <span
           style={{
-            fontWeight: 900,
             color: "#f8fafc",
+            fontWeight: 900,
           }}
         >
           {name?.slice(0, 2)}
@@ -92,12 +94,13 @@ function QBPhoto({ qb }) {
           width: 78,
           height: 78,
           borderRadius: "50%",
-          background: "rgba(148,163,184,0.18)",
+          background:
+            "rgba(148,163,184,0.16)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          fontWeight: 900,
           color: "#fff",
+          fontWeight: 900,
         }}
       >
         QB
@@ -121,14 +124,22 @@ function QBPhoto({ qb }) {
 }
 
 export default function MatchsPage() {
-  const [games, setGames] = useState([]);
-  const [week, setWeek] = useState(1);
   const [user, setUser] = useState(null);
-  const [picks, setPicks] = useState({});
-  const [submitted, setSubmitted] = useState([]);
+  const [week, setWeek] = useState(1);
+
+  const [games, setGames] = useState([]);
+  const [submittedPicks, setSubmittedPicks] =
+    useState([]);
+
+  const [localPicks, setLocalPicks] =
+    useState({});
+
   const [qbs, setQbs] = useState([]);
-  const [selectedQB, setSelectedQB] = useState("");
-  const [submittedQB, setSubmittedQB] = useState(null);
+  const [selectedQB, setSelectedQB] =
+    useState("");
+
+  const [submittedQB, setSubmittedQB] =
+    useState(null);
 
   useEffect(() => {
     loadData();
@@ -153,7 +164,8 @@ export default function MatchsPage() {
       .select("*")
       .single();
 
-    const currentWeek = settings?.current_week || 1;
+    const currentWeek =
+      settings?.current_week || 1;
 
     setWeek(currentWeek);
 
@@ -161,9 +173,8 @@ export default function MatchsPage() {
       .from("games")
       .select("*")
       .eq("week", currentWeek)
-      .order("kickoff", {
-        ascending: true,
-      });
+      .eq("is_pool_eligible", true)
+      .order("id");
 
     setGames(gamesData || []);
 
@@ -173,18 +184,21 @@ export default function MatchsPage() {
       .eq("user_id", currentUser.id)
       .eq("week", currentWeek);
 
-    setSubmitted(picksData || []);
+    setSubmittedPicks(picksData || []);
 
-    const { data: qbData } = await supabase
-      .from("qb_options")
+    const { data: qbList } = await supabase
+      .from("qbs")
       .select("*")
       .order("name");
 
-    setQbs(qbData || []);
+    setQbs(qbList || []);
 
     const { data: qbPick } = await supabase
       .from("qb_picks")
-      .select("*, qb_options(*)")
+      .select(`
+        *,
+        qbs (*)
+      `)
       .eq("user_id", currentUser.id)
       .eq("week", currentWeek)
       .maybeSingle();
@@ -195,7 +209,7 @@ export default function MatchsPage() {
   }
 
   function updatePick(gameId, field, value) {
-    setPicks((prev) => ({
+    setLocalPicks((prev) => ({
       ...prev,
       [gameId]: {
         ...prev[gameId],
@@ -205,23 +219,30 @@ export default function MatchsPage() {
   }
 
   async function submitAll() {
-    if (!selectedQB && !submittedQB) {
+    if (!submittedQB && !selectedQB) {
       alert("Choisis un QB.");
       return;
     }
 
-    const missing = games.filter(
+    const gamesToSubmit = games.filter(
       (game) =>
-        !submitted.find(
+        !submittedPicks.find(
           (p) => p.game_id === game.id
-        ) &&
-        (!picks[game.id]?.picked_team ||
-          !picks[game.id]?.predicted_spread)
+        )
     );
 
-    if (missing.length > 0) {
-      alert("Complète tous les matchs.");
-      return;
+    for (const game of gamesToSubmit) {
+      const pick = localPicks[game.id];
+
+      if (
+        !pick?.picked_team ||
+        !pick?.predicted_spread
+      ) {
+        alert(
+          "Complète tous les matchs."
+        );
+        return;
+      }
     }
 
     if (!submittedQB && selectedQB) {
@@ -232,24 +253,20 @@ export default function MatchsPage() {
       });
     }
 
-    const inserts = games
-      .filter(
-        (game) =>
-          !submitted.find(
-            (p) => p.game_id === game.id
-          )
-      )
-      .map((game) => ({
+    const inserts = gamesToSubmit.map(
+      (game) => ({
         user_id: user.id,
         game_id: game.id,
         week,
         picked_team:
-          picks[game.id]?.picked_team,
-        predicted_spread:
-          Number(
-            picks[game.id]?.predicted_spread
-          ),
-      }));
+          localPicks[game.id]
+            ?.picked_team,
+        predicted_spread: Number(
+          localPicks[game.id]
+            ?.predicted_spread
+        ),
+      })
+    );
 
     if (inserts.length > 0) {
       await supabase
@@ -260,7 +277,7 @@ export default function MatchsPage() {
     loadData();
   }
 
-  const submittedIds = submitted.map(
+  const submittedIds = submittedPicks.map(
     (p) => p.game_id
   );
 
@@ -305,9 +322,7 @@ export default function MatchsPage() {
           className="card"
           style={{
             border:
-              "1px solid rgba(34,197,94,0.28)",
-            background:
-              "rgba(15,23,42,0.72)",
+              "1px solid rgba(34,197,94,0.25)",
           }}
         >
           <div
@@ -317,9 +332,7 @@ export default function MatchsPage() {
               alignItems: "center",
             }}
           >
-            <QBPhoto
-              qb={submittedQB.qb_options}
-            />
+            <QBPhoto qb={submittedQB.qbs} />
 
             <div>
               <div
@@ -333,10 +346,7 @@ export default function MatchsPage() {
               </div>
 
               <h2 style={{ margin: 0 }}>
-                {
-                  submittedQB.qb_options
-                    ?.name
-                }
+                {submittedQB.qbs?.name}
               </h2>
 
               <p
@@ -345,10 +355,7 @@ export default function MatchsPage() {
                   color: "#94a3b8",
                 }}
               >
-                {
-                  submittedQB.qb_options
-                    ?.team
-                }
+                {submittedQB.qbs?.team}
                 {submittedQB.rating != null &&
                   ` — Rating : ${submittedQB.rating}`}
               </p>
@@ -358,7 +365,8 @@ export default function MatchsPage() {
       )}
 
       {gamesToPick.map((game) => {
-        const pick = picks[game.id] || {};
+        const local =
+          localPicks[game.id] || {};
 
         return (
           <section
@@ -371,7 +379,7 @@ export default function MatchsPage() {
                 gridTemplateColumns:
                   "1fr auto 1fr",
                 alignItems: "center",
-                gap: 20,
+                gap: 18,
               }}
             >
               <div
@@ -384,7 +392,7 @@ export default function MatchsPage() {
                   logo={game.away_logo}
                   name={game.away_team}
                   selected={
-                    pick.picked_team ===
+                    local.picked_team ===
                     game.away_team
                   }
                   onClick={() =>
@@ -416,7 +424,7 @@ export default function MatchsPage() {
                   logo={game.home_logo}
                   name={game.home_team}
                   selected={
-                    pick.picked_team ===
+                    local.picked_team ===
                     game.home_team
                   }
                   onClick={() =>
@@ -435,7 +443,8 @@ export default function MatchsPage() {
               className="input"
               placeholder="Écart prédit"
               value={
-                pick.predicted_spread || ""
+                local.predicted_spread ||
+                ""
               }
               onChange={(e) =>
                 updatePick(
@@ -444,13 +453,13 @@ export default function MatchsPage() {
                   e.target.value
                 )
               }
-              style={{ marginTop: 20 }}
+              style={{ marginTop: 18 }}
             />
           </section>
         );
       })}
 
-      {submitted.map((pick) => {
+      {submittedPicks.map((pick) => {
         const game = games.find(
           (g) => g.id === pick.game_id
         );
@@ -487,7 +496,7 @@ export default function MatchsPage() {
 
               <div
                 style={{
-                  fontSize: 24,
+                  fontSize: 26,
                   fontWeight: 900,
                 }}
               >
@@ -506,7 +515,8 @@ export default function MatchsPage() {
                   fontWeight: 900,
                 }}
               >
-                par {pick.predicted_spread}
+                par{" "}
+                {pick.predicted_spread}
               </div>
 
               <div
@@ -521,7 +531,7 @@ export default function MatchsPage() {
             {game.home_score != null && (
               <div
                 style={{
-                  marginTop: 16,
+                  marginTop: 14,
                   textAlign: "center",
                   color: "#94a3b8",
                   fontWeight: 700,
