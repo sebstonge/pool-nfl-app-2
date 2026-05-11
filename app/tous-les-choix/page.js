@@ -452,7 +452,7 @@ export default function TousLesChoix() {
                     </div>
 
                     <strong style={{ textAlign: "center", fontSize: 18 }}>
-                      vs
+                      @
                     </strong>
 
                     <div
