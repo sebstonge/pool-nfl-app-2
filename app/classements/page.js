@@ -352,19 +352,6 @@ export default function ClassementsPage() {
     ))}
   </section>
 )}
-          </section>
-
-        
-            >
-              <p style={{ margin: 0, color: "#94a3b8" }}>
-                🏆 Classement mis à jour après chaque calcul admin. Les écarts
-                sont calculés par rapport au meneur.
-              </p>
-            </section>
-          )}
-        </>
-      )}
-
       <BottomNav />
     </main>
   );
