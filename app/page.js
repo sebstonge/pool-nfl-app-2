@@ -24,21 +24,54 @@ export default function HomePage() {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setUser(data.session?.user ?? null);
-    });
+useEffect(() => {
+  async function loadSession() {
+    const { data } = await supabase.auth.getSession();
+    const currentUser = data.session?.user ?? null;
 
-    const { data: listener } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setUser(session?.user ?? null);
+    setUser(currentUser);
+
+    if (currentUser) {
+      const { data: profile } = await supabase
+        .from("users")
+        .select("id, email, display_name")
+        .eq("id", currentUser.id)
+        .maybeSingle();
+
+      if (!profile?.display_name) {
+        window.location.href = "/setup-profile";
+        return;
       }
-    );
+    }
+  }
 
-    return () => {
-      listener.subscription.unsubscribe();
-    };
-  }, []);
+  loadSession();
+
+  const { data: listener } = supabase.auth.onAuthStateChange(
+    async (_event, session) => {
+      const currentUser = session?.user ?? null;
+
+      setUser(currentUser);
+
+      if (currentUser) {
+        const { data: profile } = await supabase
+          .from("users")
+          .select("id, email, display_name")
+          .eq("id", currentUser.id)
+          .maybeSingle();
+
+        if (!profile?.display_name) {
+          window.location.href = "/setup-profile";
+          return;
+        }
+      }
+    }
+  );
+
+  return () => {
+    listener.subscription.unsubscribe();
+  };
+}, []);
 
   const handleLogin = async () => {
     setMessage("");
