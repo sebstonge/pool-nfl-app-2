@@ -4,9 +4,10 @@ import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import BottomNav from "../components/BottomNav";
 
-function shortName(email) {
-  if (!email) return "—";
-  return email.split("@")[0];
+function displayName(user) {
+  if (user?.display_name) return user.display_name;
+  if (user?.email) return user.email.split("@")[0];
+  return "—";
 }
 
 function getQbHeadshot(qb) {
@@ -217,7 +218,7 @@ export default function QBRatingsPage() {
 
             return {
               ...rating,
-              selected_by: shortName(user?.email),
+             selected_by: displayName(user),
             };
           };
 
