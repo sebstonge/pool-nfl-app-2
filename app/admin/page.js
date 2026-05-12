@@ -44,24 +44,29 @@ export default function AdminPage() {
   }
 
 async function updateScoresFromEspn(currentWeek) {
-  const { data: currentSettings } = await supabase
-    .from("settings")
+  const { data: games, error: gamesError } = await supabase
+    .from("games")
     .select("*")
-    .single();
+    .eq("week", currentWeek)
+    .eq("is_pool_eligible", true);
 
-  const season = currentSettings?.current_season || 2025;
-
-  const url =
-    `https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard` +
-    `?seasontype=2&week=${currentWeek}&dates=${season}`;
-
-  const response = await fetch(url);
-  const data = await response.json();
+  if (gamesError) {
+    throw new Error("Games : " + gamesError.message);
+  }
 
   let updated = 0;
 
-  for (const event of data.events || []) {
-    const competition = event.competitions?.[0];
+  for (const game of games || []) {
+    if (!game.external_game_id) continue;
+
+    const url =
+      `https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary` +
+      `?event=${game.external_game_id}`;
+
+    const response = await fetch(url);
+    const data = await response.json();
+
+    const competition = data.header?.competitions?.[0];
     const competitors = competition?.competitors || [];
 
     const home = competitors.find((c) => c.homeAway === "home");
@@ -69,16 +74,24 @@ async function updateScoresFromEspn(currentWeek) {
 
     if (!home || !away) continue;
 
+    const homeScore = Number(home.score);
+    const awayScore = Number(away.score);
+
+    if (Number.isNaN(homeScore) || Number.isNaN(awayScore)) continue;
+
     const { error } = await supabase
       .from("games")
       .update({
-        home_score: Number(home.score),
-        away_score: Number(away.score),
+        home_score: homeScore,
+        away_score: awayScore,
       })
-      .eq("external_game_id", String(event.id))
-      .eq("week", currentWeek);
+      .eq("id", game.id);
 
-    if (!error) updated++;
+    if (error) {
+      throw new Error("Update score : " + error.message);
+    }
+
+    updated++;
   }
 
   return updated;
