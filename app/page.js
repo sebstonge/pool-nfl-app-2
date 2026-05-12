@@ -92,13 +92,18 @@ useEffect(() => {
   };
 
 const handleLogout = async () => {
-  await supabase.auth.signOut();
+  try {
+    await supabase.auth.signOut();
 
-  localStorage.clear();
-  sessionStorage.clear();
+    localStorage.clear();
+    sessionStorage.clear();
 
-  setUser(null);
-  window.location.replace("/");
+    setUser(null);
+
+    window.location.replace("/");
+  } catch (error) {
+    console.error(error);
+  }
 };
 
   return (
