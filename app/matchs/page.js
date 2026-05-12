@@ -148,7 +148,7 @@ export default function Matchs() {
       .select("*")
       .eq("is_pool_eligible", true)
       .eq("week", week)
-      .order("id", { ascending: true });
+     .order("game_date", { ascending: true });
 
     setGames(gamesData || []);
 
