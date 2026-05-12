@@ -91,11 +91,15 @@ useEffect(() => {
     }
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    window.location.href = "/";
-  };
+const handleLogout = async () => {
+  await supabase.auth.signOut();
+
+  localStorage.clear();
+  sessionStorage.clear();
+
+  setUser(null);
+  window.location.replace("/");
+};
 
   return (
     <main className="page">
