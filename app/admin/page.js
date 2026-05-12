@@ -337,33 +337,32 @@ async function updateScoresFromEspn(currentWeek) {
     }
   };
 
-  const nextWeek = async () => {
-    const confirmation = window.confirm(
-      "Passer à la semaine suivante? Assure-toi que les scores sont calculés."
-    );
+const nextWeek = async () => {
+  const confirmation = window.confirm(
+    "Passer à la semaine suivante? Assure-toi que les scores sont calculés."
+  );
 
-    if (!confirmation) return;
+  if (!confirmation) return;
 
-    const currentSettings = await loadSettings();
-    const newWeek = Number(currentSettings.current_week || 1) + 1;
+  const currentSettings = await loadSettings();
+  const newWeek = Number(currentSettings.current_week || 1) + 1;
 
-    const { error } = await supabase
-      .from("settings")
-      .update({ current_week: newWeek })
-      .eq("id", 1);
+  const { error } = await supabase
+    .from("settings")
+    .update({ current_week: newWeek })
+    .eq("id", currentSettings.id);
 
-    if (error) {
-      setMessage("Erreur semaine suivante : " + error.message);
-      return;
-    }
+  if (error) {
+    setMessage("Erreur semaine suivante : " + error.message);
+    return;
+  }
 
-    setSettings({
-      ...currentSettings,
-      current_week: newWeek,
-    });
+  const refreshedSettings = await loadSettings();
 
-    setMessage(`Semaine active changée à ${newWeek} ✅`);
-  };
+  setMessage(
+    `Semaine active changée à ${refreshedSettings.current_week} ✅`
+  );
+};
 
   if (!user) {
     return (
