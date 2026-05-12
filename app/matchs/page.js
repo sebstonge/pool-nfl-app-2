@@ -640,78 +640,112 @@ fontSize:
               ? Math.abs(game.home_score - game.away_score)
               : null;
 
-            if (hasScore) {
-              return (
-                <div
-                  key={game.id}
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns:
-  typeof window !== "undefined" && window.innerWidth < 700
-    ? "70px 100px 70px 36px"
-    : "80px 130px 80px 1fr",
-                    gap: 12,
-                    alignItems: "center",
-                    padding: "14px 0",
-                    borderBottom: "1px solid rgba(148,163,184,0.12)",
-                  }}
-                >
-                  <TeamLogo
-                    logo={getTeamLogo(game.away_team)}
-                    name={game.away_team}
-                    size={70}
-                    plain={true}
-                  />
+if (hasScore) {
+  const isMobile =
+    typeof window !== "undefined" && window.innerWidth < 700;
 
-                  <div
-                    style={{
-   fontSize:
-  typeof window !== "undefined" && window.innerWidth < 700 ? 24 : 30,
-                      fontWeight: 900,
-                      textAlign: "center",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {game.away_score} - {game.home_score}
-                  </div>
+  return (
+    <div
+      key={game.id}
+      style={{
+        padding: "18px 0",
+        borderBottom: "1px solid rgba(148,163,184,0.12)",
+      }}
+    >
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: isMobile
+            ? "70px 100px 70px"
+            : "80px 130px 80px 1fr",
+          gap: 12,
+          alignItems: "center",
+        }}
+      >
+        <TeamLogo
+          logo={getTeamLogo(game.away_team)}
+          name={game.away_team}
+          size={70}
+          plain={true}
+        />
 
-                  <TeamLogo
-                    logo={getTeamLogo(game.home_team)}
-                    name={game.home_team}
-                    size={70}
-                    plain={true}
-                  />
+        <div
+          style={{
+            fontSize: isMobile ? 24 : 30,
+            fontWeight: 900,
+            textAlign: "center",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {game.away_score} - {game.home_score}
+        </div>
 
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 12,
-                      justifyContent: "flex-end",
-                    }}
-                  >
-                    <span
-  style={{
-    fontSize:
-      typeof window !== "undefined" && window.innerWidth < 700 ? 20 : 30,
-  }}
->
-                      {getPickBadge(game, pick)}
-                    </span>
+        <TeamLogo
+          logo={getTeamLogo(game.home_team)}
+          name={game.home_team}
+          size={70}
+          plain={true}
+        />
 
-                    <div>
-                      <p style={{ margin: 0, fontWeight: 800 }}>
-                        Choix : {pick.picked_team} par {pick.predicted_spread}
-                      </p>
+        {!isMobile && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              justifyContent: "flex-end",
+            }}
+          >
+            <span style={{ fontSize: 26 }}>
+              {getPickBadge(game, pick)}
+            </span>
 
-                      <p style={{ margin: "4px 0 0 0", color: "#94a3b8" }}>
-                        Écart réel : {realSpread}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              );
-            }
+            <div style={{ textAlign: "right" }}>
+              <p style={{ margin: 0, fontWeight: 800 }}>
+                Choix : {pick.picked_team} par {pick.predicted_spread}
+              </p>
+
+              <p
+                style={{
+                  margin: "4px 0 0 0",
+                  color: "#94a3b8",
+                }}
+              >
+                Écart réel : {realSpread}
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {isMobile && (
+        <div
+          style={{
+            marginTop: 10,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 10,
+            flexWrap: "wrap",
+            fontSize: 14,
+            fontWeight: 700,
+            color: "#cbd5e1",
+          }}
+        >
+          <span>{getPickBadge(game, pick)}</span>
+
+          <span>
+            {pick.picked_team} par {pick.predicted_spread}
+          </span>
+
+          <span style={{ color: "#94a3b8" }}>
+            Écart réel : {realSpread}
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
 
             return (
               <div
