@@ -260,7 +260,7 @@ export default function Matchs() {
     const gamesToPick = games.filter((game) => !savedPicks[game.id]);
 
     if (!existingQbPick && !selectedQbId) {
-      setMessage("Choisis ton QB avant de soumettre.");
+      setMessage("Choisis  avant de soumettre.");
       return;
     }
 
@@ -371,9 +371,6 @@ export default function Matchs() {
                   </p>
                 )}
 
-                <p style={{ color: "#94a3b8" }}>
-                  ✅ Ton QB est confirmé pour la semaine.
-                </p>
               </div>
             </div>
           </>
