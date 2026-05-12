@@ -239,21 +239,32 @@ export default function TousLesChoix() {
 
       {allUserIds.map((userId) => {
         const player = players.find((p) => p.id === userId);
+const weekGames = Array.from(
+  new Map(
+    picks
+      .map((pick) => pick.games)
+      .filter(Boolean)
+      .sort(
+        (a, b) =>
+          new Date(a.game_date || 0).getTime() -
+          new Date(b.game_date || 0).getTime()
+      )
+      .map((game, index) => [
+        `${game.away_team}-${game.home_team}`,
+        index,
+      ])
+  )
+);
+
+const gameOrder = Object.fromEntries(weekGames);
+
 const playerPicks = picks
   .filter((pick) => pick.user_id === userId)
   .sort((a, b) => {
-    const gameA = a.games;
-    const gameB = b.games;
+    const keyA = `${a.games?.away_team}-${a.games?.home_team}`;
+    const keyB = `${b.games?.away_team}-${b.games?.home_team}`;
 
-    const dateA = gameA?.game_date
-      ? new Date(gameA.game_date).getTime()
-      : 0;
-
-    const dateB = gameB?.game_date
-      ? new Date(gameB.game_date).getTime()
-      : 0;
-
-    return dateA - dateB;
+    return (gameOrder[keyA] ?? 999) - (gameOrder[keyB] ?? 999);
   });
         const playerQB = qbPicks.find((qb) => qb.user_id === userId);
         const playerQbRating = qbRatings.find(
