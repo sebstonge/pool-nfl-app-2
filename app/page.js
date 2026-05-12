@@ -92,20 +92,27 @@ useEffect(() => {
   };
 
 const handleLogout = async () => {
+  setMessage("Déconnexion...");
+
   try {
-    await supabase.auth.signOut();
-
-    localStorage.clear();
-    sessionStorage.clear();
-
-    setUser(null);
-
-    window.location.replace("/");
+    await supabase.auth.signOut({ scope: "local" });
   } catch (error) {
-    console.error(error);
+    console.error("Logout error:", error);
   }
-};
 
+  Object.keys(localStorage).forEach((key) => {
+    if (key.includes("supabase") || key.includes("sb-")) {
+      localStorage.removeItem(key);
+    }
+  });
+
+  sessionStorage.clear();
+  setUser(null);
+
+  setTimeout(() => {
+    window.location.href = "/";
+  }, 200);
+};
   return (
     <main className="page">
       <section className="header-card">
@@ -118,19 +125,10 @@ const handleLogout = async () => {
           <section className="card">
             <p className="status-ok">Connecté : {user.email} ✅</p>
 
-         <button
+        <button
   type="button"
   className="button-secondary"
-  onClick={() => {
-    alert("Déconnexion en cours");
-
-    supabase.auth.signOut().finally(() => {
-      localStorage.clear();
-      sessionStorage.clear();
-      setUser(null);
-     window.location.reload();
-    });
-  }}
+  onClick={handleLogout}
 >
   Se déconnecter
 </button>
