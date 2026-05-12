@@ -103,6 +103,14 @@ function getPickBadge(game, pick) {
   return "🟡";
 }
 
+function ratingColor(rating) {
+  const value = Number(rating);
+
+  if (value >= 100) return "#22c55e";
+  if (value >= 80) return "#facc15";
+  return "#ef4444";
+}
+
 export default function TousLesChoix() {
   const [players, setPlayers] = useState([]);
   const [picks, setPicks] = useState([]);
@@ -234,9 +242,14 @@ export default function TousLesChoix() {
 const playerPicks = picks
   .filter((pick) => pick.user_id === userId)
   .sort((a, b) => {
-    const dateA = a.games?.game_date || "";
-    const dateB = b.games?.game_date || "";
-    return dateA.localeCompare(dateB);
+    const dateA = new Date(a.games?.game_date || 0).getTime();
+    const dateB = new Date(b.games?.game_date || 0).getTime();
+
+    if (dateA !== dateB) return dateA - dateB;
+
+    return String(a.games?.away_team || "").localeCompare(
+      String(b.games?.away_team || "")
+    );
   });
         const playerQB = qbPicks.find((qb) => qb.user_id === userId);
         const playerQbRating = qbRatings.find(
@@ -248,28 +261,12 @@ const playerPicks = picks
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "58px 1fr",
+               gridTemplateColumns: "1fr",
                 gap: 14,
                 alignItems: "center",
                 marginBottom: 18,
               }}
             >
-              <div
-                style={{
-                  width: 58,
-                  height: 58,
-                  borderRadius: "50%",
-                  background: "#22c55e",
-                  color: "#052e16",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontWeight: 900,
-                  fontSize: 18,
-                }}
-              >
-                {displayName(player).slice(0, 2).toUpperCase()}
-              </div>
 
               <div>
                 <h2 style={{ margin: 0 }}>{displayName(player)}</h2>
@@ -334,9 +331,17 @@ const playerPicks = picks
                         <>
                           {" "}
                           — Rating :{" "}
-                          <strong style={{ color: "#22c55e" }}>
-                            {Number(playerQbRating.passer_rating).toFixed(1)}
-                          </strong>
+                          <strong
+  style={{
+    color: ratingColor(playerQbRating.passer_rating),
+    fontSize:
+      typeof window !== "undefined" && window.innerWidth < 700
+        ? 14
+        : 16,
+  }}
+>
+  {Number(playerQbRating.passer_rating).toFixed(1)}
+</strong>
                         </>
                       )}
                     </p>
