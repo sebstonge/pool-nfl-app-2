@@ -231,7 +231,13 @@ export default function TousLesChoix() {
 
       {allUserIds.map((userId) => {
         const player = players.find((p) => p.id === userId);
-        const playerPicks = picks.filter((pick) => pick.user_id === userId);
+const playerPicks = picks
+  .filter((pick) => pick.user_id === userId)
+  .sort(
+    (a, b) =>
+      new Date(a.games?.game_date || 0) -
+      new Date(b.games?.game_date || 0)
+  );
         const playerQB = qbPicks.find((qb) => qb.user_id === userId);
         const playerQbRating = qbRatings.find(
           (rating) => rating.qb_id === playerQB?.qb_id
