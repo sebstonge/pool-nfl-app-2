@@ -451,7 +451,10 @@ export default function Matchs() {
       key={game.id}
       style={{
         display: "grid",
-        gridTemplateColumns: "1fr 70px 1fr 120px",
+        gridTemplateColumns:
+  typeof window !== "undefined" && window.innerWidth < 700
+    ? "1fr 40px 1fr 74px"
+    : "1fr 70px 1fr 120px",
         alignItems: "center",
         gap: 12,
         padding: "24px 0",
@@ -477,8 +480,15 @@ export default function Matchs() {
           src={getTeamLogo(game.away_team)}
           alt={game.away_team}
           style={{
-            width: 96,
-            height: 96,
+width:
+  typeof window !== "undefined" && window.innerWidth < 700
+    ? 70
+    : 96,
+
+height:
+  typeof window !== "undefined" && window.innerWidth < 700
+    ? 70
+    : 96,
             objectFit: "contain",
             opacity: awaySelected ? 1 : 0.82,
             transform: awaySelected ? "scale(1.08)" : "scale(1)",
@@ -493,7 +503,10 @@ export default function Matchs() {
       <div
         style={{
           textAlign: "center",
-          fontSize: 34,
+fontSize:
+  typeof window !== "undefined" && window.innerWidth < 700
+    ? 24
+    : 34,
           fontWeight: 900,
           color: "#ffffff",
         }}
@@ -520,8 +533,15 @@ export default function Matchs() {
           src={getTeamLogo(game.home_team)}
           alt={game.home_team}
           style={{
-            width: 96,
-            height: 96,
+width:
+  typeof window !== "undefined" && window.innerWidth < 700
+    ? 70
+    : 96,
+
+height:
+  typeof window !== "undefined" && window.innerWidth < 700
+    ? 70
+    : 96,
             objectFit: "contain",
             opacity: homeSelected ? 1 : 0.82,
             transform: homeSelected ? "scale(1.08)" : "scale(1)",
@@ -561,13 +581,23 @@ export default function Matchs() {
             )
           }
           style={{
-            width: 72,
-            height: 72,
+width:
+  typeof window !== "undefined" && window.innerWidth < 700
+    ? 54
+    : 72,
+
+height:
+  typeof window !== "undefined" && window.innerWidth < 700
+    ? 54
+    : 72,
             borderRadius: 18,
             border: "2px solid rgba(148,163,184,0.18)",
             background: "rgba(2,6,23,0.75)",
             color: "#ffffff",
-            fontSize: 24,
+fontSize:
+  typeof window !== "undefined" && window.innerWidth < 700
+    ? 18
+    : 24,
             fontWeight: 800,
             textAlign: "center",
             outline: "none",
