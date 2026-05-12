@@ -242,14 +242,18 @@ export default function TousLesChoix() {
 const playerPicks = picks
   .filter((pick) => pick.user_id === userId)
   .sort((a, b) => {
-    const dateA = new Date(a.games?.game_date || 0).getTime();
-    const dateB = new Date(b.games?.game_date || 0).getTime();
+    const gameA = a.games;
+    const gameB = b.games;
 
-    if (dateA !== dateB) return dateA - dateB;
+    const dateA = gameA?.game_date
+      ? new Date(gameA.game_date).getTime()
+      : 0;
 
-    return String(a.games?.away_team || "").localeCompare(
-      String(b.games?.away_team || "")
-    );
+    const dateB = gameB?.game_date
+      ? new Date(gameB.game_date).getTime()
+      : 0;
+
+    return dateA - dateB;
   });
         const playerQB = qbPicks.find((qb) => qb.user_id === userId);
         const playerQbRating = qbRatings.find(
