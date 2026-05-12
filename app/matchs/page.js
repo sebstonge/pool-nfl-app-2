@@ -370,7 +370,14 @@ export default function Matchs() {
                 </p>
 
                 {qbRating?.passer_rating != null && (
-                  <p style={{ fontSize: 22 }}>
+                 <p
+  style={{
+    fontSize:
+      typeof window !== "undefined" && window.innerWidth < 700
+        ? 17
+        : 22,
+  }}
+>
                     Passer Rating :{" "}
                   <strong
   style={{
