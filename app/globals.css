@@ -176,3 +176,27 @@ a {
   font-size: 17px;
   margin-bottom: 2px;
 }
+
+@media (max-width: 700px) {
+  .page {
+    width: 100%;
+    max-width: 100%;
+    padding: 16px 14px 110px;
+    overflow-x: hidden;
+  }
+
+  .card,
+  .header-card {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .card > div {
+    max-width: 100%;
+  }
+
+  input {
+    max-width: 100%;
+  }
+}
