@@ -128,7 +128,7 @@ const handleLogout = async () => {
       localStorage.clear();
       sessionStorage.clear();
       setUser(null);
-      window.location.replace("/");
+     window.location.reload();
     });
   }}
 >
