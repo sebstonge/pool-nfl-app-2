@@ -22,6 +22,13 @@ function getPickBadge(game, pick) {
   return "🟡";
 }
 
+function ratingColor(rating) {
+  const value = Number(rating);
+
+  if (value >= 100) return "#22c55e";
+  if (value >= 80) return "#facc15";
+  return "#ef4444";
+}
 function TeamLogo({
   logo,
   name,
@@ -365,9 +372,17 @@ export default function Matchs() {
                 {qbRating?.passer_rating != null && (
                   <p style={{ fontSize: 22 }}>
                     Passer Rating :{" "}
-                    <strong style={{ color: "#22c55e" }}>
-                      {Number(qbRating.passer_rating).toFixed(1)}
-                    </strong>
+                  <strong
+  style={{
+    color: ratingColor(qbRating.passer_rating),
+    fontSize:
+      typeof window !== "undefined" && window.innerWidth < 700
+        ? 18
+        : 22,
+  }}
+>
+  {Number(qbRating.passer_rating).toFixed(1)}
+</strong>
                   </p>
                 )}
 
