@@ -200,3 +200,10 @@ a {
     max-width: 100%;
   }
 }
+
+.button,
+.button-secondary {
+  position: relative;
+  z-index: 10;
+  pointer-events: auto;
+}
