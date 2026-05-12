@@ -646,7 +646,10 @@ fontSize:
                   key={game.id}
                   style={{
                     display: "grid",
-                    gridTemplateColumns: "80px 130px 80px 1fr",
+                    gridTemplateColumns:
+  typeof window !== "undefined" && window.innerWidth < 700
+    ? "70px 100px 70px 36px"
+    : "80px 130px 80px 1fr",
                     gap: 12,
                     alignItems: "center",
                     padding: "14px 0",
@@ -662,7 +665,8 @@ fontSize:
 
                   <div
                     style={{
-                      fontSize: 30,
+   fontSize:
+  typeof window !== "undefined" && window.innerWidth < 700 ? 24 : 30,
                       fontWeight: 900,
                       textAlign: "center",
                       whiteSpace: "nowrap",
@@ -686,7 +690,12 @@ fontSize:
                       justifyContent: "flex-end",
                     }}
                   >
-                    <span style={{ fontSize: 30 }}>
+                    <span
+  style={{
+    fontSize:
+      typeof window !== "undefined" && window.innerWidth < 700 ? 20 : 30,
+  }}
+>
                       {getPickBadge(game, pick)}
                     </span>
 
