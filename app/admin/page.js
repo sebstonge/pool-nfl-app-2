@@ -96,7 +96,6 @@ async function updateScoresFromEspn(currentWeek) {
 
   return updated;
 }
-
   async function updateQBRatingsFromEspn(currentWeek) {
     const { data: qbPicks, error: qbPicksError } = await supabase
       .from("qb_picks")
