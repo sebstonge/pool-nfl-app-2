@@ -653,14 +653,15 @@ if (hasScore) {
       }}
     >
       <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: isMobile
-            ? "70px 100px 70px"
-            : "80px 130px 80px 1fr",
-          gap: 12,
-          alignItems: "center",
-        }}
+     style={{
+  display: "grid",
+  gridTemplateColumns: isMobile
+    ? "1fr 100px 1fr"
+    : "80px 130px 80px 1fr",
+  gap: 12,
+  alignItems: "center",
+  justifyItems: "center",
+}}
       >
         <TeamLogo
           logo={getTeamLogo(game.away_team)}
