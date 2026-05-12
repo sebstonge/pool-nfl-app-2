@@ -118,19 +118,18 @@ const handleLogout = async () => {
           <section className="card">
             <p className="status-ok">Connecté : {user.email} ✅</p>
 
-           <button
+         <button
   type="button"
   className="button-secondary"
-  onClick={async () => {
+  onClick={() => {
     alert("Déconnexion en cours");
 
-    await supabase.auth.signOut({ scope: "global" });
-
-    localStorage.removeItem("supabase.auth.token");
-    localStorage.clear();
-    sessionStorage.clear();
-
-    window.location.href = "/auth";
+    supabase.auth.signOut().finally(() => {
+      localStorage.clear();
+      sessionStorage.clear();
+      setUser(null);
+      window.location.replace("/");
+    });
   }}
 >
   Se déconnecter
