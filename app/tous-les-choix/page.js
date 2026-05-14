@@ -119,6 +119,7 @@ export default function TousLesChoix() {
   const [teams, setTeams] = useState([]);
   const [currentWeek, setCurrentWeek] = useState(null);
   const [message, setMessage] = useState("");
+  const [qbSeasonAverages, setQbSeasonAverages] = useState({});
 
   useEffect(() => {
     async function loadData() {
@@ -195,7 +196,32 @@ export default function TousLesChoix() {
 
       setQbRatings(ratingsData || []);
     }
+const { data: allRatings } = await supabase
+  .from("qb_ratings")
+  .select("qb_id, passer_rating");
 
+const averages = {};
+
+(allRatings || []).forEach((row) => {
+  if (!averages[row.qb_id]) {
+    averages[row.qb_id] = {
+      total: 0,
+      count: 0,
+    };
+  }
+
+  averages[row.qb_id].total += Number(row.passer_rating || 0);
+  averages[row.qb_id].count += 1;
+});
+
+const formatted = {};
+
+Object.keys(averages).forEach((qbId) => {
+  formatted[qbId] =
+    averages[qbId].total / averages[qbId].count;
+});
+
+setQbSeasonAverages(formatted);
     loadData();
   }, []);
 
@@ -342,23 +368,41 @@ const playerPicks = picks
 
                     <p style={{ margin: 0, color: "#94a3b8" }}>
                       {playerQB.qbs.team}
-                      {playerQbRating?.passer_rating != null && (
-                        <>
-                          {" "}
-                          — Rating :{" "}
-                          <strong
-  style={{
-    color: ratingColor(playerQbRating.passer_rating),
-    fontSize:
-      typeof window !== "undefined" && window.innerWidth < 700
-        ? 14
-        : 16,
-  }}
->
-  {Number(playerQbRating.passer_rating).toFixed(1)}
-</strong>
-                        </>
-                      )}
+                {playerQbRating?.passer_rating != null ? (
+  <>
+    {" "}
+    — Rating :{" "}
+    <strong
+      style={{
+        color: ratingColor(playerQbRating.passer_rating),
+        fontSize:
+          typeof window !== "undefined" && window.innerWidth < 700
+            ? 14
+            : 16,
+      }}
+    >
+      {Number(playerQbRating.passer_rating).toFixed(1)}
+    </strong>
+
+    {" "}
+    — Moyenne :{" "}
+    <strong style={{ color: "#cbd5e1" }}>
+      {qbSeasonAverages[playerQB?.qb_id]
+        ? qbSeasonAverages[playerQB.qb_id].toFixed(1)
+        : "--"}
+    </strong>
+  </>
+) : (
+  <>
+    {" "}
+    — Moyenne :{" "}
+    <strong style={{ color: "#cbd5e1" }}>
+      {qbSeasonAverages[playerQB?.qb_id]
+        ? qbSeasonAverages[playerQB.qb_id].toFixed(1)
+        : "--"}
+    </strong>
+  </>
+)}
                     </p>
                   </>
                 ) : (
