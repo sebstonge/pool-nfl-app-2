@@ -133,6 +133,7 @@ export default function Matchs() {
   const [savedPicks, setSavedPicks] = useState({});
   const [draftPicks, setDraftPicks] = useState({});
   const [message, setMessage] = useState("");
+  const [qbSeasonAverages, setQbSeasonAverages] = useState({});
 
   async function loadData() {
     const { data: sessionData } = await supabase.auth.getSession();
@@ -211,7 +212,32 @@ export default function Matchs() {
     } else {
       setQbRating(null);
     }
+const { data: allRatings } = await supabase
+  .from("qb_ratings")
+  .select("qb_id, passer_rating");
 
+const averages = {};
+
+(allRatings || []).forEach((row) => {
+  if (!averages[row.qb_id]) {
+    averages[row.qb_id] = {
+      total: 0,
+      count: 0,
+    };
+  }
+
+  averages[row.qb_id].total += Number(row.passer_rating || 0);
+  averages[row.qb_id].count += 1;
+});
+
+const formatted = {};
+
+Object.keys(averages).forEach((qbId) => {
+  formatted[qbId] =
+    averages[qbId].total / averages[qbId].count;
+});
+
+setQbSeasonAverages(formatted);
     const { data: takenThisWeek } = await supabase
       .from("qb_picks")
       .select("qb_id")
@@ -369,29 +395,41 @@ export default function Matchs() {
                   {existingQbPick.qbs?.team}
                 </p>
 
-                {qbRating?.passer_rating != null && (
-                 <p
-  style={{
-    fontSize:
-      typeof window !== "undefined" && window.innerWidth < 700
-        ? 17
-        : 22,
-  }}
->
-                    Passer Rating :{" "}
-                  <strong
-  style={{
-    color: ratingColor(qbRating.passer_rating),
-    fontSize:
-      typeof window !== "undefined" && window.innerWidth < 700
-        ? 18
-        : 22,
-  }}
->
-  {Number(qbRating.passer_rating).toFixed(1)}
-</strong>
-                  </p>
-                )}
+{qbRating?.passer_rating != null && (
+  <p
+    style={{
+      fontSize:
+        typeof window !== "undefined" && window.innerWidth < 700
+          ? 17
+          : 22,
+    }}
+  >
+    Passer Rating :{" "}
+    <strong
+      style={{
+        color: ratingColor(qbRating.passer_rating),
+        fontSize:
+          typeof window !== "undefined" && window.innerWidth < 700
+            ? 18
+            : 22,
+      }}
+    >
+      {Number(qbRating.passer_rating).toFixed(1)}
+    </strong>
+
+    {" "}
+    — Moyenne saison :{" "}
+    <strong
+      style={{
+        color: "#cbd5e1",
+      }}
+    >
+      {qbSeasonAverages[existingQbPick?.qb_id]
+        ? qbSeasonAverages[existingQbPick.qb_id].toFixed(1)
+        : "--"}
+    </strong>
+  </p>
+)}
 
               </div>
             </div>
@@ -418,7 +456,10 @@ export default function Matchs() {
 
                   {availableQbs.map((qb) => (
                     <option key={qb.id} value={qb.id}>
-                      {qb.name} ({qb.team})
+                      {qb.name} ({qb.team}) — Moy.{" "}
+{qbSeasonAverages[qb.id]
+  ? qbSeasonAverages[qb.id].toFixed(1)
+  : "--"}
                     </option>
                   ))}
                 </select>
