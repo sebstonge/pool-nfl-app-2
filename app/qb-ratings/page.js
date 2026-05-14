@@ -333,11 +333,14 @@ return {
           </div>
 
           <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-              gap: 12,
-            }}
+         style={{
+  display: "grid",
+  gridTemplateColumns:
+    typeof window !== "undefined" && window.innerWidth < 900
+      ? "1fr"
+      : "repeat(3, minmax(0, 1fr))",
+  gap: 10,
+}}
           >
    <RatingMiniCard
   label="Meilleur rating"
@@ -347,7 +350,10 @@ return {
 
 <div
   style={{
-    padding: 14,
+    padding:
+  typeof window !== "undefined" && window.innerWidth < 900
+    ? 12
+    : 10,
     borderRadius: 18,
     background: "rgba(148,163,184,0.08)",
     border: "1px solid rgba(148,163,184,0.16)",
