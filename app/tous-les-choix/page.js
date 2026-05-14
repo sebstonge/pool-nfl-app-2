@@ -195,7 +195,7 @@ export default function TousLesChoix() {
         .eq("week", week);
 
       setQbRatings(ratingsData || []);
-    }
+   
 const { data: allRatings } = await supabase
   .from("qb_ratings")
   .select("qb_id, passer_rating");
@@ -222,6 +222,7 @@ Object.keys(averages).forEach((qbId) => {
 });
 
 setQbSeasonAverages(formatted);
+       }
     loadData();
   }, []);
 
