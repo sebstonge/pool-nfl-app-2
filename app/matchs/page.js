@@ -395,7 +395,7 @@ setQbSeasonAverages(formatted);
                   {existingQbPick.qbs?.team}
                 </p>
 
-{qbRating?.passer_rating != null && (
+{qbRating?.passer_rating != null ? (
   <p
     style={{
       fontSize:
@@ -419,13 +419,30 @@ setQbSeasonAverages(formatted);
 
     {" "}
     — Moyenne saison :{" "}
-    <strong
-      style={{
-        color: "#cbd5e1",
-      }}
-    >
+    <strong style={{ color: "#cbd5e1" }}>
       {qbSeasonAverages[existingQbPick?.qb_id]
-        ? qbSeasonAverages[existingQbPick.qb_id].toFixed(1)
+        ? qbSeasonAverages[
+            existingQbPick.qb_id
+          ].toFixed(1)
+        : "--"}
+    </strong>
+  </p>
+) : (
+  <p
+    style={{
+      color: "#94a3b8",
+      fontSize:
+        typeof window !== "undefined" && window.innerWidth < 700
+          ? 15
+          : 18,
+    }}
+  >
+    Moyenne saison :{" "}
+    <strong style={{ color: "#cbd5e1" }}>
+      {qbSeasonAverages[existingQbPick?.qb_id]
+        ? qbSeasonAverages[
+            existingQbPick.qb_id
+          ].toFixed(1)
         : "--"}
     </strong>
   </p>
