@@ -222,11 +222,21 @@ export default function QBRatingsPage() {
             };
           };
 
-          return {
-            qb,
-            best: attachSelector(best),
-            worst: attachSelector(worst),
-          };
+          const average =
+  qbRatings.length > 0
+    ? qbRatings.reduce(
+        (sum, rating) =>
+          sum + Number(rating.passer_rating || 0),
+        0
+      ) / qbRatings.length
+    : null;
+
+return {
+  qb,
+  best: attachSelector(best),
+  worst: attachSelector(worst),
+  average,
+};
         })
         .filter((row) => row.best || row.worst)
         .sort((a, b) => {
@@ -329,17 +339,52 @@ export default function QBRatingsPage() {
               gap: 12,
             }}
           >
-            <RatingMiniCard
-              label="Meilleur rating"
-              type="best"
-              rating={row.best}
-            />
+   <RatingMiniCard
+  label="Meilleur rating"
+  type="best"
+  rating={row.best}
+/>
 
-            <RatingMiniCard
-              label="Pire rating"
-              type="worst"
-              rating={row.worst}
-            />
+<div
+  style={{
+    padding: 14,
+    borderRadius: 18,
+    background: "rgba(148,163,184,0.08)",
+    border: "1px solid rgba(148,163,184,0.16)",
+  }}
+>
+  <p
+    style={{
+      margin: 0,
+      color: "#94a3b8",
+      fontWeight: 900,
+    }}
+  >
+    Moyenne saison
+  </p>
+
+  <h2
+    style={{
+      margin: "6px 0",
+      fontSize: 30,
+      color: "#e2e8f0",
+    }}
+  >
+    {row.average != null
+      ? row.average.toFixed(1)
+      : "--"}
+  </h2>
+
+  <p style={{ margin: 0, color: "#94a3b8" }}>
+    Toutes les semaines
+  </p>
+</div>
+
+<RatingMiniCard
+  label="Pire rating"
+  type="worst"
+  rating={row.worst}
+/>
           </div>
         </section>
       ))}
