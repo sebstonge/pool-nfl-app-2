@@ -906,14 +906,18 @@ if (hasScore) {
                 </strong>
 
                 <span style={{ fontSize: 28 }}>⚪</span>
-                  <div
+        <div
   style={{
-gridColumn: "2 / 4",
+    gridColumn: "1 / 4",
     textAlign: "center",
     color: "#94a3b8",
     fontSize: 13,
     fontWeight: 700,
     marginTop: 4,
+    paddingLeft:
+      typeof window !== "undefined" && window.innerWidth < 700
+        ? 0
+        : 70,
   }}
 >
   {formatGameDate(game.game_date)}
