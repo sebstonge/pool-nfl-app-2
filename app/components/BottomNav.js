@@ -20,7 +20,10 @@ export default function BottomNav() {
         <strong>📊</strong>
         QB Ratings
       </a>
-
+<a href="/analytics" className="bottom-nav-item">
+  <span>📈</span>
+  <small>Analytics</small>
+</a>
       <a href="/classements">
         <strong>🏆</strong>
         Classements
