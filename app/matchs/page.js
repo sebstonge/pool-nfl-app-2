@@ -103,7 +103,7 @@ function formatGameDate(dateString) {
     minute: "2-digit",
   });
 
-  return `${day} — ${time}`;
+  return `${day} @ ${time}`;
 }
 function QBPhoto({ qb }) {
   const [error, setError] = useState(false);
