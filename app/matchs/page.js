@@ -81,7 +81,30 @@ function TeamLogo({
     </button>
   );
 }
+function formatGameDate(dateString) {
+  if (!dateString) return "";
 
+  const date = new Date(dateString);
+
+  const days = [
+    "Dimanche",
+    "Lundi",
+    "Mardi",
+    "Mercredi",
+    "Jeudi",
+    "Vendredi",
+    "Samedi",
+  ];
+
+  const day = days[date.getDay()];
+
+  const time = date.toLocaleTimeString("fr-CA", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  return `${day} — ${time}`;
+}
 function QBPhoto({ qb }) {
   const [error, setError] = useState(false);
   const src = getQbHeadshot(qb);
@@ -681,6 +704,18 @@ fontSize:
           }}
         />
       </div>
+          <div
+  style={{
+    gridColumn: "1 / -1",
+    textAlign: "center",
+    color: "#94a3b8",
+    fontSize: 13,
+    fontWeight: 700,
+    marginTop: 4,
+  }}
+>
+  {formatGameDate(game.game_date)}
+</div>
     </div>
   );
 })}
@@ -821,6 +856,17 @@ if (hasScore) {
           </span>
         </div>
       )}
+<div
+  style={{
+    marginTop: 8,
+    textAlign: "center",
+    color: "#94a3b8",
+    fontSize: 13,
+    fontWeight: 700,
+  }}
+>
+  {formatGameDate(game.game_date)}
+</div>
     </div>
   );
 }
@@ -860,6 +906,18 @@ if (hasScore) {
                 </strong>
 
                 <span style={{ fontSize: 28 }}>⚪</span>
+                  <div
+  style={{
+    gridColumn: "1 / -1",
+    textAlign: "center",
+    color: "#94a3b8",
+    fontSize: 13,
+    fontWeight: 700,
+    marginTop: 4,
+  }}
+>
+  {formatGameDate(game.game_date)}
+</div>
               </div>
             );
           })}
