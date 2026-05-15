@@ -160,7 +160,7 @@ const handleLogout = async () => {
             />
 <NavItem
   href="/analytics"
-  icon="📊"
+  icon="📈"
   title="Analytics"
   subtitle="Records et statistiques"
   color="rgba(59,130,246,0.20)"
