@@ -87,13 +87,13 @@ function formatGameDate(dateString) {
   const date = new Date(dateString);
 
   const days = [
-    "Dimanche",
-    "Lundi",
-    "Mardi",
-    "Mercredi",
-    "Jeudi",
-    "Vendredi",
-    "Samedi",
+    "DIMANCHE",
+    "LUNDI",
+    "MARDI",
+    "MERCREDI",
+    "JEUDI",
+    "VENDREDI",
+    "SAMEDI",
   ];
 
   const day = days[date.getDay()];
@@ -103,7 +103,7 @@ function formatGameDate(dateString) {
     minute: "2-digit",
   });
 
-  return `${day} - ${time}`;
+  return `${day} -- ${time}`;
 }
 function QBPhoto({ qb }) {
   const [error, setError] = useState(false);
