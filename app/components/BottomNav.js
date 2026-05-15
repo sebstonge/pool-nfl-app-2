@@ -22,7 +22,7 @@ export default function BottomNav() {
       </a>
 <a href="/analytics">
   <strong>📈</strong>
-  Analytics
+  Statistiques
 </a>
       <a href="/classements">
         <strong>🏆</strong>
