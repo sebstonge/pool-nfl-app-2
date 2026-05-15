@@ -279,7 +279,7 @@ export default function AnalyticsPage() {
   return (
     <main className="page" style={{ maxWidth: 1100 }}>
       <section className="header-card">
-        <h1>Analytics avancés 📊</h1>
+        <h1>Statistiques avancées 📊</h1>
         <p>Records et statistiques de la saison.</p>
       </section>
 
