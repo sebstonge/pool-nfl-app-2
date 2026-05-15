@@ -158,7 +158,13 @@ const handleLogout = async () => {
               subtitle="Meilleurs et pires ratings"
               color="rgba(236,72,153,0.20)"
             />
-
+<NavItem
+  href="/analytics"
+  icon="📊"
+  title="Analytics"
+  subtitle="Records et statistiques"
+  color="rgba(59,130,246,0.20)"
+/>
             <NavItem
               href="/classements"
               icon="🏆"
