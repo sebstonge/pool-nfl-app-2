@@ -103,7 +103,7 @@ function formatGameDate(dateString) {
     minute: "2-digit",
   });
 
-  return `${day} @ ${time}`;
+  return `${day} - ${time}`;
 }
 function QBPhoto({ qb }) {
   const [error, setError] = useState(false);
@@ -908,7 +908,7 @@ if (hasScore) {
                 <span style={{ fontSize: 28 }}>⚪</span>
                   <div
   style={{
-    gridColumn: "1 / -1",
+gridColumn: "2 / 4",
     textAlign: "center",
     color: "#94a3b8",
     fontSize: 13,
