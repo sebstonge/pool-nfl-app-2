@@ -84,25 +84,40 @@ function RankingRow({ row, mode }) {
           )}
         </div>
 
-        <p style={{ margin: "4px 0 0 0", color: "#94a3b8" }}>
-          {mode === "season"
-            ? `Moyenne : ${row.average.toFixed(3)}`
-            : row.rank === 1
-            ? "Meneur"
-            : ""}
-        </p>
+<p
+  style={{
+    margin: "4px 0 0 0",
+    color: "#f8fafc",
+    fontWeight: 800,
+    fontSize: 16,
+  }}
+>
+  {(mode === "season" ? row.total : row.score).toFixed(3)} pts
+</p>
 
-        {mode === "season" && row.rank !== 1 && (
-          <p style={{ margin: "4px 0 0 0", color: "#ef4444" }}>
-            -{row.diff.toFixed(3)} du meneur
-          </p>
-        )}
+{row.rank !== 1 && (
+  <p
+    style={{
+      margin: "4px 0 0 0",
+      color: "#ef4444",
+      fontSize: 14,
+    }}
+  >
+    -{row.diff.toFixed(3)} du meneur
+  </p>
+)}
 
-        {mode === "week" && row.rank !== 1 && (
-          <p style={{ margin: "4px 0 0 0", color: "#ef4444" }}>
-            -{row.diff.toFixed(3)} du meneur
-          </p>
-        )}
+{mode === "season" && (
+  <p
+    style={{
+      margin: "4px 0 0 0",
+      color: "#94a3b8",
+      fontSize: 14,
+    }}
+  >
+    Moy. {row.average.toFixed(3)} / semaine
+  </p>
+)}
       </div>
 
       <div
