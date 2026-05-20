@@ -118,18 +118,35 @@ function RankingRow({ row, mode }) {
     Moy. {row.average.toFixed(3)} / semaine
   </p>
 )}
-      </div>
-
-      <div
+{mode === "season" && row.badges?.length > 0 && (
+  <div
+    style={{
+      display: "flex",
+      flexWrap: "wrap",
+      gap: 6,
+      marginTop: 8,
+    }}
+  >
+    {row.badges.map((badge) => (
+      <span
+        key={badge}
         style={{
-          fontSize: 30,
-          fontWeight: 900,
-          color: "#22c55e",
-          textAlign: "right",
+          padding: "5px 9px",
+          borderRadius: 999,
+          background: "rgba(148,163,184,0.14)",
+          color: "#e2e8f0",
+          fontSize: 12,
+          fontWeight: 800,
         }}
       >
-        {(mode === "season" ? row.total : row.score).toFixed(3)}
+        {badge}
+      </span>
+    ))}
+  </div>
+)}
       </div>
+
+  
     </div>
   );
 }
@@ -507,16 +524,23 @@ const rankProgression = buildRankProgression(
 );
       setSeason(
         seasonRows.map((row, index) => {
-          const currentRank = index + 1;
-          const previousRank = previousRanks[row.userId] || currentRank;
+const currentRank = index + 1;
+const previousRank = previousRanks[row.userId] || currentRank;
+const movement = previousRank - currentRank;
 
-          return {
-            ...row,
-            rank: currentRank,
-            average: row.weeks > 0 ? row.total / row.weeks : 0,
-            diff: seasonLeader - row.total,
-            movement: previousRank - currentRank,
-          };
+const badges = [];
+
+if (movement <= -3) {
+  badges.push("📉 Chute libre");
+}
+        return {
+  ...row,
+  rank: currentRank,
+  average: row.weeks > 0 ? row.total / row.weeks : 0,
+  diff: seasonLeader - row.total,
+  movement: previousRank - currentRank,
+  badges,
+};
         })
       );
     setRankProgression(rankProgression);
