@@ -462,7 +462,28 @@ const [rankProgression, setRankProgression] = useState(null);
         .from("weekly_scores")
         .select("*")
         .order("week", { ascending: true });
+const weeklyRankings = {};
 
+(allScores || []).forEach((score) => {
+  if (!weeklyRankings[score.week]) {
+    weeklyRankings[score.week] = [];
+  }
+
+  weeklyRankings[score.week].push(score);
+});
+
+Object.keys(weeklyRankings).forEach((week) => {
+  weeklyRankings[week] = weeklyRankings[week]
+    .sort(
+      (a, b) =>
+        Number(b.final_score || 0) -
+        Number(a.final_score || 0)
+    )
+    .map((score, index) => ({
+      userId: score.user_id,
+      rank: index + 1,
+    }));
+});
       const getUserName = (userId) => {
         const user = users?.find((u) => u.id === userId);
         return displayName(user, userId);
@@ -529,6 +550,28 @@ const previousRank = previousRanks[row.userId] || currentRank;
 const movement = previousRank - currentRank;
 
 const badges = [];
+          const recentWeeks = Object.keys(weeklyRankings)
+  .map(Number)
+  .sort((a, b) => b - a)
+  .slice(0, 3);
+
+const recentRanks = recentWeeks.map((week) => {
+  const found = weeklyRankings[week]?.find(
+    (r) => r.userId === row.userId
+  );
+
+  return found?.rank || 999;
+});
+
+if (recentRanks.length === 3) {
+  if (recentRanks.every((rank) => rank <= 3)) {
+    badges.push("🔥 En feu");
+  }
+
+  if (recentRanks.every((rank) => rank > 3)) {
+    badges.push("🧊 Glacé");
+  }
+}
 
 if (movement <= -3) {
   badges.push("📉 Chute libre");
