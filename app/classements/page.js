@@ -186,13 +186,247 @@ function PodiumCard({ row, size = "small" }) {
     </div>
   );
 }
+function buildRankProgression(weeklyScores, users) {
+  const weeks = Array.from(
+    new Set((weeklyScores || []).map((score) => score.week))
+  ).sort((a, b) => a - b);
 
+  const totalsByUser = {};
+  const progression = {};
+
+  weeks.forEach((week) => {
+    (weeklyScores || [])
+      .filter((score) => score.week === week)
+      .forEach((score) => {
+        if (!totalsByUser[score.user_id]) {
+          totalsByUser[score.user_id] = 0;
+        }
+
+        totalsByUser[score.user_id] += Number(score.final_score || 0);
+      });
+
+    const ranked = Object.entries(totalsByUser)
+      .map(([userId, total]) => {
+        const user = users.find((u) => u.id === userId);
+
+        return {
+          userId,
+          name: displayName(user),
+          total,
+        };
+      })
+      .sort((a, b) => b.total - a.total);
+
+    ranked.forEach((row, index) => {
+      if (!progression[row.userId]) {
+        progression[row.userId] = {
+          userId: row.userId,
+          name: row.name,
+          points: [],
+        };
+      }
+
+      progression[row.userId].points.push({
+        week,
+        rank: index + 1,
+      });
+    });
+  });
+
+  return {
+    weeks,
+    rows: Object.values(progression),
+  };
+}
+
+function RankProgressionChart({ progression }) {
+  if (!progression?.weeks?.length || !progression?.rows?.length) {
+    return (
+      <section className="card">
+        <h2>Progression au classement 📈</h2>
+        <p style={{ color: "#94a3b8" }}>
+          Aucun classement historique pour le moment.
+        </p>
+      </section>
+    );
+  }
+
+  const weeks = progression.weeks;
+  const rows = progression.rows.slice(0, 8);
+  const maxRank = Math.max(...rows.flatMap((row) => row.points.map((p) => p.rank)));
+
+  const width = 720;
+  const height = 320;
+  const paddingLeft = 46;
+  const paddingRight = 20;
+  const paddingTop = 24;
+  const paddingBottom = 46;
+
+  const chartWidth = width - paddingLeft - paddingRight;
+  const chartHeight = height - paddingTop - paddingBottom;
+
+  const colors = [
+    "#22c55e",
+    "#3b82f6",
+    "#a855f7",
+    "#f97316",
+    "#ef4444",
+    "#facc15",
+    "#14b8a6",
+    "#ec4899",
+  ];
+
+  const xForWeek = (week) => {
+    const index = weeks.indexOf(week);
+    if (weeks.length === 1) return paddingLeft + chartWidth / 2;
+    return paddingLeft + (index / (weeks.length - 1)) * chartWidth;
+  };
+
+  const yForRank = (rank) => {
+    if (maxRank === 1) return paddingTop + chartHeight / 2;
+    return paddingTop + ((rank - 1) / (maxRank - 1)) * chartHeight;
+  };
+
+  return (
+    <section className="card">
+      <h2 style={{ marginTop: 0 }}>Progression au classement 📈</h2>
+      <p style={{ marginTop: -6, color: "#94a3b8" }}>
+        Rang cumulatif par semaine
+      </p>
+
+      <div style={{ overflowX: "auto" }}>
+        <svg
+          viewBox={`0 0 ${width} ${height}`}
+          style={{
+            width: "100%",
+            minWidth: 620,
+            height: "auto",
+          }}
+        >
+          {[...Array(maxRank)].map((_, index) => {
+            const rank = index + 1;
+            const y = yForRank(rank);
+
+            return (
+              <g key={rank}>
+                <text
+                  x={8}
+                  y={y + 5}
+                  fill="#cbd5e1"
+                  fontSize="15"
+                  fontWeight="800"
+                >
+                  #{rank}
+                </text>
+
+                <line
+                  x1={paddingLeft}
+                  x2={width - paddingRight}
+                  y1={y}
+                  y2={y}
+                  stroke="rgba(148,163,184,0.12)"
+                  strokeWidth="1"
+                />
+              </g>
+            );
+          })}
+
+          {weeks.map((week) => {
+            const x = xForWeek(week);
+
+            return (
+              <text
+                key={week}
+                x={x}
+                y={height - 16}
+                textAnchor="middle"
+                fill="#cbd5e1"
+                fontSize="14"
+                fontWeight="800"
+              >
+                S{week}
+              </text>
+            );
+          })}
+
+          {rows.map((row, rowIndex) => {
+            const color = colors[rowIndex % colors.length];
+
+            const points = row.points
+              .map((point) => `${xForWeek(point.week)},${yForRank(point.rank)}`)
+              .join(" ");
+
+            return (
+              <g key={row.userId}>
+                <polyline
+                  points={points}
+                  fill="none"
+                  stroke={color}
+                  strokeWidth="4"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+
+                {row.points.map((point) => (
+                  <circle
+                    key={`${row.userId}-${point.week}`}
+                    cx={xForWeek(point.week)}
+                    cy={yForRank(point.rank)}
+                    r="6"
+                    fill={color}
+                    stroke="#020617"
+                    strokeWidth="2"
+                  />
+                ))}
+              </g>
+            );
+          })}
+        </svg>
+      </div>
+
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 12,
+          marginTop: 12,
+        }}
+      >
+        {rows.map((row, index) => (
+          <div
+            key={row.userId}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              color: "#cbd5e1",
+              fontWeight: 700,
+              fontSize: 13,
+            }}
+          >
+            <span
+              style={{
+                width: 10,
+                height: 10,
+                borderRadius: "50%",
+                background: colors[index % colors.length],
+                display: "inline-block",
+              }}
+            />
+            {row.name}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
 export default function ClassementsPage() {
   const [tab, setTab] = useState("week");
   const [week, setWeek] = useState(1);
   const [weekly, setWeekly] = useState([]);
   const [season, setSeason] = useState([]);
-
+const [rankProgression, setRankProgression] = useState(null);
+  
   useEffect(() => {
     async function loadData() {
       const { data: settings } = await supabase
@@ -267,7 +501,10 @@ export default function ClassementsPage() {
       });
 
       const seasonLeader = Number(seasonRows?.[0]?.total || 0);
-
+const rankProgression = buildRankProgression(
+  allScores || [],
+  users || []
+);
       setSeason(
         seasonRows.map((row, index) => {
           const currentRank = index + 1;
@@ -282,6 +519,7 @@ export default function ClassementsPage() {
           };
         })
       );
+    setRankProgression(rankProgression);
     }
 
     loadData();
@@ -360,7 +598,9 @@ export default function ClassementsPage() {
           )}
         </>
       )}
-
+{tab === "season" && rankProgression && (
+  <RankProgressionChart progression={rankProgression} />
+)}
       <BottomNav />
     </main>
   );
