@@ -191,59 +191,109 @@ export default function QBRatingsPage() {
         return;
       }
 
-      const builtRows = (qbsData || [])
-        .map((qb) => {
-          const qbRatings = (ratingsData || []).filter(
-            (r) => r.qb_id === qb.id && r.passer_rating != null
-          );
+const ratingsByActualQb = {};
 
-          const best =
-            [...qbRatings].sort(
-              (a, b) => Number(b.passer_rating) - Number(a.passer_rating)
-            )[0] || null;
+(ratingsData || []).forEach((rating) => {
+  if (rating.passer_rating == null) return;
 
-          const worst =
-            [...qbRatings].sort(
-              (a, b) => Number(a.passer_rating) - Number(b.passer_rating)
-            )[0] || null;
+  const selectedQb = (qbsData || []).find(
+    (qb) => qb.id === rating.qb_id
+  );
 
-          const attachSelector = (rating) => {
-            if (!rating) return null;
+  const actualAthleteId =
+    rating.actual_espn_athlete_id ||
+    selectedQb?.espn_athlete_id;
 
-            const pick = (qbPicksData || []).find(
-              (p) => p.qb_id === qb.id && p.week === rating.week
-            );
+  if (!actualAthleteId) return;
 
-            const user = (usersData || []).find((u) => u.id === pick?.user_id);
+  const key = String(actualAthleteId);
 
-            return {
-              ...rating,
-             selected_by: displayName(user),
-            };
-          };
+  if (!ratingsByActualQb[key]) {
+    ratingsByActualQb[key] = [];
+  }
 
-          const average =
-  qbRatings.length > 0
-    ? qbRatings.reduce(
-        (sum, rating) =>
-          sum + Number(rating.passer_rating || 0),
-        0
-      ) / qbRatings.length
-    : null;
+  ratingsByActualQb[key].push(rating);
+});
 
-return {
-  qb,
-  best: attachSelector(best),
-  worst: attachSelector(worst),
-  average,
-};
-        })
-        .filter((row) => row.best || row.worst)
-        .sort((a, b) => {
-          const aBest = Number(a.best?.passer_rating || 0);
-          const bBest = Number(b.best?.passer_rating || 0);
-          return bBest - aBest;
-        });
+const builtRows = Object.entries(ratingsByActualQb)
+  .map(([athleteId, qbRatings]) => {
+    const firstRating = qbRatings[0];
+
+    const selectedQb = (qbsData || []).find(
+      (qb) => qb.id === firstRating.qb_id
+    );
+
+    const actualQbFromDatabase = (qbsData || []).find(
+      (qb) =>
+        String(qb.espn_athlete_id) === String(athleteId)
+    );
+
+    const actualQb =
+      actualQbFromDatabase || {
+        id: `actual-${athleteId}`,
+        name:
+          firstRating.actual_qb_name ||
+          selectedQb?.name ||
+          "QB",
+        team: selectedQb?.team || "",
+        espn_athlete_id: athleteId,
+      };
+
+    const best =
+      [...qbRatings].sort(
+        (a, b) =>
+          Number(b.passer_rating) -
+          Number(a.passer_rating)
+      )[0] || null;
+
+    const worst =
+      [...qbRatings].sort(
+        (a, b) =>
+          Number(a.passer_rating) -
+          Number(b.passer_rating)
+      )[0] || null;
+
+    const attachSelector = (rating) => {
+      if (!rating) return null;
+
+      const pick = (qbPicksData || []).find(
+        (p) =>
+          p.qb_id === rating.qb_id &&
+          p.week === rating.week
+      );
+
+      const user = (usersData || []).find(
+        (u) => u.id === pick?.user_id
+      );
+
+      return {
+        ...rating,
+        selected_by: displayName(user),
+      };
+    };
+
+    const average =
+      qbRatings.length > 0
+        ? qbRatings.reduce(
+            (sum, rating) =>
+              sum + Number(rating.passer_rating || 0),
+            0
+          ) / qbRatings.length
+        : null;
+
+    return {
+      qb: actualQb,
+      best: attachSelector(best),
+      worst: attachSelector(worst),
+      average,
+    };
+  })
+  .sort((a, b) => {
+    const aBest = Number(a.best?.passer_rating || 0);
+    const bBest = Number(b.best?.passer_rating || 0);
+
+    return bBest - aBest;
+  });
 
       setRows(builtRows);
     }
