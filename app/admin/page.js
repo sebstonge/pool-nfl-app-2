@@ -195,9 +195,10 @@ async function updateScoresFromEspn(currentWeek) {
       let actualQB = passingAthletes[0];
 
       if (selectedQB.espn_athlete_id) {
-        const exactMatch = passingAthletes.find(
-          (athlete) => athlete.id === selectedQB.espn_athlete_id
-        );
+       const exactMatch = passingAthletes.find(
+  (athlete) =>
+    String(athlete.id) === String(selectedQB.espn_athlete_id)
+);
 
         if (exactMatch) actualQB = exactMatch;
       } else {
