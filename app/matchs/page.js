@@ -183,11 +183,12 @@ export default function Matchs() {
 
     setGames(gamesData || []);
 
-    const { data: qbsData } = await supabase
-      .from("qbs")
-      .select("*")
-      .eq("active", true)
-      .order("name", { ascending: true });
+const { data: qbsData } = await supabase
+  .from("qbs")
+  .select("*")
+  .eq("active", true)
+  .eq("is_active_starter", true)
+  .order("name", { ascending: true });
 
     setQbs(qbsData || []);
 
