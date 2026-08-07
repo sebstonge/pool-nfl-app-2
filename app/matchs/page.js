@@ -298,6 +298,14 @@ setQbSeasonAverages(formatted);
 
   const selectedQb = qbs.find((qb) => qb.id === selectedQbId);
 
+  const displayedQb =
+  qbRating?.actual_espn_athlete_id
+    ? {
+        name: qbRating.actual_qb_name || existingQbPick?.qbs?.name,
+        team: existingQbPick?.qbs?.team,
+        espn_athlete_id: qbRating.actual_espn_athlete_id,
+      }
+    : existingQbPick?.qbs;
   const updateDraftPick = (gameId, field, value) => {
     setDraftPicks((prev) => ({
       ...prev,
@@ -410,13 +418,26 @@ setQbSeasonAverages(formatted);
                 alignItems: "center",
               }}
             >
-              <QBPhoto qb={existingQbPick.qbs} />
+              <QBPhoto qb={displayedQb} />
 
               <div>
-                <h2 style={{ margin: 0 }}>{existingQbPick.qbs?.name}</h2>
-
+              <h2 style={{ margin: 0 }}>{displayedQb?.name}</h2>
+{qbRating?.actual_espn_athlete_id &&
+  String(qbRating.actual_espn_athlete_id) !==
+    String(existingQbPick?.qbs?.espn_athlete_id) && (
+    <p
+      style={{
+        margin: "4px 0",
+        color: "#facc15",
+        fontSize: 13,
+        fontWeight: 800,
+      }}
+    >
+      🔄 QB utilisé automatiquement
+    </p>
+  )}
                 <p style={{ color: "#94a3b8", fontSize: 18 }}>
-                  {existingQbPick.qbs?.team}
+                {displayedQb?.team}
                 </p>
 
 {qbRating?.passer_rating != null ? (
