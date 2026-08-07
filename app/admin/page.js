@@ -207,7 +207,44 @@ async function updateScoresFromEspn(currentWeek) {
 
         if (nameMatch) actualQB = nameMatch;
       }
+// Si ESPN a utilisé un autre QB que celui choisi,
+// on s'assure qu'il existe dans notre base comme remplaçant.
+if (
+  actualQB?.id &&
+  String(actualQB.id) !== String(selectedQB.espn_athlete_id)
+) {
+  const { data: existingActualQB, error: lookupError } = await supabase
+    .from("qbs")
+    .select("id")
+    .eq("espn_athlete_id", String(actualQB.id))
+    .maybeSingle();
 
+  if (lookupError) {
+    console.error(
+      "Erreur recherche QB remplaçant :",
+      lookupError.message
+    );
+  }
+
+  if (!existingActualQB) {
+    const { error: insertQbError } = await supabase
+      .from("qbs")
+      .insert({
+        name: actualQB.name,
+        team: selectedQB.team,
+        espn_athlete_id: String(actualQB.id),
+        active: true,
+        is_active_starter: false,
+      });
+
+    if (insertQbError) {
+      console.error(
+        "Erreur ajout QB remplaçant :",
+        insertQbError.message
+      );
+    }
+  }
+}
       const { error } = await supabase.from("qb_ratings").upsert(
         {
           qb_id: selectedQB.id,
