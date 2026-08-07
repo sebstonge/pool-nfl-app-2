@@ -26,7 +26,8 @@ function ratingColor(rating) {
   const value = Number(rating);
 
   if (value >= 100) return "#22c55e";
-  if (value >= 80) return "#facc15";
+  if (value >= 90) return "#f8fafc";
+  if (value >= 70) return "#f97316";
   return "#ef4444";
 }
 function TeamLogo({
@@ -238,27 +239,42 @@ const { data: qbsData } = await supabase
     }
 const { data: allRatings } = await supabase
   .from("qb_ratings")
-  .select("qb_id, passer_rating");
+  .select(`
+    qb_id,
+    passer_rating,
+    actual_espn_athlete_id,
+    qbs (
+      espn_athlete_id
+    )
+  `);
 
 const averages = {};
 
 (allRatings || []).forEach((row) => {
-  if (!averages[row.qb_id]) {
-    averages[row.qb_id] = {
+  const athleteId =
+    row.actual_espn_athlete_id ||
+    row.qbs?.espn_athlete_id;
+
+  if (!athleteId) return;
+
+  const key = String(athleteId);
+
+  if (!averages[key]) {
+    averages[key] = {
       total: 0,
       count: 0,
     };
   }
 
-  averages[row.qb_id].total += Number(row.passer_rating || 0);
-  averages[row.qb_id].count += 1;
+  averages[key].total += Number(row.passer_rating || 0);
+  averages[key].count += 1;
 });
 
 const formatted = {};
 
-Object.keys(averages).forEach((qbId) => {
-  formatted[qbId] =
-    averages[qbId].total / averages[qbId].count;
+Object.keys(averages).forEach((athleteId) => {
+  formatted[athleteId] =
+    averages[athleteId].total / averages[athleteId].count;
 });
 
 setQbSeasonAverages(formatted);
@@ -306,6 +322,13 @@ setQbSeasonAverages(formatted);
         espn_athlete_id: qbRating.actual_espn_athlete_id,
       }
     : existingQbPick?.qbs;
+  const displayedQbAverage =
+  qbSeasonAverages[
+    String(
+      qbRating?.actual_espn_athlete_id ||
+        existingQbPick?.qbs?.espn_athlete_id
+    )
+  ];
   const updateDraftPick = (gameId, field, value) => {
     setDraftPicks((prev) => ({
       ...prev,
@@ -465,12 +488,10 @@ setQbSeasonAverages(formatted);
     {" "}
     — Moyenne saison :{" "}
     <strong style={{ color: "#cbd5e1" }}>
-      {qbSeasonAverages[existingQbPick?.qb_id]
-        ? qbSeasonAverages[
-            existingQbPick.qb_id
-          ].toFixed(1)
-        : "--"}
-    </strong>
+  {displayedQbAverage
+    ? displayedQbAverage.toFixed(1)
+    : "--"}
+</strong>
   </p>
 ) : (
   <p
@@ -484,12 +505,10 @@ setQbSeasonAverages(formatted);
   >
     Moyenne saison :{" "}
     <strong style={{ color: "#cbd5e1" }}>
-      {qbSeasonAverages[existingQbPick?.qb_id]
-        ? qbSeasonAverages[
-            existingQbPick.qb_id
-          ].toFixed(1)
-        : "--"}
-    </strong>
+  {displayedQbAverage
+    ? displayedQbAverage.toFixed(1)
+    : "--"}
+</strong>
   </p>
 )}
 
@@ -519,8 +538,8 @@ setQbSeasonAverages(formatted);
                   {availableQbs.map((qb) => (
                     <option key={qb.id} value={qb.id}>
                       {qb.name} ({qb.team}) — Moy.{" "}
-{qbSeasonAverages[qb.id]
-  ? qbSeasonAverages[qb.id].toFixed(1)
+{qbSeasonAverages[String(qb.espn_athlete_id)]
+  ? qbSeasonAverages[String(qb.espn_athlete_id)].toFixed(1)
   : "--"}
                     </option>
                   ))}
