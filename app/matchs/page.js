@@ -792,7 +792,11 @@ fontSize:
             const realSpread = hasScore
               ? Math.abs(game.home_score - game.away_score)
               : null;
-
+const realWinner = hasScore
+  ? game.home_score > game.away_score
+    ? game.home_team
+    : game.away_team
+  : null;
 if (hasScore) {
   const isMobile =
     typeof window !== "undefined" && window.innerWidth < 700;
@@ -865,7 +869,7 @@ if (hasScore) {
                   color: "#94a3b8",
                 }}
               >
-                Écart réel : {realSpread}
+                {realWinner} par {realSpread}
               </p>
             </div>
           </div>
@@ -893,7 +897,7 @@ if (hasScore) {
           </span>
 
           <span style={{ color: "#94a3b8" }}>
-            Écart réel : {realSpread}
+            {realWinner} par {realSpread}
           </span>
         </div>
       )}
