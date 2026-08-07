@@ -452,7 +452,11 @@ const qbWasReplaced =
 
                 const hasScore =
                   game.home_score != null && game.away_score != null;
-
+const realWinner = hasScore
+  ? game.home_score > game.away_score
+    ? game.home_team
+    : game.away_team
+  : null;
                 return hasScore ? (
   <div
     key={pick.id}
@@ -519,8 +523,8 @@ const qbWasReplaced =
             </p>
 
             <p style={{ margin: "4px 0 0 0", color: "#94a3b8" }}>
-              Écart réel : {realSpread}
-            </p>
+  {realWinner} par {realSpread}
+</p>
           </div>
         </div>
       )}
@@ -547,8 +551,8 @@ const qbWasReplaced =
         </span>
 
         <span style={{ color: "#94a3b8" }}>
-          Écart réel : {realSpread}
-        </span>
+  {realWinner} par {realSpread}
+</span>
       </div>
     )}
 <div
