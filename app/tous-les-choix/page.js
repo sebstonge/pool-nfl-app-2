@@ -297,6 +297,22 @@ const playerPicks = picks
         const playerQbRating = qbRatings.find(
           (rating) => rating.qb_id === playerQB?.qb_id
         );
+        const displayedPlayerQB =
+  playerQbRating?.actual_espn_athlete_id
+    ? {
+        name:
+          playerQbRating.actual_qb_name ||
+          playerQB?.qbs?.name,
+        team: playerQB?.qbs?.team,
+        espn_athlete_id:
+          playerQbRating.actual_espn_athlete_id,
+      }
+    : playerQB?.qbs;
+
+const qbWasReplaced =
+  playerQbRating?.actual_espn_athlete_id &&
+  String(playerQbRating.actual_espn_athlete_id) !==
+    String(playerQB?.qbs?.espn_athlete_id);
 
         return (
           <section key={userId} className="card">
@@ -331,8 +347,8 @@ const playerPicks = picks
                 marginBottom: 18,
               }}
             >
-              {playerQB?.qbs ? (
-                <QBPhoto qb={playerQB.qbs} size={92} />
+            {displayedPlayerQB ? (
+  <QBPhoto qb={displayedPlayerQB} size={92} />
               ) : (
                 <div
                   style={{
@@ -361,14 +377,25 @@ const playerPicks = picks
                   QB
                 </p>
 
-                {playerQB?.qbs ? (
+               {displayedPlayerQB ? (
                   <>
                     <h2 style={{ margin: "4px 0 4px 0" }}>
-                      {playerQB.qbs.name}
+                      {displayedPlayerQB.name}
                     </h2>
-
+{qbWasReplaced && (
+  <p
+    style={{
+      margin: "2px 0 5px 0",
+      color: "#facc15",
+      fontSize: 13,
+      fontWeight: 800,
+    }}
+  >
+    🔄 QB utilisé automatiquement
+  </p>
+)}
                     <p style={{ margin: 0, color: "#94a3b8" }}>
-                      {playerQB.qbs.team}
+                      {displayedPlayerQB.team}
                 {playerQbRating?.passer_rating != null ? (
   <>
     {" "}
