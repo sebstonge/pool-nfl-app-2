@@ -152,6 +152,7 @@ export default function Matchs() {
   const [qbs, setQbs] = useState([]);
   const [availableQbs, setAvailableQbs] = useState([]);
   const [selectedQbId, setSelectedQbId] = useState("");
+  const [qbMenuOpen, setQbMenuOpen] = useState(false);
   const [existingQbPick, setExistingQbPick] = useState(null);
   const [qbRating, setQbRating] = useState(null);
   const [savedPicks, setSavedPicks] = useState({});
@@ -552,22 +553,137 @@ setQbSeasonAverages(formatted);
               }}
             >
               <div>
-                <select
-                  className="input"
-                  value={selectedQbId}
-                  onChange={(e) => setSelectedQbId(e.target.value)}
-                >
-                  <option value="">-- Sélectionner un QB --</option>
+               <div style={{ position: "relative" }}>
+  <button
+    type="button"
+    className="input"
+    onClick={() => setQbMenuOpen((prev) => !prev)}
+    style={{
+      width: "100%",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      cursor: "pointer",
+      textAlign: "left",
+    }}
+  >
+    {selectedQb ? (
+      <span
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+        }}
+      >
+        <strong>{selectedQb.name}</strong>
 
-                  {availableQbs.map((qb) => (
-                    <option key={qb.id} value={qb.id}>
-                      {qb.name} ({qb.team}) — Moy.{" "}
-{qbSeasonAverages[String(qb.espn_athlete_id)]
-  ? qbSeasonAverages[String(qb.espn_athlete_id)].toFixed(1)
-  : "--"}
-                    </option>
-                  ))}
-                </select>
+        <img
+          src={getTeamLogo(selectedQb.team)}
+          alt={selectedQb.team}
+          style={{
+            width: 28,
+            height: 28,
+            objectFit: "contain",
+          }}
+        />
+
+        <span style={{ color: "#94a3b8" }}>
+          — Moy.{" "}
+          {qbSeasonAverages[String(selectedQb.espn_athlete_id)] != null
+            ? qbSeasonAverages[
+                String(selectedQb.espn_athlete_id)
+              ].toFixed(1)
+            : "--"}
+        </span>
+      </span>
+    ) : (
+      <span>-- Sélectionner un QB --</span>
+    )}
+
+    <span style={{ marginLeft: 10 }}>
+      {qbMenuOpen ? "▲" : "▼"}
+    </span>
+  </button>
+
+  {qbMenuOpen && (
+    <div
+      style={{
+        position: "absolute",
+        top: "calc(100% + 6px)",
+        left: 0,
+        right: 0,
+        zIndex: 50,
+        maxHeight: 360,
+        overflowY: "auto",
+        borderRadius: 16,
+        background: "#0f172a",
+        border: "1px solid rgba(148,163,184,0.22)",
+        boxShadow: "0 18px 40px rgba(0,0,0,0.35)",
+      }}
+    >
+      {availableQbs.map((qb) => {
+        const average =
+          qbSeasonAverages[String(qb.espn_athlete_id)];
+
+        return (
+          <button
+            key={qb.id}
+            type="button"
+            onClick={() => {
+              setSelectedQbId(qb.id);
+              setQbMenuOpen(false);
+            }}
+            style={{
+              width: "100%",
+              display: "flex",
+              alignItems: "center",
+              padding: "12px 14px",
+              gap: 8,
+              background:
+                selectedQbId === qb.id
+                  ? "rgba(34,197,94,0.12)"
+                  : "transparent",
+              border: "none",
+              borderBottom:
+                "1px solid rgba(148,163,184,0.10)",
+              color: "#f8fafc",
+              cursor: "pointer",
+              textAlign: "left",
+            }}
+          >
+            <strong style={{ fontSize: 16 }}>
+              {qb.name}
+            </strong>
+
+            <img
+              src={getTeamLogo(qb.team)}
+              alt={qb.team}
+              style={{
+                width: 28,
+                height: 28,
+                objectFit: "contain",
+                flexShrink: 0,
+              }}
+            />
+
+            <span
+              style={{
+                marginLeft: "auto",
+                color: "#94a3b8",
+                whiteSpace: "nowrap",
+              }}
+            >
+              Moy.{" "}
+              {average != null
+                ? average.toFixed(1)
+                : "--"}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  )}
+</div>
 
                 <div
                   style={{
