@@ -31,7 +31,103 @@ function StatCard({ icon, title, value, subtitle, color = "#22c55e" }) {
     </div>
   );
 }
+function QBRecordCard({
+  icon,
+  title,
+  qb,
+  teams,
+  color = "#22c55e",
+}) {
+  const team = teams.find(
+    (t) =>
+      t.name?.toLowerCase().trim() ===
+      qb?.team?.toLowerCase().trim()
+  );
 
+  const logo = team?.espn_abbr
+    ? `https://a.espncdn.com/i/teamlogos/nfl/500/${team.espn_abbr.toLowerCase()}.png`
+    : team?.logo || null;
+
+  return (
+    <div
+      style={{
+        padding: 18,
+        borderRadius: 22,
+        background: "rgba(15,23,42,0.82)",
+        border: "1px solid rgba(148,163,184,0.16)",
+      }}
+    >
+      <div style={{ fontSize: 30, marginBottom: 10 }}>
+        {icon}
+      </div>
+
+      <p
+        style={{
+          margin: "0 0 12px 0",
+          color: "#cbd5e1",
+          fontWeight: 800,
+        }}
+      >
+        {title}
+      </p>
+
+      {!qb ? (
+        <p style={{ color: "#94a3b8" }}>Aucune donnée</p>
+      ) : (
+        <>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              marginBottom: 8,
+            }}
+          >
+            <strong
+              style={{
+                fontSize: 20,
+                color: "#f8fafc",
+              }}
+            >
+              {qb.name}
+            </strong>
+
+            {logo && (
+              <img
+                src={logo}
+                alt={qb.team}
+                style={{
+                  width: 34,
+                  height: 34,
+                  objectFit: "contain",
+                }}
+              />
+            )}
+          </div>
+
+          <div
+            style={{
+              fontSize: 34,
+              fontWeight: 900,
+              color,
+              marginBottom: 8,
+            }}
+          >
+            {qb.rating.toFixed(1)}
+          </div>
+
+          <p style={{ margin: "3px 0", color: "#94a3b8" }}>
+            Semaine {qb.week}
+          </p>
+
+          <p style={{ margin: "3px 0", color: "#94a3b8" }}>
+            Choisi par {qb.selectedBy}
+          </p>
+        </>
+      )}
+    </div>
+  );
+}
 function MiniRanking({ title, rows, valueLabel }) {
   return (
     <section className="card">
@@ -78,12 +174,18 @@ export default function AnalyticsPage() {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [stats, setStats] = useState(null);
-
+const [teams, setTeams] = useState([]);
   useEffect(() => {
     async function loadData() {
       setLoading(true);
 
-      const { data: usersData } = await supabase
+const { data: teamsData } = await supabase
+  .from("teams")
+  .select("*");
+
+setTeams(teamsData || []);
+
+const { data: usersData } = await supabase
         .from("users")
         .select("id, email, display_name");
 
@@ -217,7 +319,7 @@ export default function AnalyticsPage() {
       )[0];
 
      function qbLabel(rating) {
-  if (!rating) return "Aucune donnée";
+  if (!rating) return null;
 
   const selectedQb = (qbs || []).find(
     (q) => q.id === rating.qb_id
@@ -247,11 +349,14 @@ export default function AnalyticsPage() {
     (u) => u.id === pick?.user_id
   );
 
-  return `${qbName} — ${Number(rating.passer_rating).toFixed(
-    1
-  )} — Semaine ${rating.week} — ${displayName(user)}`;
+  return {
+    name: qbName,
+    team: actualQb?.team || selectedQb?.team || "",
+    rating: Number(rating.passer_rating),
+    week: rating.week,
+    selectedBy: displayName(user),
+  };
 }
-
      const qbAverageRows = Object.values(
   (qbRatings || []).reduce((acc, rating) => {
     const selectedQb = (qbs || []).find(
@@ -421,20 +526,20 @@ export default function AnalyticsPage() {
                 gap: 12,
               }}
             >
-              <StatCard
-                icon="🔥"
-                title="Meilleur QB utilisé"
-                value="Top"
-                subtitle={stats.bestQb}
-              />
+              <QBRecordCard
+  icon="🔥"
+  title="Meilleur QB utilisé"
+  qb={stats.bestQb}
+  teams={teams}
+/>
 
-              <StatCard
-                icon="💀"
-                title="Pire QB utilisé"
-                value="Bust"
-                subtitle={stats.worstQb}
-                color="#ef4444"
-              />
+<QBRecordCard
+  icon="💀"
+  title="Pire QB utilisé"
+  qb={stats.worstQb}
+  teams={teams}
+  color="#ef4444"
+/>
 
               <StatCard
                 icon="📊"
