@@ -12,6 +12,7 @@ function displayName(user) {
 
 function getQbHeadshot(qb) {
   if (!qb?.espn_athlete_id) return null;
+
   return `https://a.espncdn.com/i/headshots/nfl/players/full/${qb.espn_athlete_id}.png`;
 }
 
@@ -103,10 +104,23 @@ function RatingMiniCard({ label, type, rating }) {
           border: "1px solid rgba(148,163,184,0.14)",
         }}
       >
-        <p style={{ margin: 0, color: "#94a3b8", fontWeight: 900 }}>
+        <p
+          style={{
+            margin: 0,
+            color: "#94a3b8",
+            fontWeight: 900,
+          }}
+        >
           {label}
         </p>
-        <h3 style={{ margin: "8px 0 0 0" }}>Aucun rating</h3>
+
+        <h3
+          style={{
+            margin: "8px 0 0 0",
+          }}
+        >
+          Aucun rating
+        </h3>
       </div>
     );
   }
@@ -144,9 +158,28 @@ function RatingMiniCard({ label, type, rating }) {
         {Number(rating.passer_rating).toFixed(1)}
       </h2>
 
-      <p style={{ margin: 0, color: "#94a3b8" }}>
-        Semaine {rating.week} — {rating.selected_by || "—"}
-      </p>
+      <div
+        style={{
+          marginTop: 6,
+          color: "#94a3b8",
+        }}
+      >
+        <p
+          style={{
+            margin: 0,
+          }}
+        >
+          Semaine {rating.week}
+        </p>
+
+        <p
+          style={{
+            margin: "3px 0 0 0",
+          }}
+        >
+          Choisi par {rating.selected_by || "—"}
+        </p>
+      </div>
     </div>
   );
 }
@@ -158,10 +191,15 @@ export default function QBRatingsPage() {
 
   useEffect(() => {
     async function loadData() {
-      const { data: teamsData } = await supabase.from("teams").select("*");
+      const { data: teamsData } = await supabase
+        .from("teams")
+        .select("*");
+
       setTeams(teamsData || []);
 
-      const { data: usersData } = await supabase.from("users").select("*");
+      const { data: usersData } = await supabase
+        .from("users")
+        .select("*");
 
       const { data: qbsData, error: qbsError } = await supabase
         .from("qbs")
@@ -191,109 +229,118 @@ export default function QBRatingsPage() {
         return;
       }
 
-const ratingsByActualQb = {};
+      const ratingsByActualQb = {};
 
-(ratingsData || []).forEach((rating) => {
-  if (rating.passer_rating == null) return;
+      (ratingsData || []).forEach((rating) => {
+        if (rating.passer_rating == null) return;
 
-  const selectedQb = (qbsData || []).find(
-    (qb) => qb.id === rating.qb_id
-  );
+        const selectedQb = (qbsData || []).find(
+          (qb) => qb.id === rating.qb_id
+        );
 
-  const actualAthleteId =
-    rating.actual_espn_athlete_id ||
-    selectedQb?.espn_athlete_id;
+        const actualAthleteId =
+          rating.actual_espn_athlete_id ||
+          selectedQb?.espn_athlete_id;
 
-  if (!actualAthleteId) return;
+        if (!actualAthleteId) return;
 
-  const key = String(actualAthleteId);
+        const key = String(actualAthleteId);
 
-  if (!ratingsByActualQb[key]) {
-    ratingsByActualQb[key] = [];
-  }
+        if (!ratingsByActualQb[key]) {
+          ratingsByActualQb[key] = [];
+        }
 
-  ratingsByActualQb[key].push(rating);
-});
+        ratingsByActualQb[key].push(rating);
+      });
 
-const builtRows = Object.entries(ratingsByActualQb)
-  .map(([athleteId, qbRatings]) => {
-    const firstRating = qbRatings[0];
+      const builtRows = Object.entries(ratingsByActualQb)
+        .map(([athleteId, qbRatings]) => {
+          const firstRating = qbRatings[0];
 
-    const selectedQb = (qbsData || []).find(
-      (qb) => qb.id === firstRating.qb_id
-    );
+          const selectedQb = (qbsData || []).find(
+            (qb) => qb.id === firstRating.qb_id
+          );
 
-    const actualQbFromDatabase = (qbsData || []).find(
-      (qb) =>
-        String(qb.espn_athlete_id) === String(athleteId)
-    );
+          const actualQbFromDatabase = (qbsData || []).find(
+            (qb) =>
+              String(qb.espn_athlete_id) ===
+              String(athleteId)
+          );
 
-    const actualQb =
-      actualQbFromDatabase || {
-        id: `actual-${athleteId}`,
-        name:
-          firstRating.actual_qb_name ||
-          selectedQb?.name ||
-          "QB",
-        team: selectedQb?.team || "",
-        espn_athlete_id: athleteId,
-      };
+          const actualQb =
+            actualQbFromDatabase || {
+              id: `actual-${athleteId}`,
+              name:
+                firstRating.actual_qb_name ||
+                selectedQb?.name ||
+                "QB",
+              team: selectedQb?.team || "",
+              espn_athlete_id: athleteId,
+            };
 
-    const best =
-      [...qbRatings].sort(
-        (a, b) =>
-          Number(b.passer_rating) -
-          Number(a.passer_rating)
-      )[0] || null;
+          const best =
+            [...qbRatings].sort(
+              (a, b) =>
+                Number(b.passer_rating) -
+                Number(a.passer_rating)
+            )[0] || null;
 
-    const worst =
-  qbRatings.length > 1
-    ? [...qbRatings].sort(
-        (a, b) => Number(a.passer_rating) - Number(b.passer_rating)
-      )[0]
-    : null;
+          const worst =
+            qbRatings.length > 1
+              ? [...qbRatings].sort(
+                  (a, b) =>
+                    Number(a.passer_rating) -
+                    Number(b.passer_rating)
+                )[0]
+              : null;
 
-    const attachSelector = (rating) => {
-      if (!rating) return null;
+          const attachSelector = (rating) => {
+            if (!rating) return null;
 
-      const pick = (qbPicksData || []).find(
-        (p) =>
-          p.qb_id === rating.qb_id &&
-          p.week === rating.week
-      );
+            const pick = (qbPicksData || []).find(
+              (p) =>
+                p.qb_id === rating.qb_id &&
+                p.week === rating.week
+            );
 
-      const user = (usersData || []).find(
-        (u) => u.id === pick?.user_id
-      );
+            const user = (usersData || []).find(
+              (u) => u.id === pick?.user_id
+            );
 
-      return {
-        ...rating,
-        selected_by: displayName(user),
-      };
-    };
+            return {
+              ...rating,
+              selected_by: displayName(user),
+            };
+          };
 
-    const average =
-      qbRatings.length > 0
-        ? qbRatings.reduce(
-            (sum, rating) =>
-              sum + Number(rating.passer_rating || 0),
-            0
-          ) / qbRatings.length
-        : null;
+          const average =
+            qbRatings.length > 0
+              ? qbRatings.reduce(
+                  (sum, rating) =>
+                    sum +
+                    Number(rating.passer_rating || 0),
+                  0
+                ) / qbRatings.length
+              : null;
 
-    return {
-      qb: actualQb,
-      best: attachSelector(best),
-      worst: attachSelector(worst),
-      average,
-    };
-  })
-  .sort((a, b) => {
-    const aBest = Number(a.best?.passer_rating || 0);
-    const bBest = Number(b.best?.passer_rating || 0);
+          return {
+            qb: actualQb,
+            best: attachSelector(best),
+            worst: attachSelector(worst),
+            average,
+          };
+        })
+        .sort((a, b) => {
+          const aBest = Number(
+            a.best?.passer_rating || 0
+          );
 
-    return bBest - aBest;
-  });
+          const bBest = Number(
+            b.best?.passer_rating || 0
+          );
+
+          return bBest - aBest;
+        });
 
       setRows(builtRows);
     }
@@ -304,7 +351,8 @@ const builtRows = Object.entries(ratingsByActualQb)
   const getTeamLogo = (teamName) => {
     const team = teams.find(
       (t) =>
-        t.name?.toLowerCase().trim() === teamName?.toLowerCase().trim()
+        t.name?.toLowerCase().trim() ===
+        teamName?.toLowerCase().trim()
     );
 
     return team?.espn_abbr
@@ -313,10 +361,16 @@ const builtRows = Object.entries(ratingsByActualQb)
   };
 
   return (
-    <main className="page" style={{ maxWidth: 1100 }}>
+    <main
+      className="page"
+      style={{
+        maxWidth: 1100,
+      }}
+    >
       <section className="header-card">
         <h1>QB Ratings 📊</h1>
-<p>Ratings et moyenne de chaque QB cette saison.</p>      </section>
+        <p>Ratings et moyenne de chaque QB cette saison.</p>
+      </section>
 
       {message && (
         <section className="card">
@@ -331,7 +385,10 @@ const builtRows = Object.entries(ratingsByActualQb)
       )}
 
       {rows.map((row, index) => (
-        <section key={row.qb.id} className="card">
+        <section
+          key={row.qb.id}
+          className="card"
+        >
           <div
             style={{
               display: "grid",
@@ -346,7 +403,8 @@ const builtRows = Object.entries(ratingsByActualQb)
                 width: 42,
                 height: 42,
                 borderRadius: 14,
-                background: index < 3 ? "#166534" : "#1e293b",
+                background:
+                  index < 3 ? "#166534" : "#1e293b",
                 color: "white",
                 fontWeight: 900,
                 display: "flex",
@@ -357,10 +415,19 @@ const builtRows = Object.entries(ratingsByActualQb)
               #{index + 1}
             </div>
 
-            <QBPhoto qb={row.qb} size={104} />
+            <QBPhoto
+              qb={row.qb}
+              size={104}
+            />
 
             <div>
-              <h2 style={{ margin: 0 }}>{row.qb.name}</h2>
+              <h2
+                style={{
+                  margin: 0,
+                }}
+              >
+                {row.qb.name}
+              </h2>
 
               <div
                 style={{
@@ -376,70 +443,81 @@ const builtRows = Object.entries(ratingsByActualQb)
                   name={row.qb.team}
                   size={42}
                 />
-                <strong>{row.qb.team}</strong>
+
+                <strong>
+                  {row.qb.team}
+                </strong>
               </div>
             </div>
           </div>
 
           <div
-         style={{
-  display: "grid",
-  gridTemplateColumns:
-    typeof window !== "undefined" && window.innerWidth < 900
-      ? "1fr"
-      : "repeat(3, minmax(0, 1fr))",
-  gap: 10,
-}}
+            style={{
+              display: "grid",
+              gridTemplateColumns:
+                typeof window !== "undefined" &&
+                window.innerWidth < 900
+                  ? "1fr"
+                  : "repeat(3, minmax(0, 1fr))",
+              gap: 10,
+            }}
           >
-   <RatingMiniCard
-  label="Meilleur rating"
-  type="best"
-  rating={row.best}
-/>
+            <RatingMiniCard
+              label="Meilleur rating"
+              type="best"
+              rating={row.best}
+            />
 
-<div
-  style={{
-    padding:
-  typeof window !== "undefined" && window.innerWidth < 900
-    ? 12
-    : 10,
-    borderRadius: 18,
-    background: "rgba(148,163,184,0.08)",
-    border: "1px solid rgba(148,163,184,0.16)",
-  }}
->
-  <p
-    style={{
-      margin: 0,
-      color: "#94a3b8",
-      fontWeight: 900,
-    }}
-  >
-    Moyenne saison
-  </p>
+            <div
+              style={{
+                padding:
+                  typeof window !== "undefined" &&
+                  window.innerWidth < 900
+                    ? 12
+                    : 10,
+                borderRadius: 18,
+                background: "rgba(148,163,184,0.08)",
+                border:
+                  "1px solid rgba(148,163,184,0.16)",
+              }}
+            >
+              <p
+                style={{
+                  margin: 0,
+                  color: "#94a3b8",
+                  fontWeight: 900,
+                }}
+              >
+                Moyenne saison
+              </p>
 
-  <h2
-    style={{
-      margin: "6px 0",
-      fontSize: 30,
-      color: "#e2e8f0",
-    }}
-  >
-    {row.average != null
-      ? row.average.toFixed(1)
-      : "--"}
-  </h2>
+              <h2
+                style={{
+                  margin: "6px 0",
+                  fontSize: 30,
+                  color: "#e2e8f0",
+                }}
+              >
+                {row.average != null
+                  ? row.average.toFixed(1)
+                  : "--"}
+              </h2>
 
-  <p style={{ margin: 0, color: "#94a3b8" }}>
-    Toutes les semaines
-  </p>
-</div>
+              <p
+                style={{
+                  margin: 0,
+                  color: "#94a3b8",
+                }}
+              >
+                Toutes les semaines
+              </p>
+            </div>
 
-<RatingMiniCard
-  label="Pire rating"
-  type="worst"
-  rating={row.worst}
-/>
+            <RatingMiniCard
+              label="Pire rating"
+              type="worst"
+              rating={row.worst}
+            />
           </div>
         </section>
       ))}
