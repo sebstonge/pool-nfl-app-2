@@ -445,6 +445,33 @@ setQbSeasonAverages(formatted);
 
               <div>
               <h2 style={{ margin: 0 }}>{displayedQb?.name}</h2>
+
+<div
+  style={{
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 6,
+    marginBottom: 6,
+  }}
+>
+  <TeamLogo
+    logo={getTeamLogo(displayedQb?.team)}
+    name={displayedQb?.team}
+    size={38}
+    plain={true}
+  />
+
+  <strong
+    style={{
+      color: "#94a3b8",
+      fontSize: 16,
+    }}
+  >
+    {displayedQb?.team}
+  </strong>
+</div>
+
 {qbRating?.actual_espn_athlete_id &&
   String(qbRating.actual_espn_athlete_id) !==
     String(existingQbPick?.qbs?.espn_athlete_id) && (
@@ -459,9 +486,6 @@ setQbSeasonAverages(formatted);
       🔄 QB utilisé automatiquement
     </p>
   )}
-                <p style={{ color: "#94a3b8", fontSize: 18 }}>
-                {displayedQb?.team}
-                </p>
 
 {qbRating?.passer_rating != null ? (
   <p
