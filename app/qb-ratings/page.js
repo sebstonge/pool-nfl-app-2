@@ -316,8 +316,7 @@ const builtRows = Object.entries(ratingsByActualQb)
     <main className="page" style={{ maxWidth: 1100 }}>
       <section className="header-card">
         <h1>QB Ratings 📊</h1>
-        <p>Meilleur et pire passer rating de chaque QB cette saison.</p>
-      </section>
+<p>Ratings et moyenne de chaque QB cette saison.</p>      </section>
 
       {message && (
         <section className="card">
