@@ -405,15 +405,29 @@ const displayedPlayerQbAverage =
   {displayedPlayerQB.name}
 </h2>
 
-<p
+<div
   style={{
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
     margin: "0 0 4px 0",
-    color: "#94a3b8",
-    fontSize: 16,
   }}
 >
-  {displayedPlayerQB.team}
-</p>
+  <TeamLogo
+    logo={getTeamLogo(displayedPlayerQB.team)}
+    name={displayedPlayerQB.team}
+    size={34}
+  />
+
+  <strong
+    style={{
+      color: "#94a3b8",
+      fontSize: 16,
+    }}
+  >
+    {displayedPlayerQB.team}
+  </strong>
+</div>
 
 {qbWasReplaced && (
   <p
