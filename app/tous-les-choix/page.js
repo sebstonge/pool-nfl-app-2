@@ -107,7 +107,8 @@ function ratingColor(rating) {
   const value = Number(rating);
 
   if (value >= 100) return "#22c55e";
-  if (value >= 80) return "#facc15";
+  if (value >= 90) return "#f8fafc";
+  if (value >= 70) return "#f97316";
   return "#ef4444";
 }
 
@@ -198,27 +199,42 @@ export default function TousLesChoix() {
    
 const { data: allRatings } = await supabase
   .from("qb_ratings")
-  .select("qb_id, passer_rating");
+  .select(`
+    qb_id,
+    passer_rating,
+    actual_espn_athlete_id,
+    qbs (
+      espn_athlete_id
+    )
+  `);
 
 const averages = {};
 
 (allRatings || []).forEach((row) => {
-  if (!averages[row.qb_id]) {
-    averages[row.qb_id] = {
+  const athleteId =
+    row.actual_espn_athlete_id ||
+    row.qbs?.espn_athlete_id;
+
+  if (!athleteId) return;
+
+  const key = String(athleteId);
+
+  if (!averages[key]) {
+    averages[key] = {
       total: 0,
       count: 0,
     };
   }
 
-  averages[row.qb_id].total += Number(row.passer_rating || 0);
-  averages[row.qb_id].count += 1;
+  averages[key].total += Number(row.passer_rating || 0);
+  averages[key].count += 1;
 });
 
 const formatted = {};
 
-Object.keys(averages).forEach((qbId) => {
-  formatted[qbId] =
-    averages[qbId].total / averages[qbId].count;
+Object.keys(averages).forEach((athleteId) => {
+  formatted[athleteId] =
+    averages[athleteId].total / averages[athleteId].count;
 });
 
 setQbSeasonAverages(formatted);
@@ -313,7 +329,13 @@ const qbWasReplaced =
   playerQbRating?.actual_espn_athlete_id &&
   String(playerQbRating.actual_espn_athlete_id) !==
     String(playerQB?.qbs?.espn_athlete_id);
-
+const displayedPlayerQbAverage =
+  qbSeasonAverages[
+    String(
+      playerQbRating?.actual_espn_athlete_id ||
+        playerQB?.qbs?.espn_athlete_id
+    )
+  ];
         return (
           <section key={userId} className="card">
             <div
@@ -379,13 +401,24 @@ const qbWasReplaced =
 
                {displayedPlayerQB ? (
                   <>
-                    <h2 style={{ margin: "4px 0 4px 0" }}>
-                      {displayedPlayerQB.name}
-                    </h2>
+<h2 style={{ margin: "4px 0 2px 0" }}>
+  {displayedPlayerQB.name}
+</h2>
+
+<p
+  style={{
+    margin: "0 0 4px 0",
+    color: "#94a3b8",
+    fontSize: 16,
+  }}
+>
+  {displayedPlayerQB.team}
+</p>
+
 {qbWasReplaced && (
   <p
     style={{
-      margin: "2px 0 5px 0",
+      margin: "0 0 6px 0",
       color: "#facc15",
       fontSize: 13,
       fontWeight: 800,
@@ -394,19 +427,22 @@ const qbWasReplaced =
     🔄 QB utilisé automatiquement
   </p>
 )}
-                    <p style={{ margin: 0, color: "#94a3b8" }}>
-                      {displayedPlayerQB.team}
-                {playerQbRating?.passer_rating != null ? (
-  <>
-    {" "}
-    — Rating :{" "}
+                   
+{playerQbRating?.passer_rating != null ? (
+  <p
+    style={{
+      margin: "6px 0 0 0",
+      color: "#94a3b8",
+      fontSize:
+        typeof window !== "undefined" && window.innerWidth < 700
+          ? 14
+          : 16,
+    }}
+  >
+    Rating :{" "}
     <strong
       style={{
         color: ratingColor(playerQbRating.passer_rating),
-        fontSize:
-          typeof window !== "undefined" && window.innerWidth < 700
-            ? 14
-            : 16,
       }}
     >
       {Number(playerQbRating.passer_rating).toFixed(1)}
@@ -414,24 +450,45 @@ const qbWasReplaced =
 
     {" "}
     — Moyenne :{" "}
-    <strong style={{ color: "#cbd5e1" }}>
-      {qbSeasonAverages[playerQB?.qb_id]
-        ? qbSeasonAverages[playerQB.qb_id].toFixed(1)
+    <strong
+      style={{
+        color:
+          displayedPlayerQbAverage != null
+            ? ratingColor(displayedPlayerQbAverage)
+            : "#cbd5e1",
+      }}
+    >
+      {displayedPlayerQbAverage != null
+        ? displayedPlayerQbAverage.toFixed(1)
         : "--"}
     </strong>
-  </>
+  </p>
 ) : (
-  <>
-    {" "}
-    — Moyenne :{" "}
-    <strong style={{ color: "#cbd5e1" }}>
-      {qbSeasonAverages[playerQB?.qb_id]
-        ? qbSeasonAverages[playerQB.qb_id].toFixed(1)
+  <p
+    style={{
+      margin: "6px 0 0 0",
+      color: "#94a3b8",
+      fontSize:
+        typeof window !== "undefined" && window.innerWidth < 700
+          ? 14
+          : 16,
+    }}
+  >
+    Moyenne :{" "}
+    <strong
+      style={{
+        color:
+          displayedPlayerQbAverage != null
+            ? ratingColor(displayedPlayerQbAverage)
+            : "#cbd5e1",
+      }}
+    >
+      {displayedPlayerQbAverage != null
+        ? displayedPlayerQbAverage.toFixed(1)
         : "--"}
     </strong>
-  </>
+  </p>
 )}
-                    </p>
                   </>
                 ) : (
                   <p className="status-warning">Aucun QB soumis</p>
@@ -564,10 +621,11 @@ const realWinner = hasScore
     marginTop: 8,
   }}
 >
-  {new Date(game.game_date).toLocaleDateString("fr-CA", {
+{new Date(game.game_date)
+  .toLocaleDateString("fr-CA", {
     weekday: "long",
-  })}{" "}
-  --{" "}
+  })
+.toUpperCase()}{" "}  --{" "}
   {new Date(game.game_date).toLocaleTimeString("fr-CA", {
     hour: "2-digit",
     minute: "2-digit",
@@ -651,9 +709,11 @@ const realWinner = hasScore
         : 70,
   }}
 >
-  {new Date(game.game_date).toLocaleDateString("fr-CA", {
+{new Date(game.game_date)
+  .toLocaleDateString("fr-CA", {
     weekday: "long",
-  })}{" "}
+  })
+  .toUpperCase()}{" "}
   --{" "}
   {new Date(game.game_date).toLocaleTimeString("fr-CA", {
     hour: "2-digit",
