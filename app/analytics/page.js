@@ -475,17 +475,22 @@ const { data: usersData } = await supabase
                 gap: 12,
               }}
             >
-              <StatCard
-                icon="🏆"
-                title="Meilleur score semaine"
-                value={stats.bestWeek ? `${stats.bestWeek.score.toFixed(3)}` : "--"}
-                subtitle={
-                  stats.bestWeek
-                    ? `${stats.bestWeek.name} — Semaine ${stats.bestWeek.week}`
-                    : "Aucune donnée"
-                }
-                color="#facc15"
-              />
+             <StatCard
+  icon="🏆"
+  title="Meilleur score semaine"
+  value={stats.bestWeek ? stats.bestWeek.score.toFixed(3) : "--"}
+  subtitle={
+    stats.bestWeek ? (
+      <>
+        <div>{stats.bestWeek.name}</div>
+        <div>Semaine {stats.bestWeek.week}</div>
+      </>
+    ) : (
+      "Aucune donnée"
+    )
+  }
+  color="#facc15"
+/>
 
               <StatCard
                 icon="🎯"
@@ -503,16 +508,21 @@ const { data: usersData } = await supabase
               />
 
               <StatCard
-                icon="📉"
-                title="Pire semaine"
-                value={stats.worstWeek ? `${stats.worstWeek.score.toFixed(3)}` : "--"}
-                subtitle={
-                  stats.worstWeek
-                    ? `${stats.worstWeek.name} — Semaine ${stats.worstWeek.week}`
-                    : "Aucune donnée"
-                }
-                color="#ef4444"
-              />
+  icon="📉"
+  title="Pire semaine"
+  value={stats.worstWeek ? stats.worstWeek.score.toFixed(3) : "--"}
+  subtitle={
+    stats.worstWeek ? (
+      <>
+        <div>{stats.worstWeek.name}</div>
+        <div>Semaine {stats.worstWeek.week}</div>
+      </>
+    ) : (
+      "Aucune donnée"
+    )
+  }
+  color="#ef4444"
+/>
             </div>
           </section>
 
