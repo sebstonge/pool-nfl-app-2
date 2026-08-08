@@ -216,46 +216,80 @@ export default function AnalyticsPage() {
         (a, b) => Number(a.passer_rating || 999) - Number(b.passer_rating || 999)
       )[0];
 
-      function qbLabel(rating) {
-        if (!rating) return "Aucune donnée";
+     function qbLabel(rating) {
+  if (!rating) return "Aucune donnée";
 
-        const qb = (qbs || []).find((q) => q.id === rating.qb_id);
-        const pick = (qbPicks || []).find(
-          (p) => p.qb_id === rating.qb_id && p.week === rating.week
-        );
-        const user = users.find((u) => u.id === pick?.user_id);
+  const selectedQb = (qbs || []).find(
+    (q) => q.id === rating.qb_id
+  );
 
-        return `${qb?.name || "QB"} — ${Number(rating.passer_rating).toFixed(
-          1
-        )} — Semaine ${rating.week} — ${displayName(user)}`;
-      }
-
-      const qbAverageRows = Object.values(
-        (qbRatings || []).reduce((acc, rating) => {
-          if (!acc[rating.qb_id]) {
-            acc[rating.qb_id] = {
-              qb_id: rating.qb_id,
-              total: 0,
-              count: 0,
-            };
-          }
-
-          acc[rating.qb_id].total += Number(rating.passer_rating || 0);
-          acc[rating.qb_id].count += 1;
-
-          return acc;
-        }, {})
+  const actualQb = rating.actual_espn_athlete_id
+    ? (qbs || []).find(
+        (q) =>
+          String(q.espn_athlete_id) ===
+          String(rating.actual_espn_athlete_id)
       )
-        .map((row) => {
-          const qb = (qbs || []).find((q) => q.id === row.qb_id);
+    : null;
 
-          return {
-            name: qb?.name || "QB",
-            value: (row.total / row.count).toFixed(1),
-            detail: `${row.count} utilisation${row.count > 1 ? "s" : ""}`,
-          };
-        })
-        .sort((a, b) => Number(b.value) - Number(a.value));
+  const qbName =
+    rating.actual_qb_name ||
+    actualQb?.name ||
+    selectedQb?.name ||
+    "QB";
+
+  const pick = (qbPicks || []).find(
+    (p) =>
+      p.qb_id === rating.qb_id &&
+      p.week === rating.week
+  );
+
+  const user = users.find(
+    (u) => u.id === pick?.user_id
+  );
+
+  return `${qbName} — ${Number(rating.passer_rating).toFixed(
+    1
+  )} — Semaine ${rating.week} — ${displayName(user)}`;
+}
+
+     const qbAverageRows = Object.values(
+  (qbRatings || []).reduce((acc, rating) => {
+    const selectedQb = (qbs || []).find(
+      (q) => q.id === rating.qb_id
+    );
+
+    const athleteId =
+      rating.actual_espn_athlete_id ||
+      selectedQb?.espn_athlete_id;
+
+    if (!athleteId) return acc;
+
+    const key = String(athleteId);
+
+    if (!acc[key]) {
+      acc[key] = {
+        espn_athlete_id: key,
+        name:
+          rating.actual_qb_name ||
+          selectedQb?.name ||
+          "QB",
+        total: 0,
+        count: 0,
+      };
+    }
+
+    acc[key].total += Number(rating.passer_rating || 0);
+    acc[key].count += 1;
+
+    return acc;
+  }, {})
+)
+  .map((row) => ({
+    name: row.name,
+    value: (row.total / row.count).toFixed(1),
+    detail: `${row.count} utilisation${row.count > 1 ? "s" : ""}`,
+  }))
+  .sort((a, b) => Number(b.value) - Number(a.value));
 
       setStats({
         bestWeek,
