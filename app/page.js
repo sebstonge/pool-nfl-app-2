@@ -21,6 +21,7 @@ function NavItem({ href, icon, title, subtitle, color }) {
 
 export default function HomePage() {
   const [user, setUser] = useState(null);
+  const [profile, setProfile] = useState(null);
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
 
@@ -37,6 +38,7 @@ useEffect(() => {
         .select("id, email, display_name")
         .eq("id", currentUser.id)
         .maybeSingle();
+      setProfile(profile);
 
       if (!profile || !profile.display_name?.trim()) {
   window.location.href = "/setup-profile";
@@ -59,6 +61,7 @@ useEffect(() => {
           .select("id, email, display_name")
           .eq("id", currentUser.id)
           .maybeSingle();
+        setProfile(profile);
 
       if (!profile || !profile.display_name?.trim()) {
   window.location.href = "/setup-profile";
@@ -123,7 +126,9 @@ const handleLogout = async () => {
       {user ? (
         <>
           <section className="card">
-            <p className="status-ok">Connecté : {user.email} ✅</p>
+            <p className="status-ok">
+  Connecté sous : {profile?.display_name || user.email?.split("@")[0]} ✅
+</p>
 
         <button
   type="button"
