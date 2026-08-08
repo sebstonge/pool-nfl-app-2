@@ -139,53 +139,62 @@ const handleLogout = async () => {
 </button>
           </section>
 
-          <section className="nav-grid">
-            <NavItem
-              href="/matchs"
-              icon="✅"
-              title="Mes choix"
-              subtitle="Faire mes prédictions"
-              color="rgba(34,197,94,0.18)"
-            />
+<section
+  className="nav-grid"
+  style={{
+    display: "grid",
+    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+    gap: 14,
+  }}
+>
+  <NavItem
+    href="/matchs"
+    icon="✅"
+    title="Mes choix"
+    subtitle="Faire mes prédictions"
+    color="rgba(34,197,94,0.18)"
+  />
 
-            <NavItem
-              href="/tous-les-choix"
-              icon="👀"
-              title="Tous les choix"
-              subtitle="Voir les prédictions de tous"
-              color="rgba(59,130,246,0.20)"
-            />
+  <NavItem
+    href="/tous-les-choix"
+    icon="👀"
+    title="Tous les choix"
+    subtitle="Voir les prédictions de tous"
+    color="rgba(59,130,246,0.20)"
+  />
 
-            <NavItem
-              href="/qb-ratings"
-              icon="📊"
-              title="QB Ratings"
-              subtitle="Meilleurs et pires ratings"
-              color="rgba(236,72,153,0.20)"
-            />
-<NavItem
-  href="/analytics"
-  icon="📈"
-  title="Statistiques"
-  subtitle="Records et statistiques"
-  color="rgba(59,130,246,0.20)"
-/>
-            <NavItem
-              href="/classements"
-              icon="🏆"
-              title="Classements"
-              subtitle="Hebdo et saison"
-              color="rgba(234,179,8,0.20)"
-            />
+  <NavItem
+    href="/qb-ratings"
+    icon="📊"
+    title="QB Ratings"
+    subtitle="Ratings et moyennes"
+    color="rgba(236,72,153,0.20)"
+  />
 
-            <NavItem
-              href="/admin"
-              icon="⚙️"
-              title="Admin"
-              subtitle="Scores, stats et calculs"
-              color="rgba(148,163,184,0.18)"
-            />
-          </section>
+  <NavItem
+    href="/classements"
+    icon="🏆"
+    title="Classements"
+    subtitle="Hebdo et saison"
+    color="rgba(234,179,8,0.20)"
+  />
+
+  <NavItem
+    href="/analytics"
+    icon="📈"
+    title="Statistiques"
+    subtitle="Records et statistiques"
+    color="rgba(59,130,246,0.20)"
+  />
+
+  <NavItem
+    href="/admin"
+    icon="⚙️"
+    title="Admin"
+    subtitle="Scores, stats et calculs"
+    color="rgba(148,163,184,0.18)"
+  />
+</section>
 
           <BottomNav />
         </>
