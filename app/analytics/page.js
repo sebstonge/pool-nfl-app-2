@@ -37,6 +37,7 @@ function QBRecordCard({
   qb,
   teams,
   color = "#22c55e",
+  isAverage = false,
 }) {
   const team = teams.find(
     (t) =>
@@ -116,13 +117,21 @@ function QBRecordCard({
             {qb.rating.toFixed(1)}
           </div>
 
-          <p style={{ margin: "3px 0", color: "#94a3b8" }}>
-            Semaine {qb.week}
-          </p>
+          {isAverage ? (
+  <p style={{ margin: "3px 0", color: "#94a3b8" }}>
+    {qb.detail}
+  </p>
+) : (
+  <>
+    <p style={{ margin: "3px 0", color: "#94a3b8" }}>
+      Semaine {qb.week}
+    </p>
 
-          <p style={{ margin: "3px 0", color: "#94a3b8" }}>
-            Choisi par {qb.selectedBy}
-          </p>
+    <p style={{ margin: "3px 0", color: "#94a3b8" }}>
+      Choisi par {qb.selectedBy}
+    </p>
+  </>
+)}
         </>
       )}
     </div>
@@ -372,18 +381,32 @@ const { data: usersData } = await supabase
     const key = String(athleteId);
 
     if (!acc[key]) {
+      const actualQb = (qbs || []).find(
+        (q) =>
+          String(q.espn_athlete_id) ===
+          String(athleteId)
+      );
+
       acc[key] = {
         espn_athlete_id: key,
         name:
           rating.actual_qb_name ||
+          actualQb?.name ||
           selectedQb?.name ||
           "QB",
+        team:
+          actualQb?.team ||
+          selectedQb?.team ||
+          "",
         total: 0,
         count: 0,
       };
     }
 
-    acc[key].total += Number(rating.passer_rating || 0);
+    acc[key].total += Number(
+      rating.passer_rating || 0
+    );
+
     acc[key].count += 1;
 
     return acc;
@@ -391,10 +414,13 @@ const { data: usersData } = await supabase
 )
   .map((row) => ({
     name: row.name,
-    value: (row.total / row.count).toFixed(1),
-    detail: `${row.count} utilisation${row.count > 1 ? "s" : ""}`,
+    team: row.team,
+    rating: row.total / row.count,
+    detail: `${row.count} utilisation${
+      row.count > 1 ? "s" : ""
+    }`,
   }))
-  .sort((a, b) => Number(b.value) - Number(a.value));
+  .sort((a, b) => b.rating - a.rating);
 
       setStats({
         bestWeek,
@@ -541,17 +567,14 @@ const { data: usersData } = await supabase
   color="#ef4444"
 />
 
-              <StatCard
-                icon="📊"
-                title="Meilleure moyenne QB"
-                value={stats.qbAverageRows[0]?.value || "--"}
-                subtitle={
-                  stats.qbAverageRows[0]
-                    ? `${stats.qbAverageRows[0].name} — ${stats.qbAverageRows[0].detail}`
-                    : "Aucune donnée"
-                }
-                color="#38bdf8"
-              />
+              <QBRecordCard
+  icon="📊"
+  title="Meilleure moyenne QB"
+  qb={stats.qbAverageRows[0] || null}
+  teams={teams}
+  color="#38bdf8"
+  isAverage={true}
+/>
             </div>
           </section>
 
