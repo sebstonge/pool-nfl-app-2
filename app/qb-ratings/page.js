@@ -247,11 +247,11 @@ const builtRows = Object.entries(ratingsByActualQb)
       )[0] || null;
 
     const worst =
-      [...qbRatings].sort(
-        (a, b) =>
-          Number(a.passer_rating) -
-          Number(b.passer_rating)
-      )[0] || null;
+  qbRatings.length > 1
+    ? [...qbRatings].sort(
+        (a, b) => Number(a.passer_rating) - Number(b.passer_rating)
+      )[0]
+    : null;
 
     const attachSelector = (rating) => {
       if (!rating) return null;
