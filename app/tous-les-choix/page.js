@@ -10,6 +10,16 @@ function displayName(user) {
   return "Joueur";
 }
 
+function statValue(row) {
+  return Number(
+    row?.final_score ??
+      row?.score ??
+      row?.total_score ??
+      row?.points ??
+      0
+  );
+}
+
 function getQbHeadshot(qb) {
   if (!qb?.espn_athlete_id) return null;
 
@@ -92,7 +102,10 @@ function TeamLogo({ logo, name, size = 66 }) {
 }
 
 function getPickBadge(game, pick) {
-  if (game.home_score == null || game.away_score == null) {
+  if (
+    game.home_score == null ||
+    game.away_score == null
+  ) {
     return "⚪";
   }
 
@@ -107,7 +120,9 @@ function getPickBadge(game, pick) {
 
   if (pick.picked_team !== winner) return "🔴";
 
-  if (Number(pick.predicted_spread) === realSpread) {
+  if (
+    Number(pick.predicted_spread) === realSpread
+  ) {
     return "🟢";
   }
 
@@ -177,19 +192,26 @@ function GameTimeBar({ gameDate }) {
 function WeekNavigator({
   viewedWeek,
   currentWeek,
-  minWeek,
-  onPrevious,
-  onNext,
+  availableWeeks,
+  onChange,
 }) {
-  const canGoPrevious = viewedWeek > minWeek;
-  const canGoNext = viewedWeek < currentWeek;
+  const index = availableWeeks.indexOf(viewedWeek);
+
+  const previousWeek =
+    index > 0
+      ? availableWeeks[index - 1]
+      : null;
+
+  const nextWeek =
+    index >= 0 &&
+    index < availableWeeks.length - 1
+      ? availableWeeks[index + 1]
+      : null;
 
   return (
     <section
       className="card"
-      style={{
-        padding: 12,
-      }}
+      style={{ padding: 12 }}
     >
       <div
         style={{
@@ -201,30 +223,37 @@ function WeekNavigator({
       >
         <button
           type="button"
-          onClick={onPrevious}
-          disabled={!canGoPrevious}
-          aria-label="Semaine précédente"
+          disabled={previousWeek == null}
+          onClick={() => {
+            if (previousWeek != null) {
+              onChange(previousWeek);
+            }
+          }}
           style={{
             height: 44,
             borderRadius: 14,
-            border: "1px solid rgba(148,163,184,0.18)",
-            background: canGoPrevious
-              ? "rgba(34,197,94,0.10)"
-              : "rgba(148,163,184,0.05)",
-            color: canGoPrevious ? "#86efac" : "#475569",
+            border:
+              "1px solid rgba(148,163,184,0.18)",
+            background:
+              previousWeek != null
+                ? "rgba(34,197,94,0.10)"
+                : "rgba(148,163,184,0.05)",
+            color:
+              previousWeek != null
+                ? "#86efac"
+                : "#475569",
             fontSize: 24,
             fontWeight: 900,
-            cursor: canGoPrevious ? "pointer" : "default",
+            cursor:
+              previousWeek != null
+                ? "pointer"
+                : "default",
           }}
         >
           ‹
         </button>
 
-        <div
-          style={{
-            textAlign: "center",
-          }}
-        >
+        <div style={{ textAlign: "center" }}>
           <strong
             style={{
               display: "block",
@@ -248,20 +277,31 @@ function WeekNavigator({
 
         <button
           type="button"
-          onClick={onNext}
-          disabled={!canGoNext}
-          aria-label="Semaine suivante"
+          disabled={nextWeek == null}
+          onClick={() => {
+            if (nextWeek != null) {
+              onChange(nextWeek);
+            }
+          }}
           style={{
             height: 44,
             borderRadius: 14,
-            border: "1px solid rgba(148,163,184,0.18)",
-            background: canGoNext
-              ? "rgba(34,197,94,0.10)"
-              : "rgba(148,163,184,0.05)",
-            color: canGoNext ? "#86efac" : "#475569",
+            border:
+              "1px solid rgba(148,163,184,0.18)",
+            background:
+              nextWeek != null
+                ? "rgba(34,197,94,0.10)"
+                : "rgba(148,163,184,0.05)",
+            color:
+              nextWeek != null
+                ? "#86efac"
+                : "#475569",
             fontSize: 24,
             fontWeight: 900,
-            cursor: canGoNext ? "pointer" : "default",
+            cursor:
+              nextWeek != null
+                ? "pointer"
+                : "default",
           }}
         >
           ›
@@ -271,36 +311,144 @@ function WeekNavigator({
   );
 }
 
+function SelectionOrderBar({
+  players,
+  currentWeek,
+}) {
+  if (
+    currentWeek <= 1 ||
+    players.length === 0
+  ) {
+    return null;
+  }
+
+  return (
+    <section
+      className="card"
+      style={{
+        padding: 14,
+        background:
+          "rgba(34,197,94,0.06)",
+        border:
+          "1px solid rgba(34,197,94,0.18)",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          marginBottom: 10,
+        }}
+      >
+        <strong
+          style={{
+            color: "#86efac",
+            fontSize: 13,
+            fontWeight: 900,
+            letterSpacing: "0.4px",
+          }}
+        >
+          ⏳ ORDRE DE SÉLECTION
+        </strong>
+
+        <span
+          style={{
+            color: "#64748b",
+            fontSize: 12,
+          }}
+        >
+          · Semaine {currentWeek}
+        </span>
+      </div>
+
+      <div
+        style={{
+          display: "flex",
+          gap: 8,
+          flexWrap: "wrap",
+        }}
+      >
+        {players.map((player, index) => (
+          <div
+            key={player.userId}
+            style={{
+              padding: "7px 11px",
+              borderRadius: 10,
+
+              background:
+                index === 0
+                  ? "rgba(34,197,94,0.18)"
+                  : "rgba(148,163,184,0.08)",
+
+              border:
+                index === 0
+                  ? "1px solid rgba(34,197,94,0.32)"
+                  : "1px solid rgba(148,163,184,0.14)",
+
+              color:
+                index === 0
+                  ? "#86efac"
+                  : "#cbd5e1",
+
+              fontSize: 14,
+              fontWeight:
+                index === 0 ? 900 : 700,
+            }}
+          >
+            {index + 1}. {player.name}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export default function TousLesChoix() {
   const [players, setPlayers] = useState([]);
   const [picks, setPicks] = useState([]);
   const [qbPicks, setQbPicks] = useState([]);
-  const [qbRatings, setQbRatings] = useState([]);
+  const [qbRatings, setQbRatings] =
+    useState([]);
   const [teams, setTeams] = useState([]);
 
-  const [currentWeek, setCurrentWeek] = useState(null);
-  const [viewedWeek, setViewedWeek] = useState(null);
+  const [currentWeek, setCurrentWeek] =
+    useState(null);
 
-  const [availableWeeks, setAvailableWeeks] = useState([]);
+  const [viewedWeek, setViewedWeek] =
+    useState(null);
 
-  const [message, setMessage] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [availableWeeks, setAvailableWeeks] =
+    useState([]);
 
-  const [qbSeasonAverages, setQbSeasonAverages] =
-    useState({});
+  const [
+    qbSeasonAverages,
+    setQbSeasonAverages,
+  ] = useState({});
+
+  const [
+    selectionOrder,
+    setSelectionOrder,
+  ] = useState([]);
+
+  const [message, setMessage] =
+    useState("");
+
+  const [loading, setLoading] =
+    useState(true);
 
   /*
-   * Charge les données générales une seule fois :
-   * semaine active, utilisateurs, équipes et semaines disponibles.
+   * DONNÉES GÉNÉRALES
    */
   useEffect(() => {
     async function loadBaseData() {
       setLoading(true);
 
-      const { data: settingsData } = await supabase
-        .from("settings")
-        .select("*")
-        .single();
+      const { data: settingsData } =
+        await supabase
+          .from("settings")
+          .select("*")
+          .single();
 
       const activeWeek =
         settingsData?.current_week || 1;
@@ -308,39 +456,34 @@ export default function TousLesChoix() {
       setCurrentWeek(activeWeek);
       setViewedWeek(activeWeek);
 
-      const { data: teamsData } = await supabase
-        .from("teams")
-        .select("*");
+      const { data: teamsData } =
+        await supabase
+          .from("teams")
+          .select("*");
 
       setTeams(teamsData || []);
 
-      const { data: usersData } = await supabase
-        .from("users")
-        .select("id, email, display_name")
-        .order("email", { ascending: true });
+      const { data: usersData } =
+        await supabase
+          .from("users")
+          .select(
+            "id, email, display_name"
+          );
 
       setPlayers(usersData || []);
 
-      /*
-       * On récupère les semaines qui existent vraiment
-       * dans la table games.
-       */
-      const { data: weeksData, error: weeksError } =
+      const { data: weeksData } =
         await supabase
           .from("games")
           .select("week")
           .eq("is_pool_eligible", true);
 
-      if (weeksError) {
-        setMessage(
-          "Erreur semaines : " + weeksError.message
-        );
-      }
-
       const weeks = Array.from(
         new Set(
           (weeksData || [])
-            .map((game) => Number(game.week))
+            .map((game) =>
+              Number(game.week)
+            )
             .filter(
               (week) =>
                 Number.isFinite(week) &&
@@ -349,12 +492,10 @@ export default function TousLesChoix() {
         )
       ).sort((a, b) => a - b);
 
-      /*
-       * Si aucune semaine n'est trouvée,
-       * on garde au minimum la semaine active.
-       */
       setAvailableWeeks(
-        weeks.length > 0 ? weeks : [activeWeek]
+        weeks.length > 0
+          ? weeks
+          : [activeWeek]
       );
     }
 
@@ -362,43 +503,52 @@ export default function TousLesChoix() {
   }, []);
 
   /*
-   * Charge tout ce qui dépend de la semaine affichée.
-   * Ce useEffect se relance lorsqu'on utilise les flèches.
+   * DONNÉES DE LA SEMAINE CONSULTÉE
    */
   useEffect(() => {
-    if (viewedWeek == null) return;
+    if (
+      viewedWeek == null ||
+      currentWeek == null
+    ) {
+      return;
+    }
 
     async function loadWeekData() {
       setLoading(true);
       setMessage("");
 
       /*
-       * Choix de matchs de la semaine consultée.
+       * MATCH PICKS
        */
-      const { data: picksData, error: picksError } =
-        await supabase
-          .from("picks")
-          .select(`
+      const {
+        data: picksData,
+        error: picksError,
+      } = await supabase
+        .from("picks")
+        .select(`
+          id,
+          user_id,
+          picked_team,
+          predicted_spread,
+          updated_at,
+          games!inner (
             id,
-            user_id,
-            picked_team,
-            predicted_spread,
-            games!inner (
-              id,
-              week,
-              away_team,
-              home_team,
-              away_score,
-              home_score,
-              game_date
-            )
-          `)
-          .eq("games.week", viewedWeek);
+            week,
+            away_team,
+            home_team,
+            away_score,
+            home_score,
+            game_date
+          )
+        `)
+        .eq("games.week", viewedWeek);
 
       if (picksError) {
         setMessage(
-          "Erreur choix : " + picksError.message
+          "Erreur choix : " +
+            picksError.message
         );
+
         setLoading(false);
         return;
       }
@@ -406,30 +556,41 @@ export default function TousLesChoix() {
       setPicks(picksData || []);
 
       /*
-       * QB choisis durant cette semaine.
+       * QB PICKS
+       *
+       * created_at sert également à
+       * l'ordre chronologique d'affichage.
        */
-      const { data: qbData, error: qbError } =
-        await supabase
-          .from("qb_picks")
-          .select(`
+      const {
+        data: qbData,
+        error: qbError,
+      } = await supabase
+        .from("qb_picks")
+        .select(`
+          id,
+          user_id,
+          week,
+          qb_id,
+          created_at,
+          qbs (
             id,
-            user_id,
-            week,
-            qb_id,
-            qbs (
-              id,
-              name,
-              team,
-              logo,
-              espn_athlete_id
-            )
-          `)
-          .eq("week", viewedWeek);
+            name,
+            team,
+            logo,
+            espn_athlete_id
+          )
+        `)
+        .eq("week", viewedWeek)
+        .order("created_at", {
+          ascending: true,
+        });
 
       if (qbError) {
         setMessage(
-          "Erreur QB : " + qbError.message
+          "Erreur QB : " +
+            qbError.message
         );
+
         setLoading(false);
         return;
       }
@@ -437,18 +598,22 @@ export default function TousLesChoix() {
       setQbPicks(qbData || []);
 
       /*
-       * Ratings de cette semaine.
+       * RATINGS SEMAINE
        */
-      const { data: ratingsData, error: ratingsError } =
-        await supabase
-          .from("qb_ratings")
-          .select("*")
-          .eq("week", viewedWeek);
+      const {
+        data: ratingsData,
+        error: ratingsError,
+      } = await supabase
+        .from("qb_ratings")
+        .select("*")
+        .eq("week", viewedWeek);
 
       if (ratingsError) {
         setMessage(
-          "Erreur ratings : " + ratingsError.message
+          "Erreur ratings : " +
+            ratingsError.message
         );
+
         setLoading(false);
         return;
       }
@@ -456,16 +621,10 @@ export default function TousLesChoix() {
       setQbRatings(ratingsData || []);
 
       /*
-       * Moyennes saison.
-       *
-       * Pour une ancienne semaine, je limite la moyenne
-       * aux semaines <= à celle consultée.
-       *
-       * Cela permet de revoir la semaine 5 telle qu'elle
-       * se présentait à ce moment-là, sans que les ratings
-       * futurs de semaines 6, 7, etc. modifient sa moyenne.
+       * MOYENNES QB JUSQU'À LA
+       * SEMAINE CONSULTÉE
        */
-      const { data: allRatings, error: averagesError } =
+      const { data: allRatings } =
         await supabase
           .from("qb_ratings")
           .select(`
@@ -479,39 +638,39 @@ export default function TousLesChoix() {
           `)
           .lte("week", viewedWeek);
 
-      if (averagesError) {
-        setMessage(
-          "Erreur moyennes QB : " +
-            averagesError.message
-        );
-      }
-
       const averages = {};
 
-      (allRatings || []).forEach((row) => {
-        if (row.passer_rating == null) return;
+      (allRatings || []).forEach(
+        (row) => {
+          if (
+            row.passer_rating == null
+          ) {
+            return;
+          }
 
-        const athleteId =
-          row.actual_espn_athlete_id ||
-          row.qbs?.espn_athlete_id;
+          const athleteId =
+            row.actual_espn_athlete_id ||
+            row.qbs?.espn_athlete_id;
 
-        if (!athleteId) return;
+          if (!athleteId) return;
 
-        const key = String(athleteId);
+          const key =
+            String(athleteId);
 
-        if (!averages[key]) {
-          averages[key] = {
-            total: 0,
-            count: 0,
-          };
+          if (!averages[key]) {
+            averages[key] = {
+              total: 0,
+              count: 0,
+            };
+          }
+
+          averages[key].total += Number(
+            row.passer_rating
+          );
+
+          averages[key].count += 1;
         }
-
-        averages[key].total += Number(
-          row.passer_rating
-        );
-
-        averages[key].count += 1;
-      });
+      );
 
       const formatted = {};
 
@@ -525,17 +684,142 @@ export default function TousLesChoix() {
 
       setQbSeasonAverages(formatted);
 
+      /*
+       * ORDRE DE SÉLECTION
+       *
+       * Seulement pour la semaine active.
+       * Semaine 1 = aucun ordre précédent.
+       */
+      if (
+        viewedWeek === currentWeek &&
+        currentWeek > 1
+      ) {
+        const {
+          data: previousScores,
+          error: orderError,
+        } = await supabase
+          .from("weekly_scores")
+          .select("*")
+          .eq(
+            "week",
+            currentWeek - 1
+          );
+
+        if (orderError) {
+          console.error(
+            "Erreur ordre de sélection :",
+            orderError
+          );
+
+          setSelectionOrder([]);
+        } else {
+          const alreadyPicked =
+            new Set(
+              (qbData || []).map(
+                (pick) =>
+                  pick.user_id
+              )
+            );
+
+          const scoreMap = new Map(
+            (previousScores || []).map(
+              (row) => [
+                row.user_id,
+                statValue(row),
+              ]
+            )
+          );
+
+          const remainingPlayers =
+            (players || [])
+              .filter(
+                (player) =>
+                  !alreadyPicked.has(
+                    player.id
+                  )
+              )
+              .map((player) => ({
+                userId:
+                  player.id,
+
+                name:
+                  displayName(player),
+
+                previousScore:
+                  scoreMap.has(
+                    player.id
+                  )
+                    ? scoreMap.get(
+                        player.id
+                      )
+                    : null,
+              }))
+              .sort((a, b) => {
+                /*
+                 * Joueurs avec score précédent
+                 * en premier, du pire au meilleur.
+                 *
+                 * Un nouveau joueur sans score
+                 * précédent va à la fin.
+                 */
+                if (
+                  a.previousScore == null &&
+                  b.previousScore != null
+                ) {
+                  return 1;
+                }
+
+                if (
+                  a.previousScore != null &&
+                  b.previousScore == null
+                ) {
+                  return -1;
+                }
+
+                if (
+                  a.previousScore != null &&
+                  b.previousScore != null &&
+                  a.previousScore !==
+                    b.previousScore
+                ) {
+                  return (
+                    a.previousScore -
+                    b.previousScore
+                  );
+                }
+
+                return a.name.localeCompare(
+                  b.name
+                );
+              });
+
+          setSelectionOrder(
+            remainingPlayers
+          );
+        }
+      } else {
+        setSelectionOrder([]);
+      }
+
       setLoading(false);
     }
 
     loadWeekData();
-  }, [viewedWeek]);
+  }, [
+    viewedWeek,
+    currentWeek,
+    players,
+  ]);
 
   const getTeamLogo = (teamName) => {
     const team = teams.find(
       (t) =>
-        t.name?.toLowerCase().trim() ===
-        teamName?.toLowerCase().trim()
+        t.name
+          ?.toLowerCase()
+          .trim() ===
+        teamName
+          ?.toLowerCase()
+          .trim()
     );
 
     return team?.espn_abbr
@@ -543,61 +827,83 @@ export default function TousLesChoix() {
       : team?.logo || null;
   };
 
-  const currentWeekIndex =
-    availableWeeks.indexOf(viewedWeek);
-
-  const previousWeek =
-    currentWeekIndex > 0
-      ? availableWeeks[currentWeekIndex - 1]
-      : null;
-
-  const nextWeek =
-    currentWeekIndex >= 0 &&
-    currentWeekIndex < availableWeeks.length - 1
-      ? availableWeeks[currentWeekIndex + 1]
-      : null;
-
-  const minWeek =
-    availableWeeks.length > 0
-      ? availableWeeks[0]
-      : currentWeek || 1;
-
+  /*
+   * JOUEURS À AFFICHER
+   *
+   * IMPORTANT :
+   * On ne met PAS tous les users ici.
+   *
+   * Seuls ceux qui ont vraiment soumis
+   * apparaissent dans Tous les choix.
+   *
+   * qbPicks est déjà trié par created_at.
+   */
   const allUserIds = Array.from(
     new Set([
-      ...players.map((player) => player.id),
-      ...picks.map((pick) => pick.user_id),
-      ...qbPicks.map((pick) => pick.user_id),
+      ...qbPicks.map(
+        (pick) => pick.user_id
+      ),
+
+      ...picks
+        .slice()
+        .sort(
+          (a, b) =>
+            new Date(
+              a.updated_at || 0
+            ).getTime() -
+            new Date(
+              b.updated_at || 0
+            ).getTime()
+        )
+        .map(
+          (pick) => pick.user_id
+        ),
     ])
   );
 
   return (
     <main className="page">
       <section className="header-card">
-        <h1>Tous les choix 👀</h1>
+        <h1>
+          Tous les choix 👀
+        </h1>
 
         <p>
-          Semaine {viewedWeek || "..."}
+          Semaine{" "}
+          {viewedWeek || "..."}
         </p>
       </section>
 
       {currentWeek != null &&
         viewedWeek != null && (
           <WeekNavigator
-            viewedWeek={viewedWeek}
-            currentWeek={currentWeek}
-            minWeek={minWeek}
-            onPrevious={() => {
-              if (previousWeek != null) {
-                setViewedWeek(previousWeek);
-              }
-            }}
-            onNext={() => {
-              if (nextWeek != null) {
-                setViewedWeek(nextWeek);
-              }
-            }}
+            viewedWeek={
+              viewedWeek
+            }
+            currentWeek={
+              currentWeek
+            }
+            availableWeeks={
+              availableWeeks
+            }
+            onChange={
+              setViewedWeek
+            }
           />
         )}
+
+      {/* ORDRE DE SÉLECTION
+          seulement sur la semaine active */}
+      {viewedWeek === currentWeek && (
+        <SelectionOrderBar
+          players={
+            selectionOrder
+          }
+          currentWeek={
+            currentWeek
+          }
+        />
+      )}
 
       {message && (
         <section className="card">
@@ -607,205 +913,244 @@ export default function TousLesChoix() {
 
       {loading && (
         <section className="card">
-          <p>Chargement des choix...</p>
-        </section>
-      )}
-
-      {!loading && allUserIds.length === 0 && (
-        <section className="card">
           <p>
-            Aucun choix soumis pour la semaine{" "}
-            {viewedWeek}.
+            Chargement des choix...
           </p>
         </section>
       )}
 
+      {/* PERSONNE N'A ENCORE CHOISI */}
       {!loading &&
-        allUserIds.map((userId) => {
-          const player = players.find(
-            (player) => player.id === userId
-          );
+        allUserIds.length === 0 && (
+          <section className="card">
+            <p
+              style={{
+                margin: 0,
+                color: "#94a3b8",
+              }}
+            >
+              Aucun choix soumis
+              pour le moment.
+            </p>
+          </section>
+        )}
 
-          /*
-           * Ordre chronologique des matchs.
-           */
-          const weekGames = Array.from(
-            new Map(
-              picks
-                .map((pick) => pick.games)
-                .filter(Boolean)
-                .sort(
-                  (a, b) =>
-                    new Date(
-                      a.game_date || 0
-                    ).getTime() -
-                    new Date(
-                      b.game_date || 0
-                    ).getTime()
+      {/* JOUEURS AYANT SOUMIS */}
+      {!loading &&
+        allUserIds.map(
+          (userId) => {
+            const player =
+              players.find(
+                (player) =>
+                  player.id ===
+                  userId
+              );
+
+            /*
+             * Ordre chronologique
+             * des matchs
+             */
+            const weekGames =
+              Array.from(
+                new Map(
+                  picks
+                    .map(
+                      (pick) =>
+                        pick.games
+                    )
+                    .filter(Boolean)
+                    .sort(
+                      (a, b) =>
+                        new Date(
+                          a.game_date ||
+                            0
+                        ).getTime() -
+                        new Date(
+                          b.game_date ||
+                            0
+                        ).getTime()
+                    )
+                    .map(
+                      (
+                        game,
+                        index
+                      ) => [
+                        `${game.away_team}-${game.home_team}`,
+                        index,
+                      ]
+                    )
                 )
-                .map((game, index) => [
-                  `${game.away_team}-${game.home_team}`,
-                  index,
-                ])
-            )
-          );
-
-          const gameOrder =
-            Object.fromEntries(weekGames);
-
-          const playerPicks = picks
-            .filter(
-              (pick) =>
-                pick.user_id === userId
-            )
-            .sort((a, b) => {
-              const keyA =
-                `${a.games?.away_team}-${a.games?.home_team}`;
-
-              const keyB =
-                `${b.games?.away_team}-${b.games?.home_team}`;
-
-              return (
-                (gameOrder[keyA] ?? 999) -
-                (gameOrder[keyB] ?? 999)
-              );
-            });
-
-          const playerQB = qbPicks.find(
-            (qb) => qb.user_id === userId
-          );
-
-          const playerQbRating =
-            qbRatings.find(
-              (rating) =>
-                rating.qb_id ===
-                playerQB?.qb_id
-            );
-
-          /*
-           * Si ESPN indique qu'un autre QB a réellement
-           * joué, on affiche celui-là.
-           */
-          const displayedPlayerQB =
-            playerQbRating?.actual_espn_athlete_id
-              ? {
-                  name:
-                    playerQbRating.actual_qb_name ||
-                    playerQB?.qbs?.name,
-
-                  team:
-                    playerQB?.qbs?.team,
-
-                  espn_athlete_id:
-                    playerQbRating.actual_espn_athlete_id,
-                }
-              : playerQB?.qbs;
-
-          const qbWasReplaced =
-            playerQbRating?.actual_espn_athlete_id &&
-            String(
-              playerQbRating.actual_espn_athlete_id
-            ) !==
-              String(
-                playerQB?.qbs
-                  ?.espn_athlete_id
               );
 
-          const displayedPlayerQbAverage =
-            qbSeasonAverages[
+            const gameOrder =
+              Object.fromEntries(
+                weekGames
+              );
+
+            const playerPicks =
+              picks
+                .filter(
+                  (pick) =>
+                    pick.user_id ===
+                    userId
+                )
+                .sort(
+                  (a, b) => {
+                    const keyA =
+                      `${a.games?.away_team}-${a.games?.home_team}`;
+
+                    const keyB =
+                      `${b.games?.away_team}-${b.games?.home_team}`;
+
+                    return (
+                      (gameOrder[
+                        keyA
+                      ] ?? 999) -
+                      (gameOrder[
+                        keyB
+                      ] ?? 999)
+                    );
+                  }
+                );
+
+            const playerQB =
+              qbPicks.find(
+                (qb) =>
+                  qb.user_id ===
+                  userId
+              );
+
+            const playerQbRating =
+              qbRatings.find(
+                (rating) =>
+                  rating.qb_id ===
+                  playerQB?.qb_id
+              );
+
+            const displayedPlayerQB =
+              playerQbRating?.actual_espn_athlete_id
+                ? {
+                    name:
+                      playerQbRating.actual_qb_name ||
+                      playerQB
+                        ?.qbs
+                        ?.name,
+
+                    team:
+                      playerQB
+                        ?.qbs
+                        ?.team,
+
+                    espn_athlete_id:
+                      playerQbRating.actual_espn_athlete_id,
+                  }
+                : playerQB?.qbs;
+
+            const qbWasReplaced =
+              playerQbRating?.actual_espn_athlete_id &&
               String(
-                playerQbRating?.actual_espn_athlete_id ||
+                playerQbRating.actual_espn_athlete_id
+              ) !==
+                String(
                   playerQB?.qbs
                     ?.espn_athlete_id
-              )
-            ];
+                );
 
-          return (
-            <section
-              key={userId}
-              className="card"
-            >
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr",
-                  gap: 14,
-                  alignItems: "center",
-                  marginBottom: 18,
-                }}
+            const displayedPlayerQbAverage =
+              qbSeasonAverages[
+                String(
+                  playerQbRating?.actual_espn_athlete_id ||
+                    playerQB?.qbs
+                      ?.espn_athlete_id
+                )
+              ];
+
+            return (
+              <section
+                key={userId}
+                className="card"
               >
-                <div>
-                  <h2 style={{ margin: 0 }}>
-                    {displayName(player)}
+                <div
+                  style={{
+                    marginBottom:
+                      18,
+                  }}
+                >
+                  <h2
+                    style={{
+                      margin: 0,
+                    }}
+                  >
+                    {displayName(
+                      player
+                    )}
                   </h2>
 
                   <p
                     style={{
-                      margin: "4px 0 0 0",
-                      color: "#94a3b8",
+                      margin:
+                        "4px 0 0 0",
+                      color:
+                        "#94a3b8",
                     }}
                   >
-                    Choix de la semaine{" "}
+                    Choix de la
+                    semaine{" "}
                     {viewedWeek}
                   </p>
                 </div>
-              </div>
 
-              {/* QB */}
+                {/* QB */}
 
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns:
-                    "96px 1fr",
-                  gap: 16,
-                  alignItems: "center",
-                  padding: 16,
-                  borderRadius: 18,
-                  background:
-                    "rgba(34,197,94,0.08)",
-                  border:
-                    "1px solid rgba(34,197,94,0.20)",
-                  marginBottom: 18,
-                }}
-              >
-                {displayedPlayerQB ? (
-                  <QBPhoto
-                    qb={displayedPlayerQB}
-                    size={92}
-                  />
-                ) : (
+                {displayedPlayerQB && (
                   <div
                     style={{
-                      width: 92,
-                      height: 92,
-                      borderRadius: 18,
-                      background:
-                        "rgba(148,163,184,0.16)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent:
+                      display:
+                        "grid",
+
+                      gridTemplateColumns:
+                        "96px 1fr",
+
+                      gap: 16,
+
+                      alignItems:
                         "center",
-                      fontWeight: 900,
+
+                      padding: 16,
+
+                      borderRadius:
+                        18,
+
+                      background:
+                        "rgba(34,197,94,0.08)",
+
+                      border:
+                        "1px solid rgba(34,197,94,0.20)",
+
+                      marginBottom:
+                        18,
                     }}
                   >
-                    QB
-                  </div>
-                )}
+                    <QBPhoto
+                      qb={
+                        displayedPlayerQB
+                      }
+                      size={92}
+                    />
 
-                <div>
-                  <p
-                    style={{
-                      margin: 0,
-                      color: "#22c55e",
-                      fontWeight: 900,
-                    }}
-                  >
-                    QB
-                  </p>
+                    <div>
+                      <p
+                        style={{
+                          margin: 0,
+                          color:
+                            "#22c55e",
+                          fontWeight:
+                            900,
+                        }}
+                      >
+                        QB
+                      </p>
 
-                  {displayedPlayerQB ? (
-                    <>
                       <h2
                         style={{
                           margin:
@@ -819,10 +1164,14 @@ export default function TousLesChoix() {
 
                       <div
                         style={{
-                          display: "flex",
+                          display:
+                            "flex",
+
                           alignItems:
                             "center",
+
                           gap: 8,
+
                           margin:
                             "0 0 4px 0",
                         }}
@@ -841,7 +1190,9 @@ export default function TousLesChoix() {
                           style={{
                             color:
                               "#94a3b8",
-                            fontSize: 16,
+
+                            fontSize:
+                              16,
                           }}
                         >
                           {
@@ -855,9 +1206,13 @@ export default function TousLesChoix() {
                           style={{
                             margin:
                               "0 0 6px 0",
+
                             color:
                               "#facc15",
-                            fontSize: 13,
+
+                            fontSize:
+                              13,
+
                             fontWeight:
                               800,
                           }}
@@ -873,6 +1228,7 @@ export default function TousLesChoix() {
                           style={{
                             margin:
                               "6px 0 0 0",
+
                             color:
                               "#94a3b8",
 
@@ -896,7 +1252,9 @@ export default function TousLesChoix() {
                           >
                             {Number(
                               playerQbRating.passer_rating
-                            ).toFixed(1)}
+                            ).toFixed(
+                              1
+                            )}
                           </strong>
 
                           {" — "}
@@ -928,28 +1286,10 @@ export default function TousLesChoix() {
                               "6px 0 0 0",
                             color:
                               "#94a3b8",
-
-                            fontSize:
-                              typeof window !==
-                                "undefined" &&
-                              window.innerWidth <
-                                700
-                                ? 14
-                                : 16,
                           }}
                         >
                           Moyenne :{" "}
-                          <strong
-                            style={{
-                              color:
-                                displayedPlayerQbAverage !=
-                                null
-                                  ? ratingColor(
-                                      displayedPlayerQbAverage
-                                    )
-                                  : "#cbd5e1",
-                            }}
-                          >
+                          <strong>
                             {displayedPlayerQbAverage !=
                             null
                               ? displayedPlayerQbAverage.toFixed(
@@ -959,89 +1299,346 @@ export default function TousLesChoix() {
                           </strong>
                         </p>
                       )}
-                    </>
-                  ) : (
-                    <p className="status-warning">
-                      Aucun QB soumis
-                    </p>
-                  )}
-                </div>
-              </div>
+                    </div>
+                  </div>
+                )}
 
-              {/* MATCHS */}
+                {/* MATCHS */}
 
-              {playerPicks.length === 0 ? (
-                <p className="status-warning">
-                  Aucun choix de match soumis.
-                </p>
-              ) : (
-                playerPicks.map((pick) => {
-                  const game = pick.games;
+                {playerPicks.map(
+                  (pick) => {
+                    const game =
+                      pick.games;
 
-                  if (!game) return null;
+                    if (!game) {
+                      return null;
+                    }
 
-                  const hasScore =
-                    game.home_score != null &&
-                    game.away_score != null;
+                    const hasScore =
+                      game.home_score !=
+                        null &&
+                      game.away_score !=
+                        null;
 
-                  const realSpread =
-                    hasScore
-                      ? Math.abs(
-                          game.home_score -
-                            game.away_score
-                        )
-                      : null;
+                    const realSpread =
+                      hasScore
+                        ? Math.abs(
+                            game.home_score -
+                              game.away_score
+                          )
+                        : null;
 
-                  const realWinner =
-                    hasScore
-                      ? game.home_score >
-                        game.away_score
-                        ? game.home_team
-                        : game.away_team
-                      : null;
+                    const realWinner =
+                      hasScore
+                        ? game.home_score >
+                          game.away_score
+                          ? game.home_team
+                          : game.away_team
+                        : null;
 
-                  /*
-                   * MATCH TERMINÉ
-                   */
-                  if (hasScore) {
-                    const isMobile =
-                      typeof window !==
-                        "undefined" &&
-                      window.innerWidth < 700;
+                    /*
+                     * MATCH TERMINÉ
+                     */
+                    if (hasScore) {
+                      const isMobile =
+                        typeof window !==
+                          "undefined" &&
+                        window.innerWidth <
+                          700;
 
+                      return (
+                        <div
+                          key={
+                            pick.id
+                          }
+                          style={{
+                            padding:
+                              "18px 0",
+
+                            borderBottom:
+                              "1px solid rgba(148,163,184,0.12)",
+                          }}
+                        >
+                          <GameTimeBar
+                            gameDate={
+                              game.game_date
+                            }
+                          />
+
+                          <div
+                            style={{
+                              display:
+                                "grid",
+
+                              gridTemplateColumns:
+                                isMobile
+                                  ? "1fr 100px 1fr"
+                                  : "80px 130px 80px 1fr",
+
+                              gap: 12,
+
+                              alignItems:
+                                "center",
+
+                              justifyItems:
+                                isMobile
+                                  ? "center"
+                                  : "initial",
+                            }}
+                          >
+                            <TeamLogo
+                              logo={getTeamLogo(
+                                game.away_team
+                              )}
+                              name={
+                                game.away_team
+                              }
+                              size={
+                                70
+                              }
+                            />
+
+                            <div
+                              style={{
+                                fontSize:
+                                  isMobile
+                                    ? 24
+                                    : 30,
+
+                                fontWeight:
+                                  900,
+
+                                textAlign:
+                                  "center",
+
+                                whiteSpace:
+                                  "nowrap",
+                              }}
+                            >
+                              {
+                                game.away_score
+                              }{" "}
+                              -{" "}
+                              {
+                                game.home_score
+                              }
+                            </div>
+
+                            <TeamLogo
+                              logo={getTeamLogo(
+                                game.home_team
+                              )}
+                              name={
+                                game.home_team
+                              }
+                              size={
+                                70
+                              }
+                            />
+
+                            {!isMobile && (
+                              <div
+                                style={{
+                                  display:
+                                    "flex",
+
+                                  alignItems:
+                                    "center",
+
+                                  gap: 12,
+
+                                  justifyContent:
+                                    "flex-end",
+                                }}
+                              >
+                                <span
+                                  style={{
+                                    fontSize:
+                                      26,
+                                  }}
+                                >
+                                  {getPickBadge(
+                                    game,
+                                    pick
+                                  )}
+                                </span>
+
+                                <div
+                                  style={{
+                                    textAlign:
+                                      "right",
+                                  }}
+                                >
+                                  <p
+                                    style={{
+                                      margin:
+                                        0,
+
+                                      fontWeight:
+                                        800,
+                                    }}
+                                  >
+                                    Choix :{" "}
+                                    {
+                                      pick.picked_team
+                                    }{" "}
+                                    par{" "}
+                                    {
+                                      pick.predicted_spread
+                                    }
+                                  </p>
+
+                                  <p
+                                    style={{
+                                      margin:
+                                        "4px 0 0 0",
+
+                                      color:
+                                        "#94a3b8",
+                                    }}
+                                  >
+                                    {
+                                      realWinner
+                                    }{" "}
+                                    par{" "}
+                                    {
+                                      realSpread
+                                    }
+                                  </p>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          {isMobile && (
+                            <div
+                              style={{
+                                marginTop:
+                                  10,
+
+                                display:
+                                  "flex",
+
+                                alignItems:
+                                  "center",
+
+                                justifyContent:
+                                  "center",
+
+                                gap: 10,
+
+                                flexWrap:
+                                  "wrap",
+
+                                fontSize:
+                                  14,
+
+                                fontWeight:
+                                  700,
+
+                                color:
+                                  "#cbd5e1",
+                              }}
+                            >
+                              <span>
+                                {getPickBadge(
+                                  game,
+                                  pick
+                                )}
+                              </span>
+
+                              <span>
+                                {
+                                  pick.picked_team
+                                }{" "}
+                                par{" "}
+                                {
+                                  pick.predicted_spread
+                                }
+                              </span>
+
+                              <span
+                                style={{
+                                  color:
+                                    "#94a3b8",
+                                }}
+                              >
+                                {
+                                  realWinner
+                                }{" "}
+                                par{" "}
+                                {
+                                  realSpread
+                                }
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    }
+
+                    /*
+                     * MATCH SANS SCORE
+                     */
                     return (
                       <div
-                        key={pick.id}
+                        key={
+                          pick.id
+                        }
                         style={{
+                          display:
+                            "grid",
+
+                          gridTemplateColumns:
+                            "90px 50px 90px 1fr 40px",
+
+                          gap: 12,
+
+                          alignItems:
+                            "center",
+
                           padding:
-                            "18px 0",
+                            "14px 0",
+
                           borderBottom:
                             "1px solid rgba(148,163,184,0.12)",
                         }}
                       >
-                        <GameTimeBar
-                          gameDate={
-                            game.game_date
-                          }
-                        />
+                        <div
+                          style={{
+                            gridColumn:
+                              "1 / -1",
+                          }}
+                        >
+                          <GameTimeBar
+                            gameDate={
+                              game.game_date
+                            }
+                          />
+                        </div>
 
                         <div
                           style={{
-                            display: "grid",
+                            width: 78,
+                            height: 78,
 
-                            gridTemplateColumns:
-                              isMobile
-                                ? "1fr 100px 1fr"
-                                : "80px 130px 80px 1fr",
+                            borderRadius:
+                              "50%",
 
-                            gap: 12,
+                            background:
+                              pick.picked_team ===
+                              game.away_team
+                                ? "white"
+                                : "transparent",
+
+                            display:
+                              "flex",
+
                             alignItems:
                               "center",
 
-                            justifyItems:
-                              isMobile
-                                ? "center"
-                                : "initial",
+                            justifyContent:
+                              "center",
                           }}
                         >
                           <TeamLogo
@@ -1051,32 +1648,47 @@ export default function TousLesChoix() {
                             name={
                               game.away_team
                             }
-                            size={70}
-                          />
-
-                          <div
-                            style={{
-                              fontSize:
-                                isMobile
-                                  ? 24
-                                  : 30,
-                              fontWeight:
-                                900,
-                              textAlign:
-                                "center",
-                              whiteSpace:
-                                "nowrap",
-                            }}
-                          >
-                            {
-                              game.away_score
-                            }{" "}
-                            -{" "}
-                            {
-                              game.home_score
+                            size={
+                              66
                             }
-                          </div>
+                          />
+                        </div>
 
+                        <strong
+                          style={{
+                            textAlign:
+                              "center",
+                            fontSize:
+                              18,
+                          }}
+                        >
+                          @
+                        </strong>
+
+                        <div
+                          style={{
+                            width: 78,
+                            height: 78,
+
+                            borderRadius:
+                              "50%",
+
+                            background:
+                              pick.picked_team ===
+                              game.home_team
+                                ? "white"
+                                : "transparent",
+
+                            display:
+                              "flex",
+
+                            alignItems:
+                              "center",
+
+                            justifyContent:
+                              "center",
+                          }}
+                        >
                           <TeamLogo
                             logo={getTeamLogo(
                               game.home_team
@@ -1084,264 +1696,40 @@ export default function TousLesChoix() {
                             name={
                               game.home_team
                             }
-                            size={70}
+                            size={
+                              66
+                            }
                           />
-
-                          {!isMobile && (
-                            <div
-                              style={{
-                                display:
-                                  "flex",
-                                alignItems:
-                                  "center",
-                                gap: 12,
-                                justifyContent:
-                                  "flex-end",
-                              }}
-                            >
-                              <span
-                                style={{
-                                  fontSize:
-                                    26,
-                                }}
-                              >
-                                {getPickBadge(
-                                  game,
-                                  pick
-                                )}
-                              </span>
-
-                              <div
-                                style={{
-                                  textAlign:
-                                    "right",
-                                }}
-                              >
-                                <p
-                                  style={{
-                                    margin:
-                                      0,
-                                    fontWeight:
-                                      800,
-                                  }}
-                                >
-                                  Choix :{" "}
-                                  {
-                                    pick.picked_team
-                                  }{" "}
-                                  par{" "}
-                                  {
-                                    pick.predicted_spread
-                                  }
-                                </p>
-
-                                <p
-                                  style={{
-                                    margin:
-                                      "4px 0 0 0",
-                                    color:
-                                      "#94a3b8",
-                                  }}
-                                >
-                                  {
-                                    realWinner
-                                  }{" "}
-                                  par{" "}
-                                  {
-                                    realSpread
-                                  }
-                                </p>
-                              </div>
-                            </div>
-                          )}
                         </div>
 
-                        {isMobile && (
-                          <div
-                            style={{
-                              marginTop:
-                                10,
-                              display:
-                                "flex",
-                              alignItems:
-                                "center",
-                              justifyContent:
-                                "center",
-                              gap: 10,
-                              flexWrap:
-                                "wrap",
-                              fontSize:
-                                14,
-                              fontWeight:
-                                700,
-                              color:
-                                "#cbd5e1",
-                            }}
-                          >
-                            <span>
-                              {getPickBadge(
-                                game,
-                                pick
-                              )}
-                            </span>
+                        <strong
+                          style={{
+                            fontSize:
+                              22,
+                          }}
+                        >
+                          par{" "}
+                          {
+                            pick.predicted_spread
+                          }
+                        </strong>
 
-                            <span>
-                              {
-                                pick.picked_team
-                              }{" "}
-                              par{" "}
-                              {
-                                pick.predicted_spread
-                              }
-                            </span>
-
-                            <span
-                              style={{
-                                color:
-                                  "#94a3b8",
-                              }}
-                            >
-                              {
-                                realWinner
-                              }{" "}
-                              par{" "}
-                              {
-                                realSpread
-                              }
-                            </span>
-                          </div>
-                        )}
+                        <span
+                          style={{
+                            fontSize:
+                              28,
+                          }}
+                        >
+                          ⚪
+                        </span>
                       </div>
                     );
                   }
-
-                  /*
-                   * MATCH SANS SCORE
-                   */
-                  return (
-                    <div
-                      key={pick.id}
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns:
-                          "90px 50px 90px 1fr 40px",
-                        gap: 12,
-                        alignItems:
-                          "center",
-                        padding:
-                          "14px 0",
-                        borderBottom:
-                          "1px solid rgba(148,163,184,0.12)",
-                      }}
-                    >
-                      <div
-                        style={{
-                          gridColumn:
-                            "1 / -1",
-                        }}
-                      >
-                        <GameTimeBar
-                          gameDate={
-                            game.game_date
-                          }
-                        />
-                      </div>
-
-                      <div
-                        style={{
-                          width: 78,
-                          height: 78,
-                          borderRadius:
-                            "50%",
-                          background:
-                            pick.picked_team ===
-                            game.away_team
-                              ? "white"
-                              : "transparent",
-                          display:
-                            "flex",
-                          alignItems:
-                            "center",
-                          justifyContent:
-                            "center",
-                        }}
-                      >
-                        <TeamLogo
-                          logo={getTeamLogo(
-                            game.away_team
-                          )}
-                          name={
-                            game.away_team
-                          }
-                          size={66}
-                        />
-                      </div>
-
-                      <strong
-                        style={{
-                          textAlign:
-                            "center",
-                          fontSize: 18,
-                        }}
-                      >
-                        @
-                      </strong>
-
-                      <div
-                        style={{
-                          width: 78,
-                          height: 78,
-                          borderRadius:
-                            "50%",
-                          background:
-                            pick.picked_team ===
-                            game.home_team
-                              ? "white"
-                              : "transparent",
-                          display:
-                            "flex",
-                          alignItems:
-                            "center",
-                          justifyContent:
-                            "center",
-                        }}
-                      >
-                        <TeamLogo
-                          logo={getTeamLogo(
-                            game.home_team
-                          )}
-                          name={
-                            game.home_team
-                          }
-                          size={66}
-                        />
-                      </div>
-
-                      <strong
-                        style={{
-                          fontSize: 22,
-                        }}
-                      >
-                        par{" "}
-                        {
-                          pick.predicted_spread
-                        }
-                      </strong>
-
-                      <span
-                        style={{
-                          fontSize: 28,
-                        }}
-                      >
-                        ⚪
-                      </span>
-                    </div>
-                  );
-                })
-              )}
-            </section>
-          );
-        })}
+                )}
+              </section>
+            );
+          }
+        )}
 
       <BottomNav />
     </main>
