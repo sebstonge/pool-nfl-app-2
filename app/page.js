@@ -6,19 +6,26 @@ import BottomNav from "./components/BottomNav";
 
 function NavItem({ href, icon, title, subtitle, color }) {
   return (
-    <a className="nav-card" href={href}>
-      <div className="nav-icon" style={{ background: color }}>
+    <a className="nav-card home-nav-card" href={href}>
+      <div
+        className="nav-icon home-nav-icon"
+        style={{ background: color }}
+      >
         {icon}
       </div>
 
-      <div>
-        {title}
-        <span>{subtitle}</span>
+      <div className="home-nav-text">
+        <strong className="home-nav-title">
+          {title}
+        </strong>
+
+        <span className="home-nav-subtitle">
+          {subtitle}
+        </span>
       </div>
     </a>
   );
 }
-
 export default function HomePage() {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
