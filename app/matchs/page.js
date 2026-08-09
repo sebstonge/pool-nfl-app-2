@@ -899,34 +899,36 @@ export default function Matchs() {
                       )
                     }
                     style={{
-                      width: "100%",
-                      display:
-                        "flex",
-                      alignItems:
-                        "center",
-                      justifyContent:
-                        "space-between",
-                      cursor:
-                        "pointer",
-                      textAlign:
-                        "left",
-                    }}
+  width: "100%",
+  minWidth: 0,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  cursor: "pointer",
+  textAlign: "left",
+  overflow: "hidden",
+}}
                   >
                     {selectedQb ? (
-                      <span
-                        style={{
-                          display:
-                            "flex",
-                          alignItems:
-                            "center",
-                          gap: 8,
-                        }}
-                      >
-                        <strong>
-                          {
-                            selectedQb.name
-                          }
-                        </strong>
+                     <span
+  style={{
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    minWidth: 0,
+    flex: 1,
+  }}
+>
+                       <strong
+  style={{
+    minWidth: 0,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  }}
+>
+  {selectedQb.name}
+</strong>
 
                         <img
                           src={getTeamLogo(
