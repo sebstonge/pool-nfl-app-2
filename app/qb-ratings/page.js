@@ -368,7 +368,18 @@ export default function QBRatingsPage() {
       }}
     >
       <section className="header-card">
-        <h1>QB Ratings 📊</h1>
+       <h1
+  style={{
+    fontSize:
+      typeof window !== "undefined" && window.innerWidth < 700
+        ? 44
+        : undefined,
+    lineHeight: 1.05,
+    whiteSpace: "nowrap",
+  }}
+>
+  QB Ratings 📊
+</h1>
         <p>Ratings et moyenne de chaque QB cette saison.</p>
       </section>
 
