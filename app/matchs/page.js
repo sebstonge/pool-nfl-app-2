@@ -872,15 +872,16 @@ export default function Matchs() {
             </h2>
 
             <div
-              style={{
-                display: "grid",
-                gridTemplateColumns:
-                  "1fr 160px",
-                gap: 18,
-                alignItems:
-                  "center",
-              }}
-            >
+  style={{
+    display: "grid",
+    gridTemplateColumns:
+      typeof window !== "undefined" && window.innerWidth < 700
+        ? "1fr"
+        : "1fr 160px",
+    gap: 18,
+    alignItems: "center",
+  }}
+>
               <div>
                 <div
                   style={{
