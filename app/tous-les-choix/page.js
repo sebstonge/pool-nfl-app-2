@@ -868,10 +868,7 @@ export default function TousLesChoix() {
           Tous les choix 👀
         </h1>
 
-        <p>
-          Semaine{" "}
-          {viewedWeek || "..."}
-        </p>
+        <p>Consulte les choix de tous les joueurs.</p>
       </section>
 
       {currentWeek != null &&
