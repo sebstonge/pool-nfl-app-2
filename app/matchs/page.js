@@ -930,18 +930,17 @@ export default function Matchs() {
                   )}
                 </div>
 
-                {/* EXPLICATION QB */}
+                              {/* EXPLICATION QB — DESKTOP SEULEMENT */}
 
+              {!isMobile && (
                 <div
                   style={{
                     marginTop: 12,
-                    padding: isMobile ? 12 : 14,
+                    padding: 14,
                     borderRadius: 18,
                     background: "rgba(34,197,94,0.08)",
-                    border:
-                      "1px solid rgba(34,197,94,0.20)",
+                    border: "1px solid rgba(34,197,94,0.20)",
                     color: "#cbd5e1",
-                    fontSize: isMobile ? 14 : undefined,
                     lineHeight: 1.45,
                   }}
                 >
@@ -949,46 +948,71 @@ export default function Matchs() {
                   fois par semaine et ne peut pas être
                   réutilisé.
                 </div>
-              </div>
+              )}
+            </div>
 
-              {/* PHOTO QB */}
+            {/* PHOTO QB */}
 
+            <div
+              style={{
+                textAlign: "center",
+                display:
+                  isMobile && !selectedQb
+                    ? "none"
+                    : "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              {selectedQb ? (
+                <QBPhoto
+                  qb={selectedQb}
+                  mobile={isMobile}
+                />
+              ) : (
+                <div style={{ color: "#94a3b8" }}>
+                  Aucun QB
+                </div>
+              )}
+
+              {selectedQb && (
+                <p
+                  style={{
+                    marginTop: 8,
+                    marginBottom: 0,
+                    fontWeight: 800,
+                  }}
+                >
+                  {selectedQb.team}
+                </p>
+              )}
+            </div>
+
+            {/* EXPLICATION QB — MOBILE SEULEMENT */}
+
+            {isMobile && (
               <div
                 style={{
-                  textAlign: "center",
-                  display: isMobile && !selectedQb ? "none" : "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
+                  marginTop: 0,
+                  padding: 12,
+                  borderRadius: 18,
+                  background: "rgba(34,197,94,0.08)",
+                  border: "1px solid rgba(34,197,94,0.20)",
+                  color: "#cbd5e1",
+                  fontSize: 14,
+                  lineHeight: 1.45,
                 }}
               >
-                {selectedQb ? (
-                  <QBPhoto
-                    qb={selectedQb}
-                    mobile={isMobile}
-                  />
-                ) : (
-                  <div style={{ color: "#94a3b8" }}>
-                    Aucun QB
-                  </div>
-                )}
-
-                {selectedQb && (
-                  <p
-                    style={{
-                      marginTop: 8,
-                      marginBottom: 0,
-                      fontWeight: 800,
-                    }}
-                  >
-                    {selectedQb.team}
-                  </p>
-                )}
+                ✅ Un QB ne peut être choisi qu’une seule
+                fois par semaine et ne peut pas être
+                réutilisé.
               </div>
-            </div>
-          </>
-        )}
-      </section>
+            )}
+          </div>
+        </>
+      )}
+    </section>
 
       {/* ================= MATCHS À CHOISIR ================= */}
 
