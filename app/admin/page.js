@@ -279,10 +279,10 @@ export default function AdminPage() {
                 index + 1;
             }
 
-            foundTeams.push({
-              espn_abbr:
-                team.abbreviation ||
-                null,
+           espn_abbr:
+    team.abbreviation === "WSH"
+      ? "WAS"
+      : team.abbreviation || null,
 
               team_name:
                 team.displayName ||
