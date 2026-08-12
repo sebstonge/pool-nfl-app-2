@@ -148,7 +148,7 @@ export default function AdminPage() {
 
   async function updateTeamStandingsFromEspn() {
     const url =
-  "https://site.web.api.espn.com/apis/v2/sports/football/nfl/standings?seasontype=2&type=0&level=3";
+      "https://site.web.api.espn.com/apis/v2/sports/football/nfl/standings?seasontype=2&type=0&level=3";
 
     const response = await fetch(url);
 
@@ -168,8 +168,7 @@ export default function AdminPage() {
       for (const name of names) {
         const stat = stats.find(
           (item) =>
-            String(item?.name || "")
-              .toLowerCase() ===
+            String(item?.name || "").toLowerCase() ===
             String(name).toLowerCase()
         );
 
@@ -186,14 +185,23 @@ export default function AdminPage() {
 
       const value = String(name).trim();
 
-      const normalized =
-        value
-          .replace(/^American Football Conference\s*-\s*/i, "AFC ")
-          .replace(/^National Football Conference\s*-\s*/i, "NFC ")
-          .replace(/^AFC\s*-\s*/i, "AFC ")
-          .replace(/^NFC\s*-\s*/i, "NFC ");
-
-      return normalized;
+      return value
+        .replace(
+          /^American Football Conference\s*-\s*/i,
+          "AFC "
+        )
+        .replace(
+          /^National Football Conference\s*-\s*/i,
+          "NFC "
+        )
+        .replace(
+          /^AFC\s*-\s*/i,
+          "AFC "
+        )
+        .replace(
+          /^NFC\s*-\s*/i,
+          "NFC "
+        );
     }
 
     function looksLikeDivision(name) {
@@ -205,8 +213,12 @@ export default function AdminPage() {
       const hasConference =
         value.includes("afc") ||
         value.includes("nfc") ||
-        value.includes("american football conference") ||
-        value.includes("national football conference");
+        value.includes(
+          "american football conference"
+        ) ||
+        value.includes(
+          "national football conference"
+        );
 
       const hasDirection =
         value.includes("east") ||
@@ -214,10 +226,16 @@ export default function AdminPage() {
         value.includes("north") ||
         value.includes("south");
 
-      return hasConference && hasDirection;
+      return (
+        hasConference &&
+        hasDirection
+      );
     }
 
-    function walk(node, inheritedDivision = null) {
+    function walk(
+      node,
+      inheritedDivision = null
+    ) {
       if (!node) return;
 
       const nodeName =
@@ -279,10 +297,18 @@ export default function AdminPage() {
                 index + 1;
             }
 
-           espn_abbr:
-    team.abbreviation === "WSH"
-      ? "WAS"
-      : team.abbreviation || null,
+            /*
+             * ESPN utilise WSH pour Washington,
+             * notre table teams utilise WAS.
+             */
+            const espnAbbr =
+              team.abbreviation === "WSH"
+                ? "WAS"
+                : team.abbreviation || null;
+
+            foundTeams.push({
+              espn_abbr:
+                espnAbbr,
 
               team_name:
                 team.displayName ||
@@ -307,17 +333,19 @@ export default function AdminPage() {
       const children =
         node.children || [];
 
-      children.forEach((child) => {
-        walk(
-          child,
-          currentDivision
-        );
-      });
+      children.forEach(
+        (child) => {
+          walk(
+            child,
+            currentDivision
+          );
+        }
+      );
     }
 
     /*
-     * ESPN peut retourner plusieurs
-     * conférences directement sous data.children.
+     * ESPN retourne normalement
+     * AFC et NFC dans data.children.
      */
     if (
       Array.isArray(data.children) &&
@@ -325,78 +353,99 @@ export default function AdminPage() {
     ) {
       data.children.forEach(
         (child) => {
-          walk(child, null);
+          walk(
+            child,
+            null
+          );
         }
       );
     } else {
-      walk(data, null);
+      walk(
+        data,
+        null
+      );
     }
 
     /*
-     * Évite les doublons si ESPN retourne
-     * une équipe à plusieurs niveaux.
+     * Déduplication éventuelle.
      */
     const uniqueTeams =
       new Map();
 
-    foundTeams.forEach((team) => {
-      const key =
-        team.espn_abbr
-          ? team.espn_abbr
-              .toLowerCase()
-          : team.team_name
-              .toLowerCase()
-              .trim();
+    foundTeams.forEach(
+      (team) => {
+        const key =
+          team.espn_abbr
+            ? team.espn_abbr.toLowerCase()
+            : team.team_name
+                .toLowerCase()
+                .trim();
 
-      const existing =
-        uniqueTeams.get(key);
+        const existing =
+          uniqueTeams.get(key);
 
-      if (
-        !existing ||
-        (
-          !existing.division_name &&
-          team.division_name
-        )
-      ) {
-        uniqueTeams.set(
-          key,
-          team
-        );
+        if (
+          !existing ||
+          (
+            !existing.division_name &&
+            team.division_name
+          )
+        ) {
+          uniqueTeams.set(
+            key,
+            team
+          );
+        }
       }
-    });
+    );
 
     let updated = 0;
     const notMatched = [];
 
-    for (const team of uniqueTeams.values()) {
+    for (
+      const team of
+      uniqueTeams.values()
+    ) {
       let query = supabase
         .from("teams")
         .update({
-          wins: team.wins,
-          losses: team.losses,
-          ties: team.ties,
+          wins:
+            team.wins,
+
+          losses:
+            team.losses,
+
+          ties:
+            team.ties,
+
           division_rank:
             team.division_rank,
+
           division_name:
             team.division_name,
         });
 
       if (team.espn_abbr) {
-        query = query.ilike(
-          "espn_abbr",
-          team.espn_abbr
-        );
+        query =
+          query.ilike(
+            "espn_abbr",
+            team.espn_abbr
+          );
       } else {
-        query = query.ilike(
-          "name",
-          team.team_name
-        );
+        query =
+          query.ilike(
+            "name",
+            team.team_name
+          );
       }
 
       const {
         data: updatedRows,
         error,
-      } = await query.select("id");
+      } =
+        await query.select(
+          "id"
+        );
 
       if (error) {
         console.error(
@@ -435,7 +484,9 @@ export default function AdminPage() {
      QB RATINGS ESPN
      ========================================================= */
 
-  async function updateQBRatingsFromEspn(currentWeek) {
+  async function updateQBRatingsFromEspn(
+    currentWeek
+  ) {
     const {
       data: qbPicks,
       error: qbPicksError,
@@ -450,7 +501,10 @@ export default function AdminPage() {
           espn_athlete_id
         )
       `)
-      .eq("week", currentWeek);
+      .eq(
+        "week",
+        currentWeek
+      );
 
     if (qbPicksError) {
       throw new Error(
@@ -465,7 +519,10 @@ export default function AdminPage() {
     } = await supabase
       .from("games")
       .select("*")
-      .eq("week", currentWeek);
+      .eq(
+        "week",
+        currentWeek
+      );
 
     if (gamesError) {
       throw new Error(
@@ -477,11 +534,16 @@ export default function AdminPage() {
     let updated = 0;
     const notFound = [];
 
-    for (const pick of qbPicks || []) {
+    for (
+      const pick of
+      qbPicks || []
+    ) {
       const selectedQB =
         pick.qbs;
 
-      if (!selectedQB?.team) {
+      if (
+        !selectedQB?.team
+      ) {
         notFound.push(
           selectedQB?.name ||
             "QB sans équipe"
@@ -493,24 +555,35 @@ export default function AdminPage() {
       const qbTeam =
         selectedQB.team.toLowerCase();
 
-      const game = (games || []).find(
-        (g) => {
-          const home =
-            (g.home_team || "")
-              .toLowerCase();
+      const game =
+        (games || []).find(
+          (g) => {
+            const home =
+              (
+                g.home_team ||
+                ""
+              ).toLowerCase();
 
-          const away =
-            (g.away_team || "")
-              .toLowerCase();
+            const away =
+              (
+                g.away_team ||
+                ""
+              ).toLowerCase();
 
-          return (
-            home.includes(qbTeam) ||
-            away.includes(qbTeam)
-          );
-        }
-      );
+            return (
+              home.includes(
+                qbTeam
+              ) ||
+              away.includes(
+                qbTeam
+              )
+            );
+          }
+        );
 
-      if (!game?.external_game_id) {
+      if (
+        !game?.external_game_id
+      ) {
         notFound.push(
           selectedQB.name
         );
@@ -542,19 +615,25 @@ export default function AdminPage() {
 
       let passingAthletes = [];
 
-      for (const teamBox of boxscoreTeams) {
+      for (
+        const teamBox of
+        boxscoreTeams
+      ) {
         const teamName =
           teamBox.team
             ?.shortDisplayName ||
           teamBox.team
             ?.displayName ||
-          teamBox.team?.name ||
+          teamBox.team
+            ?.name ||
           "";
 
         if (
           !teamName
             .toLowerCase()
-            .includes(qbTeam)
+            .includes(
+              qbTeam
+            )
         ) {
           continue;
         }
@@ -568,7 +647,9 @@ export default function AdminPage() {
                 "Passing"
           );
 
-        if (!passingCategory) {
+        if (
+          !passingCategory
+        ) {
           continue;
         }
 
@@ -590,27 +671,32 @@ export default function AdminPage() {
               )
           );
 
-        if (ratingIndex === -1) {
+        if (
+          ratingIndex === -1
+        ) {
           continue;
         }
 
         passingAthletes =
           passingCategory.athletes
-            .map((row) => ({
-              id:
-                row.athlete?.id,
+            .map(
+              (row) => ({
+                id:
+                  row.athlete
+                    ?.id,
 
-              name:
-                row.athlete
-                  ?.displayName,
+                name:
+                  row.athlete
+                    ?.displayName,
 
-              rating:
-                Number(
-                  row.stats?.[
-                    ratingIndex
-                  ]
-                ),
-            }))
+                rating:
+                  Number(
+                    row.stats?.[
+                      ratingIndex
+                    ]
+                  ),
+              })
+            )
             .filter(
               (row) =>
                 !Number.isNaN(
@@ -631,16 +717,15 @@ export default function AdminPage() {
       }
 
       /*
-       * Par défaut :
-       * premier QB qui a réellement
-       * obtenu un passer rating.
+       * Par défaut, le premier
+       * QB ayant un rating.
        */
       let actualQB =
         passingAthletes[0];
 
       /*
-       * Si le QB sélectionné a joué,
-       * on utilise son propre rating.
+       * Si le QB choisi a joué,
+       * on utilise son rating.
        */
       if (
         selectedQB.espn_athlete_id
@@ -678,13 +763,15 @@ export default function AdminPage() {
       }
 
       /*
-       * Si ESPN a utilisé un autre QB,
-       * on l'ajoute automatiquement
-       * à qbs comme remplaçant.
+       * QB remplaçant utilisé :
+       * on l'ajoute à la table qbs
+       * s'il n'existe pas déjà.
        */
       if (
         actualQB?.id &&
-        String(actualQB.id) !==
+        String(
+          actualQB.id
+        ) !==
           String(
             selectedQB.espn_athlete_id
           )
@@ -694,14 +781,17 @@ export default function AdminPage() {
             existingActualQB,
           error:
             lookupError,
-        } = await supabase
-          .from("qbs")
-          .select("id")
-          .eq(
-            "espn_athlete_id",
-            String(actualQB.id)
-          )
-          .maybeSingle();
+        } =
+          await supabase
+            .from("qbs")
+            .select("id")
+            .eq(
+              "espn_athlete_id",
+              String(
+                actualQB.id
+              )
+            )
+            .maybeSingle();
 
         if (lookupError) {
           console.error(
@@ -710,27 +800,37 @@ export default function AdminPage() {
           );
         }
 
-        if (!existingActualQB) {
+        if (
+          !existingActualQB
+        ) {
           const {
             error:
               insertQbError,
-          } = await supabase
-            .from("qbs")
-            .insert({
-              name:
-                actualQB.name,
-              team:
-                selectedQB.team,
-              espn_athlete_id:
-                String(
-                  actualQB.id
-                ),
-              active: true,
-              is_active_starter:
-                false,
-            });
+          } =
+            await supabase
+              .from("qbs")
+              .insert({
+                name:
+                  actualQB.name,
 
-          if (insertQbError) {
+                team:
+                  selectedQB.team,
+
+                espn_athlete_id:
+                  String(
+                    actualQB.id
+                  ),
+
+                active:
+                  true,
+
+                is_active_starter:
+                  false,
+              });
+
+          if (
+            insertQbError
+          ) {
             console.error(
               "Erreur ajout QB remplaçant :",
               insertQbError.message
@@ -741,7 +841,9 @@ export default function AdminPage() {
 
       const { error } =
         await supabase
-          .from("qb_ratings")
+          .from(
+            "qb_ratings"
+          )
           .upsert(
             {
               qb_id:
@@ -784,7 +886,9 @@ export default function AdminPage() {
      CALCUL DES SCORES DU POOL
      ========================================================= */
 
-  async function calculateScores(currentWeek) {
+  async function calculateScores(
+    currentWeek
+  ) {
     const {
       data: picks,
       error: picksError,
@@ -808,25 +912,28 @@ export default function AdminPage() {
       );
     }
 
-    const { data: qbPicks } =
-      await supabase
-        .from("qb_picks")
-        .select("*")
-        .eq(
-          "week",
-          currentWeek
-        );
+    const {
+      data: qbPicks,
+    } = await supabase
+      .from("qb_picks")
+      .select("*")
+      .eq(
+        "week",
+        currentWeek
+      );
 
-    const { data: qbRatings } =
-      await supabase
-        .from("qb_ratings")
-        .select("*")
-        .eq(
-          "week",
-          currentWeek
-        );
+    const {
+      data: qbRatings,
+    } = await supabase
+      .from("qb_ratings")
+      .select("*")
+      .eq(
+        "week",
+        currentWeek
+      );
 
-    const scoresByUser = {};
+    const scoresByUser =
+      {};
 
     (picks || [])
       .filter(
@@ -834,66 +941,74 @@ export default function AdminPage() {
           pick.games?.week ===
           currentWeek
       )
-      .forEach((pick) => {
-        const game =
-          pick.games;
-
-        if (
-          game.home_score == null ||
-          game.away_score == null
-        ) {
-          return;
-        }
-
-        let winner = null;
-
-        if (
-          game.home_score >
-          game.away_score
-        ) {
-          winner =
-            game.home_team;
-        }
-
-        if (
-          game.away_score >
-          game.home_score
-        ) {
-          winner =
-            game.away_team;
-        }
-
-        const realSpread =
-          Math.abs(
-            game.home_score -
-              game.away_score
-          );
-
-        let points = 0;
-
-        if (
-          pick.picked_team ===
-          winner
-        ) {
-          points = 1;
+      .forEach(
+        (pick) => {
+          const game =
+            pick.games;
 
           if (
-            Number(
-              pick.predicted_spread
-            ) === realSpread
+            game.home_score ==
+              null ||
+            game.away_score ==
+              null
           ) {
-            points = 2;
+            return;
           }
-        }
 
-        scoresByUser[
-          pick.user_id
-        ] =
-          (scoresByUser[
+          let winner =
+            null;
+
+          if (
+            game.home_score >
+            game.away_score
+          ) {
+            winner =
+              game.home_team;
+          }
+
+          if (
+            game.away_score >
+            game.home_score
+          ) {
+            winner =
+              game.away_team;
+          }
+
+          const realSpread =
+            Math.abs(
+              game.home_score -
+                game.away_score
+            );
+
+          let points = 0;
+
+          if (
+            pick.picked_team ===
+            winner
+          ) {
+            points = 1;
+
+            if (
+              Number(
+                pick.predicted_spread
+              ) ===
+              realSpread
+            ) {
+              points = 2;
+            }
+          }
+
+          scoresByUser[
             pick.user_id
-          ] || 0) +
-          points;
-      });
+          ] =
+            (
+              scoresByUser[
+                pick.user_id
+              ] || 0
+            ) +
+            points;
+        }
+      );
 
     const rows =
       Object.entries(
@@ -919,7 +1034,8 @@ export default function AdminPage() {
 
           const passerRating =
             Number(
-              qbRating?.passer_rating ||
+              qbRating
+                ?.passer_rating ||
                 0
             );
 
@@ -951,7 +1067,9 @@ export default function AdminPage() {
                 (
                   basePoints *
                   multiplier
-                ).toFixed(3)
+                ).toFixed(
+                  3
+                )
               ),
           };
         }
@@ -968,10 +1086,13 @@ export default function AdminPage() {
         .from(
           "weekly_scores"
         )
-        .upsert(rows, {
-          onConflict:
-            "user_id,week",
-        });
+        .upsert(
+          rows,
+          {
+            onConflict:
+              "user_id,week",
+          }
+        );
 
     if (error) {
       throw new Error(
@@ -987,143 +1108,151 @@ export default function AdminPage() {
      MISE À JOUR COMPLÈTE
      ========================================================= */
 
-  const fullUpdate = async () => {
-    try {
-      setMessage(
-        "Mise à jour complète en cours..."
-      );
-
-      const currentSettings =
-        await loadSettings();
-
-      const currentWeek =
-        currentSettings.current_week;
-
-      /*
-       * 1. Scores NFL
-       */
-      const scoresUpdated =
-        await updateScoresFromEspn(
-          currentWeek
+  const fullUpdate =
+    async () => {
+      try {
+        setMessage(
+          "Mise à jour complète en cours..."
         );
 
-      /*
-       * 2. Fiches / standings équipes
-       */
-      const standingsResult =
-        await updateTeamStandingsFromEspn();
+        const currentSettings =
+          await loadSettings();
 
-      /*
-       * 3. QB ratings
-       */
-      const qbResult =
-        await updateQBRatingsFromEspn(
-          currentWeek
-        );
+        const currentWeek =
+          currentSettings.current_week;
 
-      /*
-       * 4. Scores du pool
-       */
-      const rankingsCalculated =
-        await calculateScores(
-          currentWeek
-        );
-
-      let finalMessage =
-        `Mise à jour complète ✅ ` +
-        `Scores ESPN : ${scoresUpdated}. ` +
-        `Équipes : ${standingsResult.updated}. ` +
-        `QB ratings : ${qbResult.updated}. ` +
-        `Classements : ${rankingsCalculated}.`;
-
-      if (
-        standingsResult
-          .notMatched.length >
-        0
-      ) {
-        finalMessage +=
-          ` Équipes non associées : ` +
-          standingsResult.notMatched.join(
-            ", "
-          ) +
-          ".";
-      }
-
-      if (
-        qbResult.notFound
-          .length > 0
-      ) {
-        finalMessage +=
-          ` QB non trouvés : ` +
-          qbResult.notFound.join(
-            ", "
+        /*
+         * 1. Scores NFL
+         */
+        const scoresUpdated =
+          await updateScoresFromEspn(
+            currentWeek
           );
+
+        /*
+         * 2. Standings NFL
+         */
+        const standingsResult =
+          await updateTeamStandingsFromEspn();
+
+        /*
+         * 3. QB ratings
+         */
+        const qbResult =
+          await updateQBRatingsFromEspn(
+            currentWeek
+          );
+
+        /*
+         * 4. Scores du pool
+         */
+        const rankingsCalculated =
+          await calculateScores(
+            currentWeek
+          );
+
+        let finalMessage =
+          `Mise à jour complète ✅ ` +
+          `Scores ESPN : ${scoresUpdated}. ` +
+          `Équipes : ${standingsResult.updated}. ` +
+          `QB ratings : ${qbResult.updated}. ` +
+          `Classements : ${rankingsCalculated}.`;
+
+        if (
+          standingsResult
+            .notMatched
+            .length > 0
+        ) {
+          finalMessage +=
+            ` Équipes non associées : ` +
+            standingsResult.notMatched.join(
+              ", "
+            ) +
+            ".";
+        }
+
+        if (
+          qbResult.notFound
+            .length > 0
+        ) {
+          finalMessage +=
+            ` QB non trouvés : ` +
+            qbResult.notFound.join(
+              ", "
+            );
+        }
+
+        setMessage(
+          finalMessage
+        );
+      } catch (error) {
+        console.error(
+          error
+        );
+
+        setMessage(
+          "Erreur mise à jour : " +
+            error.message
+        );
       }
-
-      setMessage(
-        finalMessage
-      );
-    } catch (error) {
-      console.error(error);
-
-      setMessage(
-        "Erreur mise à jour : " +
-          error.message
-      );
-    }
-  };
+    };
 
   /* =========================================================
      SEMAINE SUIVANTE
      ========================================================= */
 
-  const nextWeek = async () => {
-    const confirmation =
-      window.confirm(
-        "Passer à la semaine suivante? Assure-toi que les scores sont calculés."
-      );
-
-    if (!confirmation) {
-      return;
-    }
-
-    const currentSettings =
-      await loadSettings();
-
-    const newWeek =
-      Number(
-        currentSettings.current_week ||
-          1
-      ) + 1;
-
-    const { error } =
-      await supabase
-        .from("settings")
-        .update({
-          current_week:
-            newWeek,
-        })
-        .eq(
-          "id",
-          currentSettings.id
+  const nextWeek =
+    async () => {
+      const confirmation =
+        window.confirm(
+          "Passer à la semaine suivante? Assure-toi que les scores sont calculés."
         );
 
-    if (error) {
+      if (
+        !confirmation
+      ) {
+        return;
+      }
+
+      const currentSettings =
+        await loadSettings();
+
+      const newWeek =
+        Number(
+          currentSettings.current_week ||
+            1
+        ) + 1;
+
+      const { error } =
+        await supabase
+          .from(
+            "settings"
+          )
+          .update({
+            current_week:
+              newWeek,
+          })
+          .eq(
+            "id",
+            currentSettings.id
+          );
+
+      if (error) {
+        setMessage(
+          "Erreur semaine suivante : " +
+            error.message
+        );
+
+        return;
+      }
+
+      const refreshedSettings =
+        await loadSettings();
+
       setMessage(
-        "Erreur semaine suivante : " +
-          error.message
+        `Semaine active changée à ${refreshedSettings.current_week} ✅`
       );
-
-      return;
-    }
-
-    const refreshedSettings =
-      await loadSettings();
-
-    setMessage(
-      `Semaine active changée à ${refreshedSettings.current_week} ✅`
-    );
-  };
+    };
 
   /* =========================================================
      ACCÈS
@@ -1133,7 +1262,9 @@ export default function AdminPage() {
     return (
       <main className="page">
         <section className="header-card">
-          <h1>Admin ⚙️</h1>
+          <h1>
+            Admin ⚙️
+          </h1>
 
           <p>
             Connecte-toi pour
@@ -1169,7 +1300,9 @@ export default function AdminPage() {
   return (
     <main className="page">
       <section className="header-card">
-        <h1>Admin ⚙️</h1>
+        <h1>
+          Admin ⚙️
+        </h1>
 
         <p>
           Saison{" "}
@@ -1183,7 +1316,9 @@ export default function AdminPage() {
 
       {message && (
         <section className="card">
-          <p>{message}</p>
+          <p>
+            {message}
+          </p>
         </section>
       )}
 
@@ -1208,7 +1343,9 @@ export default function AdminPage() {
 
         <button
           className="button"
-          onClick={fullUpdate}
+          onClick={
+            fullUpdate
+          }
         >
           Mettre à jour ESPN +
           classements
@@ -1233,7 +1370,9 @@ export default function AdminPage() {
 
         <button
           className="button-secondary"
-          onClick={nextWeek}
+          onClick={
+            nextWeek
+          }
         >
           Passer à la semaine
           suivante
