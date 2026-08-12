@@ -404,7 +404,77 @@ export default function Matchs() {
       ? `https://a.espncdn.com/i/teamlogos/nfl/500/${team.espn_abbr.toLowerCase()}.png`
       : team?.logo || null;
   };
+const getTeamInfo = (teamName) => {
+  return teams.find(
+    (t) =>
+      t.name?.toLowerCase().trim() ===
+      teamName?.toLowerCase().trim()
+  );
+};
 
+const translateDivision = (division) => {
+  if (!division) return "";
+
+  return division
+    .replace("East", "Est")
+    .replace("West", "Ouest")
+    .replace("North", "Nord")
+    .replace("South", "Sud");
+};
+
+const formatDivisionRank = (rank) => {
+  const value = Number(rank);
+
+  if (!value) return "";
+
+  return value === 1
+    ? "1er"
+    : `${value}e`;
+};
+
+const formatTeamRecord = (teamName) => {
+  const team = getTeamInfo(teamName);
+
+  if (!team) return "";
+
+  const wins = Number(team.wins || 0);
+  const losses = Number(team.losses || 0);
+  const ties = Number(team.ties || 0);
+
+  const record =
+    ties > 0
+      ? `${wins}-${losses}-${ties}`
+      : `${wins}-${losses}`;
+
+  const division =
+    translateDivision(team.division_name);
+
+  const gamesPlayed =
+    wins + losses + ties;
+
+  // Avant qu'un match soit joué :
+  // 0-0 • AFC Est
+  if (gamesPlayed === 0) {
+    return division
+      ? `${record} • ${division}`
+      : record;
+  }
+
+  // Une fois la saison commencée :
+  // 3-2 • 2e AFC Est
+  const rank =
+    formatDivisionRank(team.division_rank);
+
+  if (rank && division) {
+    return `${record} • ${rank} ${division}`;
+  }
+
+  if (division) {
+    return `${record} • ${division}`;
+  }
+
+  return record;
+};
   const selectedQb = qbs.find(
     (qb) => qb.id === selectedQbId
   );
@@ -1051,44 +1121,72 @@ export default function Matchs() {
                 </div>
 
                 <button
-                  type="button"
-                  onClick={() =>
-                    updateDraftPick(
-                      game.id,
-                      "picked_team",
-                      game.away_team
-                    )
-                  }
-                  style={{
-                    background: "transparent",
-                    border: "none",
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    cursor: "pointer",
-                    padding: 0,
-                    minWidth: 0,
-                  }}
-                >
-                  <img
-                    src={getTeamLogo(game.away_team)}
-                    alt={game.away_team}
-                    style={{
-                      width: isMobile ? 62 : 96,
-                      height: isMobile ? 62 : 96,
-                      maxWidth: "100%",
-                      objectFit: "contain",
-                      opacity: awaySelected ? 1 : 0.82,
-                      transform: awaySelected
-                        ? "scale(1.08)"
-                        : "scale(1)",
-                      transition: "0.2s ease",
-                      filter: awaySelected
-                        ? "drop-shadow(0 0 12px rgba(255,255,255,0.35))"
-                        : "none",
-                    }}
-                  />
-                </button>
+  type="button"
+  onClick={() =>
+    updateDraftPick(
+      game.id,
+      "picked_team",
+      game.away_team
+    )
+  }
+  style={{
+    background: "transparent",
+    border: "none",
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "center",
+    alignItems: "center",
+    cursor: "pointer",
+    padding: 0,
+    minWidth: 0,
+  }}
+>
+  <img
+    src={getTeamLogo(game.away_team)}
+    alt={game.away_team}
+    style={{
+      width: isMobile ? 62 : 96,
+      height: isMobile ? 62 : 96,
+      maxWidth: "100%",
+      objectFit: "contain",
+      opacity: awaySelected ? 1 : 0.82,
+      transform: awaySelected
+        ? "scale(1.08)"
+        : "scale(1)",
+      transition: "0.2s ease",
+      filter: awaySelected
+        ? "drop-shadow(0 0 12px rgba(255,255,255,0.35))"
+        : "none",
+    }}
+  />
+
+  <strong
+    style={{
+      marginTop: 5,
+      color: "#f8fafc",
+      fontSize: isMobile ? 12 : 14,
+      lineHeight: 1.1,
+      textAlign: "center",
+      whiteSpace: "nowrap",
+    }}
+  >
+    {game.away_team}
+  </strong>
+
+  <span
+    style={{
+      marginTop: 3,
+      color: "#94a3b8",
+      fontSize: isMobile ? 10 : 12,
+      lineHeight: 1.15,
+      fontWeight: 700,
+      textAlign: "center",
+      whiteSpace: "nowrap",
+    }}
+  >
+    {formatTeamRecord(game.away_team)}
+  </span>
+</button>
 
                 <div
                   style={{
@@ -1102,44 +1200,72 @@ export default function Matchs() {
                 </div>
 
                 <button
-                  type="button"
-                  onClick={() =>
-                    updateDraftPick(
-                      game.id,
-                      "picked_team",
-                      game.home_team
-                    )
-                  }
-                  style={{
-                    background: "transparent",
-                    border: "none",
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    cursor: "pointer",
-                    padding: 0,
-                    minWidth: 0,
-                  }}
-                >
-                  <img
-                    src={getTeamLogo(game.home_team)}
-                    alt={game.home_team}
-                    style={{
-                      width: isMobile ? 62 : 96,
-                      height: isMobile ? 62 : 96,
-                      maxWidth: "100%",
-                      objectFit: "contain",
-                      opacity: homeSelected ? 1 : 0.82,
-                      transform: homeSelected
-                        ? "scale(1.08)"
-                        : "scale(1)",
-                      transition: "0.2s ease",
-                      filter: homeSelected
-                        ? "drop-shadow(0 0 12px rgba(255,255,255,0.35))"
-                        : "none",
-                    }}
-                  />
-                </button>
+  type="button"
+  onClick={() =>
+    updateDraftPick(
+      game.id,
+      "picked_team",
+      game.home_team
+    )
+  }
+  style={{
+    background: "transparent",
+    border: "none",
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "center",
+    alignItems: "center",
+    cursor: "pointer",
+    padding: 0,
+    minWidth: 0,
+  }}
+>
+  <img
+    src={getTeamLogo(game.home_team)}
+    alt={game.home_team}
+    style={{
+      width: isMobile ? 62 : 96,
+      height: isMobile ? 62 : 96,
+      maxWidth: "100%",
+      objectFit: "contain",
+      opacity: homeSelected ? 1 : 0.82,
+      transform: homeSelected
+        ? "scale(1.08)"
+        : "scale(1)",
+      transition: "0.2s ease",
+      filter: homeSelected
+        ? "drop-shadow(0 0 12px rgba(255,255,255,0.35))"
+        : "none",
+    }}
+  />
+
+  <strong
+    style={{
+      marginTop: 5,
+      color: "#f8fafc",
+      fontSize: isMobile ? 12 : 14,
+      lineHeight: 1.1,
+      textAlign: "center",
+      whiteSpace: "nowrap",
+    }}
+  >
+    {game.home_team}
+  </strong>
+
+  <span
+    style={{
+      marginTop: 3,
+      color: "#94a3b8",
+      fontSize: isMobile ? 10 : 12,
+      lineHeight: 1.15,
+      fontWeight: 700,
+      textAlign: "center",
+      whiteSpace: "nowrap",
+    }}
+  >
+    {formatTeamRecord(game.home_team)}
+  </span>
+</button>
 
                 <div
                   style={{
