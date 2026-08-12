@@ -148,7 +148,7 @@ export default function AdminPage() {
 
   async function updateTeamStandingsFromEspn() {
     const url =
-      "https://site.api.espn.com/apis/v2/sports/football/nfl/standings";
+  "https://site.web.api.espn.com/apis/v2/sports/football/nfl/standings?seasontype=2&type=0&level=3";
 
     const response = await fetch(url);
 
