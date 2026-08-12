@@ -301,14 +301,8 @@ export default function AdminPage() {
              * ESPN utilise WSH pour Washington,
              * notre table teams utilise WAS.
              */
-            const espnAbbr =
-              team.abbreviation === "WSH"
-                ? "WAS"
-                : team.abbreviation || null;
-
-            foundTeams.push({
-              espn_abbr:
-                espnAbbr,
+           foundTeams.push({
+  espn_abbr: team.abbreviation || null,
 
               team_name:
                 team.displayName ||
@@ -425,19 +419,22 @@ export default function AdminPage() {
             team.division_name,
         });
 
-      if (team.espn_abbr) {
-        query =
-          query.ilike(
-            "espn_abbr",
-            team.espn_abbr
-          );
-      } else {
-        query =
-          query.ilike(
-            "name",
-            team.team_name
-          );
-      }
+     if (team.espn_abbr) {
+  const localAbbr =
+    team.espn_abbr === "WSH"
+      ? "WAS"
+      : team.espn_abbr;
+
+  query = query.ilike(
+    "espn_abbr",
+    localAbbr
+  );
+} else {
+  query = query.ilike(
+    "name",
+    team.team_name
+  );
+}
 
       const {
         data: updatedRows,
