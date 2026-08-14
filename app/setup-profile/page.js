@@ -10,7 +10,11 @@ export default function SetupProfilePage() {
   const [user, setUser] = useState(null);
   const [displayName, setDisplayName] = useState("");
   const [realName, setRealName] = useState("");
+
   const [loading, setLoading] = useState(false);
+  const [loadingProfile, setLoadingProfile] =
+    useState(true);
+
   const [message, setMessage] = useState("");
 
   useEffect(() => {
@@ -28,10 +32,18 @@ export default function SetupProfilePage() {
 
       setUser(currentUser);
 
-      const { data: profile, error } = await supabase
+      const {
+        data: profile,
+        error,
+      } = await supabase
         .from("users")
-        .select("display_name, real_name")
-        .eq("id", currentUser.id)
+        .select(
+          "display_name, real_name"
+        )
+        .eq(
+          "id",
+          currentUser.id
+        )
         .maybeSingle();
 
       if (error) {
@@ -41,35 +53,77 @@ export default function SetupProfilePage() {
         );
       }
 
+      /*
+       * Ancien joueur :
+       * on préremplit ses données existantes.
+       */
+      if (
+        profile?.display_name
+      ) {
+        setDisplayName(
+          profile.display_name
+        );
+      }
+
+      if (
+        profile?.real_name
+      ) {
+        setRealName(
+          profile.real_name
+        );
+      }
+
+      /*
+       * Si le profil est déjà complet,
+       * inutile de rester ici.
+       */
       if (
         profile?.display_name?.trim() &&
         profile?.real_name?.trim()
       ) {
         router.push("/");
+        return;
       }
+
+      setLoadingProfile(
+        false
+      );
     }
 
     loadUser();
   }, [router]);
 
   async function saveProfile() {
-    const cleanDisplayName = displayName.trim();
-    const cleanRealName = realName.trim();
+    const cleanDisplayName =
+      displayName.trim();
+
+    const cleanRealName =
+      realName.trim();
 
     if (!cleanDisplayName) {
-      setMessage("Entre un nom d’utilisateur.");
+      setMessage(
+        "Entre un nom d’utilisateur."
+      );
+
       return;
     }
 
-    if (cleanDisplayName.length < 3) {
+    if (
+      cleanDisplayName.length <
+      3
+    ) {
       setMessage(
         "Le nom d’utilisateur doit contenir au moins 3 caractères."
       );
+
       return;
     }
 
     if (!cleanRealName) {
-      setMessage("Entre ton vrai nom.");
+      setMessage(
+        "Entre ton vrai nom."
+      );
+
       return;
     }
 
@@ -77,25 +131,35 @@ export default function SetupProfilePage() {
       setMessage(
         "Session introuvable. Reconnecte-toi."
       );
+
       return;
     }
 
     setLoading(true);
     setMessage("");
 
-    const { error } = await supabase
-      .from("users")
-      .upsert(
-        {
-          id: user.id,
-          email: user.email,
-          display_name: cleanDisplayName,
-          real_name: cleanRealName,
-        },
-        {
-          onConflict: "id",
-        }
-      );
+    const { error } =
+      await supabase
+        .from("users")
+        .upsert(
+          {
+            id:
+              user.id,
+
+            email:
+              user.email,
+
+            display_name:
+              cleanDisplayName,
+
+            real_name:
+              cleanRealName,
+          },
+          {
+            onConflict:
+              "id",
+          }
+        );
 
     setLoading(false);
 
@@ -115,14 +179,30 @@ export default function SetupProfilePage() {
     router.push("/");
   }
 
+  if (loadingProfile) {
+    return (
+      <main className="page">
+        <section className="card">
+          <p>
+            Chargement du profil...
+          </p>
+        </section>
+      </main>
+    );
+  }
+
   return (
     <main className="page">
       <section className="header-card">
-        <h1>Crée ton profil 🏈</h1>
+        <h1>
+          Crée ton profil 🏈
+        </h1>
 
         <p>
-          Ton nom d’utilisateur sera affiché en premier.
-          Ton vrai nom apparaîtra juste en dessous.
+          Ton nom d’utilisateur sera
+          affiché en premier. Ton vrai
+          nom apparaîtra juste en
+          dessous.
         </p>
       </section>
 
@@ -137,21 +217,40 @@ export default function SetupProfilePage() {
           Nom d’utilisateur
         </label>
 
+        <p
+          style={{
+            margin:
+              "0 0 8px 0",
+            color:
+              "#94a3b8",
+            fontSize:
+              13,
+          }}
+        >
+          Ton pseudo dans le pool.
+        </p>
+
         <input
           className="input"
           placeholder="Ex: SKOOOOOOL"
-          value={displayName}
+          value={
+            displayName
+          }
           onChange={(e) =>
-            setDisplayName(e.target.value)
+            setDisplayName(
+              e.target.value
+            )
           }
           maxLength={20}
-          disabled={loading}
+          disabled={
+            loading
+          }
         />
 
         <label
           style={{
             display: "block",
-            marginTop: 14,
+            marginTop: 18,
             marginBottom: 6,
             fontWeight: 800,
           }}
@@ -159,24 +258,52 @@ export default function SetupProfilePage() {
           Ton vrai nom
         </label>
 
+        <p
+          style={{
+            margin:
+              "0 0 8px 0",
+            color:
+              "#94a3b8",
+            fontSize:
+              13,
+          }}
+        >
+          Pour que les autres joueurs
+          sachent qui se cache derrière
+          ton pseudo.
+        </p>
+
         <input
           className="input"
           placeholder="Ex: Sébastien St-Onge"
-          value={realName}
+          value={
+            realName
+          }
           onChange={(e) =>
-            setRealName(e.target.value)
+            setRealName(
+              e.target.value
+            )
           }
           maxLength={50}
-          disabled={loading}
+          disabled={
+            loading
+          }
         />
 
         <button
           className="button"
-          onClick={saveProfile}
-          disabled={loading || !user}
+          onClick={
+            saveProfile
+          }
+          disabled={
+            loading ||
+            !user
+          }
           style={{
-            width: "100%",
-            marginTop: 16,
+            width:
+              "100%",
+            marginTop:
+              18,
           }}
         >
           {loading
@@ -187,8 +314,10 @@ export default function SetupProfilePage() {
         {message && (
           <p
             style={{
-              marginTop: 12,
-              color: "#ef4444",
+              marginTop:
+                12,
+              color:
+                "#ef4444",
             }}
           >
             {message}
