@@ -8,29 +8,44 @@ export default function SetupProfilePage() {
   const router = useRouter();
 
   const [user, setUser] = useState(null);
-  const [displayName, setDisplayName] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState("");
+  const [displayName, setDisplayName] =
+    useState("");
+
+  const [loading, setLoading] =
+    useState(false);
+
+  const [message, setMessage] =
+    useState("");
 
   useEffect(() => {
     async function loadUser() {
       const {
         data: { session },
-      } = await supabase.auth.getSession();
+      } =
+        await supabase.auth.getSession();
 
-      const currentUser = session?.user;
+      const currentUser =
+        session?.user;
 
       if (!currentUser) {
-        router.push("/auth");
+        router.push("/");
         return;
       }
 
       setUser(currentUser);
 
-      const { data: profile, error } = await supabase
+      const {
+        data: profile,
+        error,
+      } = await supabase
         .from("users")
-        .select("display_name")
-        .eq("id", currentUser.id)
+        .select(
+          "display_name"
+        )
+        .eq(
+          "id",
+          currentUser.id
+        )
         .maybeSingle();
 
       if (error) {
@@ -40,7 +55,9 @@ export default function SetupProfilePage() {
         );
       }
 
-      if (profile?.display_name) {
+      if (
+        profile?.display_name
+      ) {
         router.push("/");
       }
     }
@@ -49,38 +66,54 @@ export default function SetupProfilePage() {
   }, [router]);
 
   async function saveProfile() {
-    const cleanName = displayName.trim();
+    const cleanName =
+      displayName.trim();
 
     if (!cleanName) {
-      setMessage("Entre un nom d’utilisateur.");
+      setMessage(
+        "Entre un nom d’utilisateur."
+      );
       return;
     }
 
-    if (cleanName.length < 3) {
-      setMessage("Minimum 3 caractères.");
+    if (
+      cleanName.length < 3
+    ) {
+      setMessage(
+        "Minimum 3 caractères."
+      );
       return;
     }
 
     if (!user) {
-      setMessage("Session introuvable. Reconnecte-toi.");
+      setMessage(
+        "Session introuvable. Reconnecte-toi."
+      );
       return;
     }
 
     setLoading(true);
     setMessage("");
 
-    const { error } = await supabase
-      .from("users")
-      .upsert(
-        {
-          id: user.id,
-          email: user.email,
-          display_name: cleanName,
-        },
-        {
-          onConflict: "id",
-        }
-      );
+    const { error } =
+      await supabase
+        .from("users")
+        .upsert(
+          {
+            id:
+              user.id,
+
+            email:
+              user.email,
+
+            display_name:
+              cleanName,
+          },
+          {
+            onConflict:
+              "id",
+          }
+        );
 
     setLoading(false);
 
@@ -103,7 +136,9 @@ export default function SetupProfilePage() {
   return (
     <main className="page">
       <section className="header-card">
-        <h1>Choisis ton nom 🏈</h1>
+        <h1>
+          Choisis ton nom 🏈
+        </h1>
 
         <p>
           Ce nom sera affiché dans les
@@ -117,7 +152,9 @@ export default function SetupProfilePage() {
           placeholder="Ex: SKOOOOOOL"
           value={displayName}
           onChange={(e) =>
-            setDisplayName(e.target.value)
+            setDisplayName(
+              e.target.value
+            )
           }
           maxLength={20}
           disabled={loading}
@@ -126,7 +163,10 @@ export default function SetupProfilePage() {
         <button
           className="button"
           onClick={saveProfile}
-          disabled={loading || !user}
+          disabled={
+            loading ||
+            !user
+          }
           style={{
             width: "100%",
           }}
