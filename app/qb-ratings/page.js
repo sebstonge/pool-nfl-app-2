@@ -10,6 +10,10 @@ function displayName(user) {
   return "—";
 }
 
+function realName(user) {
+  return user?.real_name || "";
+}
+
 function getQbHeadshot(qb) {
   if (!qb?.espn_athlete_id) return null;
 
@@ -91,7 +95,50 @@ function TeamLogo({ logo, name, size = 54 }) {
   );
 }
 
-function RatingMiniCard({ label, type, rating }) {
+function PlayerIdentity({
+  name,
+  realName: secondaryName,
+}) {
+  return (
+    <div
+      style={{
+        marginTop: 3,
+      }}
+    >
+      <strong
+        style={{
+          display: "block",
+          color: "#f8fafc",
+          fontSize: 14,
+          lineHeight: 1.15,
+        }}
+      >
+        {name || "—"}
+      </strong>
+
+      {secondaryName && (
+        <span
+          style={{
+            display: "block",
+            marginTop: 2,
+            color: "#64748b",
+            fontSize: 12,
+            fontWeight: 400,
+            lineHeight: 1.2,
+          }}
+        >
+          {secondaryName}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function RatingMiniCard({
+  label,
+  type,
+  rating,
+}) {
   const isBest = type === "best";
 
   if (!rating) {
@@ -101,7 +148,8 @@ function RatingMiniCard({ label, type, rating }) {
           padding: 14,
           borderRadius: 18,
           background: "rgba(148,163,184,0.08)",
-          border: "1px solid rgba(148,163,184,0.14)",
+          border:
+            "1px solid rgba(148,163,184,0.14)",
         }}
       >
         <p
@@ -155,7 +203,9 @@ function RatingMiniCard({ label, type, rating }) {
           color: isBest ? "#22c55e" : "#ef4444",
         }}
       >
-        {Number(rating.passer_rating).toFixed(1)}
+        {Number(
+          rating.passer_rating
+        ).toFixed(1)}
       </h2>
 
       <div
@@ -172,13 +222,30 @@ function RatingMiniCard({ label, type, rating }) {
           Semaine {rating.week}
         </p>
 
-        <p
+        <div
           style={{
-            margin: "3px 0 0 0",
+            marginTop: 6,
           }}
         >
-          Choisi par {rating.selected_by || "—"}
-        </p>
+          <span
+            style={{
+              display: "block",
+              fontSize: 12,
+              color: "#94a3b8",
+            }}
+          >
+            Choisi par
+          </span>
+
+          <PlayerIdentity
+            name={
+              rating.selected_by
+            }
+            realName={
+              rating.selected_by_real_name
+            }
+          />
+        </div>
       </div>
     </div>
   );
@@ -187,178 +254,326 @@ function RatingMiniCard({ label, type, rating }) {
 export default function QBRatingsPage() {
   const [rows, setRows] = useState([]);
   const [teams, setTeams] = useState([]);
-  const [message, setMessage] = useState("");
+  const [message, setMessage] =
+    useState("");
 
   useEffect(() => {
     async function loadData() {
-      const { data: teamsData } = await supabase
-        .from("teams")
-        .select("*");
+      const { data: teamsData } =
+        await supabase
+          .from("teams")
+          .select("*");
 
       setTeams(teamsData || []);
 
-      const { data: usersData } = await supabase
-        .from("users")
-        .select("*");
+      const { data: usersData } =
+        await supabase
+          .from("users")
+          .select(
+            "id, email, display_name, real_name"
+          );
 
-      const { data: qbsData, error: qbsError } = await supabase
+      const {
+        data: qbsData,
+        error: qbsError,
+      } = await supabase
         .from("qbs")
         .select("*")
-        .order("team", { ascending: true });
+        .order("team", {
+          ascending: true,
+        });
 
       if (qbsError) {
-        setMessage("Erreur QB : " + qbsError.message);
+        setMessage(
+          "Erreur QB : " +
+            qbsError.message
+        );
+
         return;
       }
 
-      const { data: ratingsData, error: ratingsError } = await supabase
+      const {
+        data: ratingsData,
+        error: ratingsError,
+      } = await supabase
         .from("qb_ratings")
         .select("*");
 
       if (ratingsError) {
-        setMessage("Erreur ratings : " + ratingsError.message);
+        setMessage(
+          "Erreur ratings : " +
+            ratingsError.message
+        );
+
         return;
       }
 
-      const { data: qbPicksData, error: picksError } = await supabase
+      const {
+        data: qbPicksData,
+        error: picksError,
+      } = await supabase
         .from("qb_picks")
         .select("*");
 
       if (picksError) {
-        setMessage("Erreur picks QB : " + picksError.message);
+        setMessage(
+          "Erreur picks QB : " +
+            picksError.message
+        );
+
         return;
       }
 
       const ratingsByActualQb = {};
 
-      (ratingsData || []).forEach((rating) => {
-        if (rating.passer_rating == null) return;
+      (ratingsData || []).forEach(
+        (rating) => {
+          if (
+            rating.passer_rating ==
+            null
+          ) {
+            return;
+          }
 
-        const selectedQb = (qbsData || []).find(
-          (qb) => qb.id === rating.qb_id
-        );
+          const selectedQb =
+            (qbsData || []).find(
+              (qb) =>
+                qb.id ===
+                rating.qb_id
+            );
 
-        const actualAthleteId =
-          rating.actual_espn_athlete_id ||
-          selectedQb?.espn_athlete_id;
+          const actualAthleteId =
+            rating.actual_espn_athlete_id ||
+            selectedQb?.espn_athlete_id;
 
-        if (!actualAthleteId) return;
+          if (!actualAthleteId) {
+            return;
+          }
 
-        const key = String(actualAthleteId);
+          const key =
+            String(
+              actualAthleteId
+            );
 
-        if (!ratingsByActualQb[key]) {
-          ratingsByActualQb[key] = [];
+          if (
+            !ratingsByActualQb[
+              key
+            ]
+          ) {
+            ratingsByActualQb[
+              key
+            ] = [];
+          }
+
+          ratingsByActualQb[
+            key
+          ].push(rating);
         }
+      );
 
-        ratingsByActualQb[key].push(rating);
-      });
+      const builtRows =
+        Object.entries(
+          ratingsByActualQb
+        )
+          .map(
+            ([
+              athleteId,
+              qbRatings,
+            ]) => {
+              const firstRating =
+                qbRatings[0];
 
-      const builtRows = Object.entries(ratingsByActualQb)
-        .map(([athleteId, qbRatings]) => {
-          const firstRating = qbRatings[0];
+              const selectedQb =
+                (qbsData || []).find(
+                  (qb) =>
+                    qb.id ===
+                    firstRating.qb_id
+                );
 
-          const selectedQb = (qbsData || []).find(
-            (qb) => qb.id === firstRating.qb_id
-          );
+              const actualQbFromDatabase =
+                (qbsData || []).find(
+                  (qb) =>
+                    String(
+                      qb.espn_athlete_id
+                    ) ===
+                    String(
+                      athleteId
+                    )
+                );
 
-          const actualQbFromDatabase = (qbsData || []).find(
-            (qb) =>
-              String(qb.espn_athlete_id) ===
-              String(athleteId)
-          );
+              const actualQb =
+                actualQbFromDatabase ||
+                {
+                  id:
+                    `actual-${athleteId}`,
 
-          const actualQb =
-            actualQbFromDatabase || {
-              id: `actual-${athleteId}`,
-              name:
-                firstRating.actual_qb_name ||
-                selectedQb?.name ||
-                "QB",
-              team: selectedQb?.team || "",
-              espn_athlete_id: athleteId,
-            };
+                  name:
+                    firstRating.actual_qb_name ||
+                    selectedQb?.name ||
+                    "QB",
 
-          const best =
-            [...qbRatings].sort(
-              (a, b) =>
-                Number(b.passer_rating) -
-                Number(a.passer_rating)
-            )[0] || null;
+                  team:
+                    selectedQb?.team ||
+                    "",
 
-          const worst =
-            qbRatings.length > 1
-              ? [...qbRatings].sort(
+                  espn_athlete_id:
+                    athleteId,
+                };
+
+              const best =
+                [...qbRatings].sort(
                   (a, b) =>
-                    Number(a.passer_rating) -
-                    Number(b.passer_rating)
-                )[0]
-              : null;
+                    Number(
+                      b.passer_rating
+                    ) -
+                    Number(
+                      a.passer_rating
+                    )
+                )[0] ||
+                null;
 
-          const attachSelector = (rating) => {
-            if (!rating) return null;
+              const worst =
+                qbRatings.length >
+                1
+                  ? [...qbRatings].sort(
+                      (a, b) =>
+                        Number(
+                          a.passer_rating
+                        ) -
+                        Number(
+                          b.passer_rating
+                        )
+                    )[0]
+                  : null;
 
-            const pick = (qbPicksData || []).find(
-              (p) =>
-                p.qb_id === rating.qb_id &&
-                p.week === rating.week
-            );
+              const attachSelector =
+                (rating) => {
+                  if (!rating) {
+                    return null;
+                  }
 
-            const user = (usersData || []).find(
-              (u) => u.id === pick?.user_id
-            );
+                  const pick =
+                    (
+                      qbPicksData ||
+                      []
+                    ).find(
+                      (p) =>
+                        p.qb_id ===
+                          rating.qb_id &&
+                        p.week ===
+                          rating.week
+                    );
 
-            return {
-              ...rating,
-              selected_by: displayName(user),
-            };
-          };
+                  const user =
+                    (
+                      usersData ||
+                      []
+                    ).find(
+                      (u) =>
+                        u.id ===
+                        pick?.user_id
+                    );
 
-          const average =
-            qbRatings.length > 0
-              ? qbRatings.reduce(
-                  (sum, rating) =>
-                    sum +
-                    Number(rating.passer_rating || 0),
-                  0
-                ) / qbRatings.length
-              : null;
+                  return {
+                    ...rating,
 
-          return {
-            qb: actualQb,
-            best: attachSelector(best),
-            worst: attachSelector(worst),
-            average,
-          };
-        })
-        .sort((a, b) => {
-          const aBest = Number(
-            a.best?.passer_rating || 0
+                    selected_by:
+                      displayName(
+                        user
+                      ),
+
+                    selected_by_real_name:
+                      realName(
+                        user
+                      ),
+                  };
+                };
+
+              const average =
+                qbRatings.length >
+                0
+                  ? qbRatings.reduce(
+                      (
+                        sum,
+                        rating
+                      ) =>
+                        sum +
+                        Number(
+                          rating.passer_rating ||
+                            0
+                        ),
+                      0
+                    ) /
+                    qbRatings.length
+                  : null;
+
+              return {
+                qb:
+                  actualQb,
+
+                best:
+                  attachSelector(
+                    best
+                  ),
+
+                worst:
+                  attachSelector(
+                    worst
+                  ),
+
+                average,
+              };
+            }
+          )
+          .sort(
+            (a, b) => {
+              const aBest =
+                Number(
+                  a.best
+                    ?.passer_rating ||
+                    0
+                );
+
+              const bBest =
+                Number(
+                  b.best
+                    ?.passer_rating ||
+                    0
+                );
+
+              return (
+                bBest -
+                aBest
+              );
+            }
           );
 
-          const bBest = Number(
-            b.best?.passer_rating || 0
-          );
-
-          return bBest - aBest;
-        });
-
-      setRows(builtRows);
+      setRows(
+        builtRows
+      );
     }
 
     loadData();
   }, []);
 
-  const getTeamLogo = (teamName) => {
-    const team = teams.find(
-      (t) =>
-        t.name?.toLowerCase().trim() ===
-        teamName?.toLowerCase().trim()
-    );
+  const getTeamLogo =
+    (teamName) => {
+      const team =
+        teams.find(
+          (t) =>
+            t.name
+              ?.toLowerCase()
+              .trim() ===
+            teamName
+              ?.toLowerCase()
+              .trim()
+        );
 
-    return team?.espn_abbr
-      ? `https://a.espncdn.com/i/teamlogos/nfl/500/${team.espn_abbr.toLowerCase()}.png`
-      : team?.logo || null;
-  };
+      return team?.espn_abbr
+        ? `https://a.espncdn.com/i/teamlogos/nfl/500/${team.espn_abbr.toLowerCase()}.png`
+        : team?.logo ||
+            null;
+    };
 
   return (
     <main
@@ -368,170 +583,274 @@ export default function QBRatingsPage() {
       }}
     >
       <section className="header-card">
-       <h1
-  style={{
-    fontSize:
-      typeof window !== "undefined" && window.innerWidth < 700
-        ? 44
-        : undefined,
-    lineHeight: 1.05,
-    whiteSpace: "nowrap",
-  }}
->
-  QB Ratings 📊
-</h1>
-        <p>Ratings et moyenne de chaque QB cette saison.</p>
+        <h1
+          style={{
+            fontSize:
+              typeof window !==
+                "undefined" &&
+              window.innerWidth <
+                700
+                ? 44
+                : undefined,
+
+            lineHeight:
+              1.05,
+
+            whiteSpace:
+              "nowrap",
+          }}
+        >
+          QB Ratings 📊
+        </h1>
+
+        <p>
+          Ratings et moyenne de chaque QB cette saison.
+        </p>
       </section>
 
       {message && (
         <section className="card">
-          <p>{message}</p>
+          <p>
+            {message}
+          </p>
         </section>
       )}
 
-      {rows.length === 0 && (
+      {rows.length ===
+        0 && (
         <section className="card">
-          <p>Aucun rating QB pour le moment.</p>
+          <p>
+            Aucun rating QB pour le moment.
+          </p>
         </section>
       )}
 
-      {rows.map((row, index) => (
-        <section
-          key={row.qb.id}
-          className="card"
-        >
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "54px 110px 1fr",
-              gap: 16,
-              alignItems: "center",
-              marginBottom: 16,
-            }}
+      {rows.map(
+        (
+          row,
+          index
+        ) => (
+          <section
+            key={
+              row.qb.id
+            }
+            className="card"
           >
             <div
               style={{
-                width: 42,
-                height: 42,
-                borderRadius: 14,
-                background:
-                  index < 3 ? "#166534" : "#1e293b",
-                color: "white",
-                fontWeight: 900,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
+                display:
+                  "grid",
+
+                gridTemplateColumns:
+                  "54px 110px 1fr",
+
+                gap: 16,
+
+                alignItems:
+                  "center",
+
+                marginBottom:
+                  16,
               }}
             >
-              #{index + 1}
-            </div>
-
-            <QBPhoto
-              qb={row.qb}
-              size={104}
-            />
-
-            <div>
-              <h2
+              <div
                 style={{
-                  margin: 0,
+                  width: 42,
+                  height: 42,
+
+                  borderRadius:
+                    14,
+
+                  background:
+                    index < 3
+                      ? "#166534"
+                      : "#1e293b",
+
+                  color:
+                    "white",
+
+                  fontWeight:
+                    900,
+
+                  display:
+                    "flex",
+
+                  alignItems:
+                    "center",
+
+                  justifyContent:
+                    "center",
                 }}
               >
-                {row.qb.name}
-              </h2>
+                #{index + 1}
+              </div>
+
+              <QBPhoto
+                qb={
+                  row.qb
+                }
+                size={
+                  104
+                }
+              />
+
+              <div>
+                <h2
+                  style={{
+                    margin:
+                      0,
+                  }}
+                >
+                  {
+                    row.qb
+                      .name
+                  }
+                </h2>
+
+                <div
+                  style={{
+                    display:
+                      "flex",
+
+                    alignItems:
+                      "center",
+
+                    gap: 10,
+
+                    marginTop:
+                      8,
+
+                    color:
+                      "#94a3b8",
+                  }}
+                >
+                  <TeamLogo
+                    logo={getTeamLogo(
+                      row.qb
+                        .team
+                    )}
+                    name={
+                      row.qb
+                        .team
+                    }
+                    size={
+                      42
+                    }
+                  />
+
+                  <strong>
+                    {
+                      row.qb
+                        .team
+                    }
+                  </strong>
+                </div>
+              </div>
+            </div>
+
+            <div
+              style={{
+                display:
+                  "grid",
+
+                gridTemplateColumns:
+                  typeof window !==
+                    "undefined" &&
+                  window.innerWidth <
+                    900
+                    ? "1fr"
+                    : "repeat(3, minmax(0, 1fr))",
+
+                gap: 10,
+              }}
+            >
+              <RatingMiniCard
+                label="Meilleur rating"
+                type="best"
+                rating={
+                  row.best
+                }
+              />
 
               <div
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  marginTop: 8,
-                  color: "#94a3b8",
+                  padding:
+                    typeof window !==
+                      "undefined" &&
+                    window.innerWidth <
+                      900
+                      ? 12
+                      : 10,
+
+                  borderRadius:
+                    18,
+
+                  background:
+                    "rgba(148,163,184,0.08)",
+
+                  border:
+                    "1px solid rgba(148,163,184,0.16)",
                 }}
               >
-                <TeamLogo
-                  logo={getTeamLogo(row.qb.team)}
-                  name={row.qb.team}
-                  size={42}
-                />
+                <p
+                  style={{
+                    margin:
+                      0,
 
-                <strong>
-                  {row.qb.team}
-                </strong>
+                    color:
+                      "#94a3b8",
+
+                    fontWeight:
+                      900,
+                  }}
+                >
+                  Moyenne saison
+                </p>
+
+                <h2
+                  style={{
+                    margin:
+                      "6px 0",
+
+                    fontSize:
+                      30,
+
+                    color:
+                      "#e2e8f0",
+                  }}
+                >
+                  {row.average !=
+                  null
+                    ? row.average.toFixed(
+                        1
+                      )
+                    : "--"}
+                </h2>
+
+                <p
+                  style={{
+                    margin:
+                      0,
+
+                    color:
+                      "#94a3b8",
+                  }}
+                >
+                  Toutes les semaines
+                </p>
               </div>
+
+              <RatingMiniCard
+                label="Pire rating"
+                type="worst"
+                rating={
+                  row.worst
+                }
+              />
             </div>
-          </div>
-
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns:
-                typeof window !== "undefined" &&
-                window.innerWidth < 900
-                  ? "1fr"
-                  : "repeat(3, minmax(0, 1fr))",
-              gap: 10,
-            }}
-          >
-            <RatingMiniCard
-              label="Meilleur rating"
-              type="best"
-              rating={row.best}
-            />
-
-            <div
-              style={{
-                padding:
-                  typeof window !== "undefined" &&
-                  window.innerWidth < 900
-                    ? 12
-                    : 10,
-                borderRadius: 18,
-                background: "rgba(148,163,184,0.08)",
-                border:
-                  "1px solid rgba(148,163,184,0.16)",
-              }}
-            >
-              <p
-                style={{
-                  margin: 0,
-                  color: "#94a3b8",
-                  fontWeight: 900,
-                }}
-              >
-                Moyenne saison
-              </p>
-
-              <h2
-                style={{
-                  margin: "6px 0",
-                  fontSize: 30,
-                  color: "#e2e8f0",
-                }}
-              >
-                {row.average != null
-                  ? row.average.toFixed(1)
-                  : "--"}
-              </h2>
-
-              <p
-                style={{
-                  margin: 0,
-                  color: "#94a3b8",
-                }}
-              >
-                Toutes les semaines
-              </p>
-            </div>
-
-            <RatingMiniCard
-              label="Pire rating"
-              type="worst"
-              rating={row.worst}
-            />
-          </div>
-        </section>
-      ))}
+          </section>
+        )
+      )}
 
       <BottomNav />
     </main>
