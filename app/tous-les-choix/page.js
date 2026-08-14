@@ -10,6 +10,55 @@ function displayName(user) {
   return "Joueur";
 }
 
+function realName(user) {
+  return user?.real_name || "";
+}
+
+function PlayerIdentity({
+  name,
+  realName: secondaryName,
+  compact = false,
+  align = "left",
+}) {
+  return (
+    <div
+      style={{
+        minWidth: 0,
+        textAlign: align,
+      }}
+    >
+      <strong
+        style={{
+          display: "block",
+          color: "#f8fafc",
+          fontSize: compact ? 13 : 20,
+          fontWeight: 900,
+          lineHeight: 1.15,
+          wordBreak: "break-word",
+        }}
+      >
+        {name}
+      </strong>
+
+      {secondaryName && (
+        <span
+          style={{
+            display: "block",
+            marginTop: 2,
+            color: "#94a3b8",
+            fontSize: compact ? 10 : 13,
+            fontWeight: 400,
+            lineHeight: 1.2,
+            wordBreak: "break-word",
+          }}
+        >
+          {secondaryName}
+        </span>
+      )}
+    </div>
+  );
+}
+
 function statValue(row) {
   return Number(
     row?.final_score ??
@@ -386,17 +435,36 @@ function SelectionOrderBar({
                   ? "1px solid rgba(34,197,94,0.32)"
                   : "1px solid rgba(148,163,184,0.14)",
 
-              color:
-                index === 0
-                  ? "#86efac"
-                  : "#cbd5e1",
-
-              fontSize: 14,
-              fontWeight:
-                index === 0 ? 900 : 700,
+              minWidth: 0,
             }}
           >
-            {index + 1}. {player.name}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "flex-start",
+                gap: 5,
+              }}
+            >
+              <strong
+                style={{
+                  color:
+                    index === 0
+                      ? "#86efac"
+                      : "#cbd5e1",
+                  fontSize: 13,
+                  fontWeight: 900,
+                  lineHeight: 1.15,
+                }}
+              >
+                {index + 1}.
+              </strong>
+
+              <PlayerIdentity
+                name={player.name}
+                realName={player.realName}
+                compact={true}
+              />
+            </div>
           </div>
         ))}
       </div>
@@ -463,11 +531,15 @@ export default function TousLesChoix() {
 
       setTeams(teamsData || []);
 
+      /*
+       * IMPORTANT :
+       * on charge maintenant real_name.
+       */
       const { data: usersData } =
         await supabase
           .from("users")
           .select(
-            "id, email, display_name"
+            "id, email, display_name, real_name"
           );
 
       setPlayers(usersData || []);
@@ -686,9 +758,6 @@ export default function TousLesChoix() {
 
       /*
        * ORDRE DE SÉLECTION
-       *
-       * Seulement pour la semaine active.
-       * Semaine 1 = aucun ordre précédent.
        */
       if (
         viewedWeek === currentWeek &&
@@ -745,6 +814,9 @@ export default function TousLesChoix() {
                 name:
                   displayName(player),
 
+                realName:
+                  realName(player),
+
                 previousScore:
                   scoreMap.has(
                     player.id
@@ -755,13 +827,6 @@ export default function TousLesChoix() {
                     : null,
               }))
               .sort((a, b) => {
-                /*
-                 * Joueurs avec score précédent
-                 * en premier, du pire au meilleur.
-                 *
-                 * Un nouveau joueur sans score
-                 * précédent va à la fin.
-                 */
                 if (
                   a.previousScore == null &&
                   b.previousScore != null
@@ -830,13 +895,8 @@ export default function TousLesChoix() {
   /*
    * JOUEURS À AFFICHER
    *
-   * IMPORTANT :
-   * On ne met PAS tous les users ici.
-   *
-   * Seuls ceux qui ont vraiment soumis
-   * apparaissent dans Tous les choix.
-   *
-   * qbPicks est déjà trié par created_at.
+   * qbPicks est déjà trié par created_at,
+   * donc premier soumis = premier affiché.
    */
   const allUserIds = Array.from(
     new Set([
@@ -868,7 +928,9 @@ export default function TousLesChoix() {
           Tous les choix 👀
         </h1>
 
-        <p>Consulte les choix de tous les joueurs.</p>
+        <p>
+          Consulte les choix de tous les joueurs.
+        </p>
       </section>
 
       {currentWeek != null &&
@@ -889,8 +951,6 @@ export default function TousLesChoix() {
           />
         )}
 
-      {/* ORDRE DE SÉLECTION
-          seulement sur la semaine active */}
       {viewedWeek === currentWeek && (
         <SelectionOrderBar
           players={
@@ -916,7 +976,6 @@ export default function TousLesChoix() {
         </section>
       )}
 
-      {/* PERSONNE N'A ENCORE CHOISI */}
       {!loading &&
         allUserIds.length === 0 && (
           <section className="card">
@@ -932,7 +991,6 @@ export default function TousLesChoix() {
           </section>
         )}
 
-      {/* JOUEURS AYANT SOUMIS */}
       {!loading &&
         allUserIds.map(
           (userId) => {
@@ -943,10 +1001,6 @@ export default function TousLesChoix() {
                   userId
               );
 
-            /*
-             * Ordre chronologique
-             * des matchs
-             */
             const weekGames =
               Array.from(
                 new Map(
@@ -1067,28 +1121,35 @@ export default function TousLesChoix() {
                 key={userId}
                 className="card"
               >
+                {/* IDENTITÉ JOUEUR */}
+
                 <div
                   style={{
                     marginBottom:
                       18,
                   }}
                 >
-                  <h2
-                    style={{
-                      margin: 0,
-                    }}
-                  >
-                    {displayName(
-                      player
-                    )}
-                  </h2>
+                  <PlayerIdentity
+                    name={
+                      displayName(
+                        player
+                      )
+                    }
+                    realName={
+                      realName(
+                        player
+                      )
+                    }
+                  />
 
                   <p
                     style={{
                       margin:
-                        "4px 0 0 0",
+                        "7px 0 0 0",
                       color:
-                        "#94a3b8",
+                        "#64748b",
+                      fontSize:
+                        13,
                     }}
                   >
                     Choix de la
@@ -1333,9 +1394,6 @@ export default function TousLesChoix() {
                           : game.away_team
                         : null;
 
-                    /*
-                     * MATCH TERMINÉ
-                     */
                     if (hasScore) {
                       const isMobile =
                         typeof window !==
@@ -1390,9 +1448,7 @@ export default function TousLesChoix() {
                               name={
                                 game.away_team
                               }
-                              size={
-                                70
-                              }
+                              size={70}
                             />
 
                             <div
@@ -1428,9 +1484,7 @@ export default function TousLesChoix() {
                               name={
                                 game.home_team
                               }
-                              size={
-                                70
-                              }
+                              size={70}
                             />
 
                             {!isMobile && (
@@ -1645,9 +1699,7 @@ export default function TousLesChoix() {
                             name={
                               game.away_team
                             }
-                            size={
-                              66
-                            }
+                            size={66}
                           />
                         </div>
 
@@ -1693,9 +1745,7 @@ export default function TousLesChoix() {
                             name={
                               game.home_team
                             }
-                            size={
-                              66
-                            }
+                            size={66}
                           />
                         </div>
 
