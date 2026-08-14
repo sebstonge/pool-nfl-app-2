@@ -8,24 +8,18 @@ export default function SetupProfilePage() {
   const router = useRouter();
 
   const [user, setUser] = useState(null);
-  const [displayName, setDisplayName] =
-    useState("");
-
-  const [loading, setLoading] =
-    useState(false);
-
-  const [message, setMessage] =
-    useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [realName, setRealName] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
     async function loadUser() {
       const {
         data: { session },
-      } =
-        await supabase.auth.getSession();
+      } = await supabase.auth.getSession();
 
-      const currentUser =
-        session?.user;
+      const currentUser = session?.user;
 
       if (!currentUser) {
         router.push("/");
@@ -34,18 +28,10 @@ export default function SetupProfilePage() {
 
       setUser(currentUser);
 
-      const {
-        data: profile,
-        error,
-      } = await supabase
+      const { data: profile, error } = await supabase
         .from("users")
-        .select(
-          "display_name"
-        )
-        .eq(
-          "id",
-          currentUser.id
-        )
+        .select("display_name, real_name")
+        .eq("id", currentUser.id)
         .maybeSingle();
 
       if (error) {
@@ -56,7 +42,8 @@ export default function SetupProfilePage() {
       }
 
       if (
-        profile?.display_name
+        profile?.display_name?.trim() &&
+        profile?.real_name?.trim()
       ) {
         router.push("/");
       }
@@ -66,22 +53,23 @@ export default function SetupProfilePage() {
   }, [router]);
 
   async function saveProfile() {
-    const cleanName =
-      displayName.trim();
+    const cleanDisplayName = displayName.trim();
+    const cleanRealName = realName.trim();
 
-    if (!cleanName) {
+    if (!cleanDisplayName) {
+      setMessage("Entre un nom d’utilisateur.");
+      return;
+    }
+
+    if (cleanDisplayName.length < 3) {
       setMessage(
-        "Entre un nom d’utilisateur."
+        "Le nom d’utilisateur doit contenir au moins 3 caractères."
       );
       return;
     }
 
-    if (
-      cleanName.length < 3
-    ) {
-      setMessage(
-        "Minimum 3 caractères."
-      );
+    if (!cleanRealName) {
+      setMessage("Entre ton vrai nom.");
       return;
     }
 
@@ -95,36 +83,30 @@ export default function SetupProfilePage() {
     setLoading(true);
     setMessage("");
 
-    const { error } =
-      await supabase
-        .from("users")
-        .upsert(
-          {
-            id:
-              user.id,
-
-            email:
-              user.email,
-
-            display_name:
-              cleanName,
-          },
-          {
-            onConflict:
-              "id",
-          }
-        );
+    const { error } = await supabase
+      .from("users")
+      .upsert(
+        {
+          id: user.id,
+          email: user.email,
+          display_name: cleanDisplayName,
+          real_name: cleanRealName,
+        },
+        {
+          onConflict: "id",
+        }
+      );
 
     setLoading(false);
 
     if (error) {
       console.error(
         "Erreur sauvegarde profil :",
-        error.message
+        error
       );
 
       setMessage(
-        "Nom déjà utilisé ou invalide."
+        `Erreur : ${error.message}`
       );
 
       return;
@@ -136,39 +118,65 @@ export default function SetupProfilePage() {
   return (
     <main className="page">
       <section className="header-card">
-        <h1>
-          Choisis ton nom 🏈
-        </h1>
+        <h1>Crée ton profil 🏈</h1>
 
         <p>
-          Ce nom sera affiché dans les
-          classements et les choix.
+          Ton nom d’utilisateur sera affiché en premier.
+          Ton vrai nom apparaîtra juste en dessous.
         </p>
       </section>
 
       <section className="card">
+        <label
+          style={{
+            display: "block",
+            marginBottom: 6,
+            fontWeight: 800,
+          }}
+        >
+          Nom d’utilisateur
+        </label>
+
         <input
           className="input"
           placeholder="Ex: SKOOOOOOL"
           value={displayName}
           onChange={(e) =>
-            setDisplayName(
-              e.target.value
-            )
+            setDisplayName(e.target.value)
           }
           maxLength={20}
+          disabled={loading}
+        />
+
+        <label
+          style={{
+            display: "block",
+            marginTop: 14,
+            marginBottom: 6,
+            fontWeight: 800,
+          }}
+        >
+          Ton vrai nom
+        </label>
+
+        <input
+          className="input"
+          placeholder="Ex: Sébastien St-Onge"
+          value={realName}
+          onChange={(e) =>
+            setRealName(e.target.value)
+          }
+          maxLength={50}
           disabled={loading}
         />
 
         <button
           className="button"
           onClick={saveProfile}
-          disabled={
-            loading ||
-            !user
-          }
+          disabled={loading || !user}
           style={{
             width: "100%",
+            marginTop: 16,
           }}
         >
           {loading
