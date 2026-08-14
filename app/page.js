@@ -38,24 +38,8 @@ export default function HomePage() {
   const [confirmPassword, setConfirmPassword] =
     useState("");
 
-  const [newPassword, setNewPassword] =
-    useState("");
-
-  const [
-    confirmNewPassword,
-    setConfirmNewPassword,
-  ] = useState("");
-
-  const [message, setMessage] =
-    useState("");
-
-  const [loading, setLoading] =
-    useState(false);
-
-  const [
-    passwordLoading,
-    setPasswordLoading,
-  ] = useState(false);
+  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
 
   /*
    * =========================================================
@@ -94,22 +78,17 @@ export default function HomePage() {
     setProfile(profileData || null);
 
     /*
-     * Le profil doit maintenant contenir :
+     * Le profil doit contenir :
      *
      * - display_name = username / pseudo
      * - real_name = vrai nom
-     *
-     * Les anciens joueurs qui n'ont pas encore
-     * de real_name seront envoyés au setup.
      */
     if (
       !profileData ||
       !profileData.display_name?.trim() ||
       !profileData.real_name?.trim()
     ) {
-      window.location.href =
-        "/setup-profile";
-
+      window.location.href = "/setup-profile";
       return;
     }
   }
@@ -131,9 +110,7 @@ export default function HomePage() {
       setUser(currentUser);
 
       if (currentUser) {
-        await loadProfile(
-          currentUser
-        );
+        await loadProfile(currentUser);
       }
     }
 
@@ -141,22 +118,14 @@ export default function HomePage() {
 
     const { data: listener } =
       supabase.auth.onAuthStateChange(
-        async (
-          _event,
-          session
-        ) => {
+        async (_event, session) => {
           const currentUser =
-            session?.user ??
-            null;
+            session?.user ?? null;
 
-          setUser(
-            currentUser
-          );
+          setUser(currentUser);
 
           if (currentUser) {
-            await loadProfile(
-              currentUser
-            );
+            await loadProfile(currentUser);
           } else {
             setProfile(null);
           }
@@ -178,15 +147,12 @@ export default function HomePage() {
     setMessage("");
 
     const cleanEmail =
-      email
-        .trim()
-        .toLowerCase();
+      email.trim().toLowerCase();
 
     if (!cleanEmail) {
       setMessage(
         "Entre ton adresse courriel."
       );
-
       return;
     }
 
@@ -194,7 +160,6 @@ export default function HomePage() {
       setMessage(
         "Entre ton mot de passe."
       );
-
       return;
     }
 
@@ -205,9 +170,7 @@ export default function HomePage() {
       error,
     } =
       await supabase.auth.signInWithPassword({
-        email:
-          cleanEmail,
-
+        email: cleanEmail,
         password,
       });
 
@@ -230,14 +193,10 @@ export default function HomePage() {
       data.user ||
       data.session?.user;
 
-    setUser(
-      currentUser
-    );
+    setUser(currentUser);
 
     if (currentUser) {
-      await loadProfile(
-        currentUser
-      );
+      await loadProfile(currentUser);
     }
 
     setMessage("");
@@ -253,25 +212,19 @@ export default function HomePage() {
     setMessage("");
 
     const cleanEmail =
-      email
-        .trim()
-        .toLowerCase();
+      email.trim().toLowerCase();
 
     if (!cleanEmail) {
       setMessage(
         "Entre ton adresse courriel."
       );
-
       return;
     }
 
-    if (
-      password.length < 6
-    ) {
+    if (password.length < 6) {
       setMessage(
         "Le mot de passe doit contenir au moins 6 caractères."
       );
-
       return;
     }
 
@@ -282,7 +235,6 @@ export default function HomePage() {
       setMessage(
         "Les deux mots de passe ne correspondent pas."
       );
-
       return;
     }
 
@@ -293,9 +245,7 @@ export default function HomePage() {
       error,
     } =
       await supabase.auth.signUp({
-        email:
-          cleanEmail,
-
+        email: cleanEmail,
         password,
       });
 
@@ -313,15 +263,9 @@ export default function HomePage() {
         ).toLowerCase();
 
       if (
-        text.includes(
-          "already"
-        ) ||
-        text.includes(
-          "registered"
-        ) ||
-        text.includes(
-          "exists"
-        )
+        text.includes("already") ||
+        text.includes("registered") ||
+        text.includes("exists")
       ) {
         setMessage(
           "Un compte existe déjà avec ce courriel. Utilise Connexion."
@@ -344,126 +288,47 @@ export default function HomePage() {
       setMessage(
         "Compte créé, mais aucune session n'a été ouverte. Vérifie que Confirm Email est désactivé dans Supabase."
       );
-
       return;
     }
 
-    setUser(
-      currentUser
-    );
+    setUser(currentUser);
 
     /*
-     * On crée la ligne public.users.
+     * Création de la ligne public.users.
      *
-     * display_name et real_name
-     * seront remplis ensuite dans
-     * /setup-profile.
+     * display_name et real_name seront
+     * remplis dans /setup-profile.
      */
     const {
-      error:
-        profileError,
+      error: profileError,
     } = await supabase
       .from("users")
       .upsert(
         {
-          id:
-            currentUser.id,
-
-          email:
-            currentUser.email,
+          id: currentUser.id,
+          email: currentUser.email,
         },
         {
-          onConflict:
-            "id",
+          onConflict: "id",
         }
       );
 
-    if (
-      profileError
-    ) {
+    if (profileError) {
       console.error(
         "Erreur création profil :",
         profileError.message
       );
+
+      setMessage(
+        "Erreur création du profil : " +
+          profileError.message
+      );
+
+      return;
     }
 
     window.location.href =
       "/setup-profile";
-  }
-
-  /*
-   * =========================================================
-   * MOT DE PASSE DES ANCIENS COMPTES
-   * =========================================================
-   */
-
-  async function handleSetPassword() {
-    setMessage("");
-
-    if (!user) {
-      setMessage(
-        "Tu dois être connecté pour définir ton mot de passe."
-      );
-
-      return;
-    }
-
-    if (
-      newPassword.length <
-      6
-    ) {
-      setMessage(
-        "Le nouveau mot de passe doit contenir au moins 6 caractères."
-      );
-
-      return;
-    }
-
-    if (
-      newPassword !==
-      confirmNewPassword
-    ) {
-      setMessage(
-        "Les deux nouveaux mots de passe ne correspondent pas."
-      );
-
-      return;
-    }
-
-    setPasswordLoading(
-      true
-    );
-
-    const { error } =
-      await supabase.auth.updateUser({
-        password:
-          newPassword,
-      });
-
-    setPasswordLoading(
-      false
-    );
-
-    if (error) {
-      console.error(
-        "Erreur mot de passe :",
-        error.message
-      );
-
-      setMessage(
-        "Impossible de définir le mot de passe : " +
-          error.message
-      );
-
-      return;
-    }
-
-    setNewPassword("");
-    setConfirmNewPassword("");
-
-    setMessage(
-      "Mot de passe enregistré ✅ Tu pourras l'utiliser lors de ta prochaine connexion."
-    );
   }
 
   /*
@@ -492,9 +357,7 @@ export default function HomePage() {
       localStorage
     ).forEach((key) => {
       if (
-        key.includes(
-          "supabase"
-        ) ||
+        key.includes("supabase") ||
         key.includes("sb-")
       ) {
         localStorage.removeItem(
@@ -509,8 +372,7 @@ export default function HomePage() {
     setProfile(null);
 
     setTimeout(() => {
-      window.location.href =
-        "/";
+      window.location.href = "/";
     }, 200);
   }
 
@@ -539,26 +401,16 @@ export default function HomePage() {
           <section className="card">
             <div
               style={{
-                marginBottom:
-                  14,
+                marginBottom: 14,
               }}
             >
               <span
                 style={{
-                  display:
-                    "block",
-
-                  color:
-                    "#94a3b8",
-
-                  fontSize:
-                    13,
-
-                  fontWeight:
-                    700,
-
-                  marginBottom:
-                    3,
+                  display: "block",
+                  color: "#94a3b8",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  marginBottom: 3,
                 }}
               >
                 Connecté sous
@@ -566,66 +418,37 @@ export default function HomePage() {
 
               <strong
                 style={{
-                  display:
-                    "block",
-
-                  color:
-                    "#f8fafc",
-
-                  fontSize:
-                    20,
-
-                  lineHeight:
-                    1.15,
+                  display: "block",
+                  color: "#f8fafc",
+                  fontSize: 20,
+                  lineHeight: 1.15,
                 }}
               >
                 {profile?.display_name ||
-                  user.email?.split(
-                    "@"
-                  )[0]}
+                  user.email?.split("@")[0]}
               </strong>
 
               {profile?.real_name && (
                 <span
                   style={{
-                    display:
-                      "block",
-
-                    marginTop:
-                      3,
-
-                    color:
-                      "#94a3b8",
-
-                    fontSize:
-                      14,
-
-                    fontWeight:
-                      400,
+                    display: "block",
+                    marginTop: 3,
+                    color: "#94a3b8",
+                    fontSize: 14,
+                    fontWeight: 400,
                   }}
                 >
-                  {
-                    profile.real_name
-                  }
+                  {profile.real_name}
                 </span>
               )}
 
               <span
                 style={{
-                  display:
-                    "block",
-
-                  marginTop:
-                    5,
-
-                  color:
-                    "#86efac",
-
-                  fontSize:
-                    13,
-
-                  fontWeight:
-                    800,
+                  display: "block",
+                  marginTop: 5,
+                  color: "#86efac",
+                  fontSize: 13,
+                  fontWeight: 800,
                 }}
               >
                 Connecté ✅
@@ -635,92 +458,10 @@ export default function HomePage() {
             <button
               type="button"
               className="button-secondary"
-              onClick={
-                handleLogout
-              }
+              onClick={handleLogout}
             >
               Se déconnecter
             </button>
-          </section>
-
-          {/* MOT DE PASSE */}
-
-          <section className="card">
-            <h2
-              style={{
-                marginTop:
-                  0,
-              }}
-            >
-              Mot de passe 🔐
-            </h2>
-
-            <p
-              style={{
-                color:
-                  "#94a3b8",
-              }}
-            >
-              Si ton compte a été créé avec
-              l'ancien lien magique, définis
-              ici ton mot de passe. Les
-              nouveaux joueurs n'ont pas
-              besoin de refaire cette étape.
-            </p>
-
-            <input
-              className="input"
-              type="password"
-              placeholder="Nouveau mot de passe"
-              value={
-                newPassword
-              }
-              onChange={(e) =>
-                setNewPassword(
-                  e.target.value
-                )
-              }
-            />
-
-            <input
-              className="input"
-              type="password"
-              placeholder="Confirmer le mot de passe"
-              value={
-                confirmNewPassword
-              }
-              onChange={(e) =>
-                setConfirmNewPassword(
-                  e.target.value
-                )
-              }
-            />
-
-            <button
-              type="button"
-              className="button-secondary"
-              onClick={
-                handleSetPassword
-              }
-              disabled={
-                passwordLoading
-              }
-            >
-              {passwordLoading
-                ? "Enregistrement..."
-                : "Définir / changer mon mot de passe"}
-            </button>
-
-            {message && (
-              <p
-                style={{
-                  marginTop:
-                    12,
-                }}
-              >
-                {message}
-              </p>
-            )}
           </section>
 
           {/* NAVIGATION */}
@@ -728,12 +469,9 @@ export default function HomePage() {
           <section
             className="nav-grid"
             style={{
-              display:
-                "grid",
-
+              display: "grid",
               gridTemplateColumns:
                 "repeat(2, minmax(0, 1fr))",
-
               gap: 14,
             }}
           >
@@ -798,59 +536,40 @@ export default function HomePage() {
         <section className="card">
           <div
             style={{
-              display:
-                "grid",
-
+              display: "grid",
               gridTemplateColumns:
                 "1fr 1fr",
-
               gap: 8,
-
-              marginBottom:
-                18,
+              marginBottom: 18,
             }}
           >
             <button
               type="button"
               onClick={() => {
-                setAuthMode(
-                  "login"
-                );
-
-                setMessage(
-                  ""
-                );
+                setAuthMode("login");
+                setMessage("");
               }}
               style={{
-                padding:
-                  "11px 12px",
-
-                borderRadius:
-                  12,
+                padding: "11px 12px",
+                borderRadius: 12,
 
                 border:
-                  authMode ===
-                  "login"
+                  authMode === "login"
                     ? "1px solid rgba(34,197,94,0.45)"
                     : "1px solid rgba(148,163,184,0.16)",
 
                 background:
-                  authMode ===
-                  "login"
+                  authMode === "login"
                     ? "rgba(34,197,94,0.14)"
                     : "rgba(148,163,184,0.06)",
 
                 color:
-                  authMode ===
-                  "login"
+                  authMode === "login"
                     ? "#86efac"
                     : "#94a3b8",
 
-                fontWeight:
-                  900,
-
-                cursor:
-                  "pointer",
+                fontWeight: 900,
+                cursor: "pointer",
               }}
             >
               Connexion
@@ -859,44 +578,30 @@ export default function HomePage() {
             <button
               type="button"
               onClick={() => {
-                setAuthMode(
-                  "signup"
-                );
-
-                setMessage(
-                  ""
-                );
+                setAuthMode("signup");
+                setMessage("");
               }}
               style={{
-                padding:
-                  "11px 12px",
-
-                borderRadius:
-                  12,
+                padding: "11px 12px",
+                borderRadius: 12,
 
                 border:
-                  authMode ===
-                  "signup"
+                  authMode === "signup"
                     ? "1px solid rgba(34,197,94,0.45)"
                     : "1px solid rgba(148,163,184,0.16)",
 
                 background:
-                  authMode ===
-                  "signup"
+                  authMode === "signup"
                     ? "rgba(34,197,94,0.14)"
                     : "rgba(148,163,184,0.06)",
 
                 color:
-                  authMode ===
-                  "signup"
+                  authMode === "signup"
                     ? "#86efac"
                     : "#94a3b8",
 
-                fontWeight:
-                  900,
-
-                cursor:
-                  "pointer",
+                fontWeight: 900,
+                cursor: "pointer",
               }}
             >
               Créer un compte
@@ -904,20 +609,17 @@ export default function HomePage() {
           </div>
 
           <h2>
-            {authMode ===
-            "login"
+            {authMode === "login"
               ? "Connexion"
               : "Créer mon compte"}
           </h2>
 
           <p
             style={{
-              color:
-                "#94a3b8",
+              color: "#94a3b8",
             }}
           >
-            {authMode ===
-            "login"
+            {authMode === "login"
               ? "Entre ton courriel et ton mot de passe."
               : "Crée ton compte. Tu choisiras ensuite ton nom d’utilisateur et ton nom réel."}
           </p>
@@ -933,52 +635,40 @@ export default function HomePage() {
                 e.target.value
               )
             }
-            disabled={
-              loading
-            }
+            disabled={loading}
           />
 
           <input
             className="input"
             type="password"
             autoComplete={
-              authMode ===
-              "login"
+              authMode === "login"
                 ? "current-password"
                 : "new-password"
             }
             placeholder="Mot de passe"
-            value={
-              password
-            }
+            value={password}
             onChange={(e) =>
               setPassword(
                 e.target.value
               )
             }
-            disabled={
-              loading
-            }
+            disabled={loading}
           />
 
-          {authMode ===
-            "signup" && (
+          {authMode === "signup" && (
             <input
               className="input"
               type="password"
               autoComplete="new-password"
               placeholder="Confirmer le mot de passe"
-              value={
-                confirmPassword
-              }
+              value={confirmPassword}
               onChange={(e) =>
                 setConfirmPassword(
                   e.target.value
                 )
               }
-              disabled={
-                loading
-              }
+              disabled={loading}
             />
           )}
 
@@ -986,23 +676,18 @@ export default function HomePage() {
             type="button"
             className="button"
             onClick={
-              authMode ===
-              "login"
+              authMode === "login"
                 ? handleLogin
                 : handleSignUp
             }
-            disabled={
-              loading
-            }
+            disabled={loading}
             style={{
-              width:
-                "100%",
+              width: "100%",
             }}
           >
             {loading
               ? "Chargement..."
-              : authMode ===
-                "login"
+              : authMode === "login"
               ? "Se connecter"
               : "Créer mon compte"}
           </button>
@@ -1010,13 +695,10 @@ export default function HomePage() {
           {message && (
             <p
               style={{
-                marginTop:
-                  12,
+                marginTop: 12,
 
                 color:
-                  message.includes(
-                    "✅"
-                  )
+                  message.includes("✅")
                     ? "#86efac"
                     : "#fca5a5",
               }}
