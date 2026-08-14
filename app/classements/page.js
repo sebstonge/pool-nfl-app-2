@@ -10,8 +10,8 @@ function displayName(user, fallbackId) {
   return fallbackId;
 }
 
-function initials(name) {
-  return String(name || "Joueur").slice(0, 2).toUpperCase();
+function realName(user) {
+  return user?.real_name || "";
 }
 
 function medal(rank) {
@@ -19,6 +19,50 @@ function medal(rank) {
   if (rank === 2) return "🥈";
   if (rank === 3) return "🥉";
   return `#${rank}`;
+}
+
+function PlayerIdentity({
+  name,
+  realName: secondaryName,
+  align = "left",
+  compact = false,
+}) {
+  return (
+    <div
+      style={{
+        textAlign: align,
+        minWidth: 0,
+      }}
+    >
+      <strong
+        style={{
+          display: "block",
+          fontSize: compact ? 14 : 18,
+          lineHeight: 1.15,
+          color: "#f8fafc",
+          wordBreak: "break-word",
+        }}
+      >
+        {name}
+      </strong>
+
+      {secondaryName && (
+        <span
+          style={{
+            display: "block",
+            marginTop: 2,
+            color: "#94a3b8",
+            fontSize: compact ? 11 : 13,
+            fontWeight: 400,
+            lineHeight: 1.2,
+            wordBreak: "break-word",
+          }}
+        >
+          {secondaryName}
+        </span>
+      )}
+    </div>
+  );
 }
 
 function RankingRow({ row, mode }) {
@@ -59,12 +103,15 @@ function RankingRow({ row, mode }) {
         <div
           style={{
             display: "flex",
-            alignItems: "center",
+            alignItems: "flex-start",
             gap: 8,
             flexWrap: "wrap",
           }}
         >
-          <h3 style={{ margin: 0 }}>{row.name}</h3>
+          <PlayerIdentity
+            name={row.name}
+            realName={row.realName}
+          />
 
           {mode === "season" && (
             <span
@@ -77,6 +124,7 @@ function RankingRow({ row, mode }) {
                     : row.movement < 0
                     ? "#ef4444"
                     : "#94a3b8",
+                marginTop: 1,
               }}
             >
               {movement}
@@ -84,69 +132,68 @@ function RankingRow({ row, mode }) {
           )}
         </div>
 
-<p
-  style={{
-    margin: "4px 0 0 0",
-    color: "#f8fafc",
-    fontWeight: 800,
-    fontSize: 16,
-  }}
->
-  {(mode === "season" ? row.total : row.score).toFixed(3)} pts
-</p>
+        <p
+          style={{
+            margin: "6px 0 0 0",
+            color: "#f8fafc",
+            fontWeight: 800,
+            fontSize: 16,
+          }}
+        >
+          {(mode === "season" ? row.total : row.score).toFixed(3)} pts
+        </p>
 
-{row.rank !== 1 && (
-  <p
-    style={{
-      margin: "4px 0 0 0",
-      color: "#ef4444",
-      fontSize: 14,
-    }}
-  >
-    -{row.diff.toFixed(3)} du meneur
-  </p>
-)}
+        {row.rank !== 1 && (
+          <p
+            style={{
+              margin: "4px 0 0 0",
+              color: "#ef4444",
+              fontSize: 14,
+            }}
+          >
+            -{row.diff.toFixed(3)} du meneur
+          </p>
+        )}
 
-{mode === "season" && (
-  <p
-    style={{
-      margin: "4px 0 0 0",
-      color: "#94a3b8",
-      fontSize: 14,
-    }}
-  >
-    Moy. {row.average.toFixed(3)} / semaine
-  </p>
-)}
-{mode === "season" && row.badges?.length > 0 && (
-  <div
-    style={{
-      display: "flex",
-      flexWrap: "wrap",
-      gap: 6,
-      marginTop: 8,
-    }}
-  >
-    {row.badges.map((badge) => (
-      <span
-        key={badge}
-        style={{
-          padding: "5px 9px",
-          borderRadius: 999,
-          background: "rgba(148,163,184,0.14)",
-          color: "#e2e8f0",
-          fontSize: 12,
-          fontWeight: 800,
-        }}
-      >
-        {badge}
-      </span>
-    ))}
-  </div>
-)}
+        {mode === "season" && (
+          <p
+            style={{
+              margin: "4px 0 0 0",
+              color: "#94a3b8",
+              fontSize: 14,
+            }}
+          >
+            Moy. {row.average.toFixed(3)} / semaine
+          </p>
+        )}
+
+        {mode === "season" && row.badges?.length > 0 && (
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 6,
+              marginTop: 8,
+            }}
+          >
+            {row.badges.map((badge) => (
+              <span
+                key={badge}
+                style={{
+                  padding: "5px 9px",
+                  borderRadius: 999,
+                  background: "rgba(148,163,184,0.14)",
+                  color: "#e2e8f0",
+                  fontSize: 12,
+                  fontWeight: 800,
+                }}
+              >
+                {badge}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
-
-  
     </div>
   );
 }
@@ -180,16 +227,19 @@ function PodiumCard({ row, size = "small" }) {
         {medal(row.rank)}
       </div>
 
-      <h3
+      <div
         style={{
-          margin: "28px 0 8px 0",
-          fontSize: isBig ? 24 : 18,
-          lineHeight: 1.1,
-          wordBreak: "break-word",
+          marginTop: 24,
+          marginBottom: 8,
         }}
       >
-        {row.name}
-      </h3>
+        <PlayerIdentity
+          name={row.name}
+          realName={row.realName}
+          align="center"
+          compact={!isBig}
+        />
+      </div>
 
       <div
         style={{
@@ -203,6 +253,7 @@ function PodiumCard({ row, size = "small" }) {
     </div>
   );
 }
+
 function buildRankProgression(weeklyScores, users) {
   const weeks = Array.from(
     new Set((weeklyScores || []).map((score) => score.week))
@@ -228,7 +279,8 @@ function buildRankProgression(weeklyScores, users) {
 
         return {
           userId,
-          name: displayName(user),
+          name: displayName(user, userId),
+          realName: realName(user),
           total,
         };
       })
@@ -239,6 +291,7 @@ function buildRankProgression(weeklyScores, users) {
         progression[row.userId] = {
           userId: row.userId,
           name: row.name,
+          realName: row.realName,
           points: [],
         };
       }
@@ -270,7 +323,10 @@ function RankProgressionChart({ progression }) {
 
   const weeks = progression.weeks;
   const rows = progression.rows.slice(0, 8);
-  const maxRank = Math.max(...rows.flatMap((row) => row.points.map((p) => p.rank)));
+
+  const maxRank = Math.max(
+    ...rows.flatMap((row) => row.points.map((p) => p.rank))
+  );
 
   const width = 720;
   const height = 320;
@@ -295,19 +351,40 @@ function RankProgressionChart({ progression }) {
 
   const xForWeek = (week) => {
     const index = weeks.indexOf(week);
-    if (weeks.length === 1) return paddingLeft + chartWidth / 2;
-    return paddingLeft + (index / (weeks.length - 1)) * chartWidth;
+
+    if (weeks.length === 1) {
+      return paddingLeft + chartWidth / 2;
+    }
+
+    return (
+      paddingLeft +
+      (index / (weeks.length - 1)) * chartWidth
+    );
   };
 
   const yForRank = (rank) => {
-    if (maxRank === 1) return paddingTop + chartHeight / 2;
-    return paddingTop + ((rank - 1) / (maxRank - 1)) * chartHeight;
+    if (maxRank === 1) {
+      return paddingTop + chartHeight / 2;
+    }
+
+    return (
+      paddingTop +
+      ((rank - 1) / (maxRank - 1)) * chartHeight
+    );
   };
 
   return (
     <section className="card">
-      <h2 style={{ marginTop: 0 }}>Progression au classement 📈</h2>
-      <p style={{ marginTop: -6, color: "#94a3b8" }}>
+      <h2 style={{ marginTop: 0 }}>
+        Progression au classement 📈
+      </h2>
+
+      <p
+        style={{
+          marginTop: -6,
+          color: "#94a3b8",
+        }}
+      >
         Rang cumulatif par semaine
       </p>
 
@@ -367,10 +444,14 @@ function RankProgressionChart({ progression }) {
           })}
 
           {rows.map((row, rowIndex) => {
-            const color = colors[rowIndex % colors.length];
+            const color =
+              colors[rowIndex % colors.length];
 
             const points = row.points
-              .map((point) => `${xForWeek(point.week)},${yForRank(point.rank)}`)
+              .map(
+                (point) =>
+                  `${xForWeek(point.week)},${yForRank(point.rank)}`
+              )
               .join(" ");
 
             return (
@@ -414,10 +495,9 @@ function RankProgressionChart({ progression }) {
             key={row.userId}
             style={{
               display: "flex",
-              alignItems: "center",
+              alignItems: "flex-start",
               gap: 6,
               color: "#cbd5e1",
-              fontWeight: 700,
               fontSize: 13,
             }}
           >
@@ -426,24 +506,33 @@ function RankProgressionChart({ progression }) {
                 width: 10,
                 height: 10,
                 borderRadius: "50%",
-                background: colors[index % colors.length],
+                background:
+                  colors[index % colors.length],
                 display: "inline-block",
+                marginTop: 4,
+                flexShrink: 0,
               }}
             />
-            {row.name}
+
+            <PlayerIdentity
+              name={row.name}
+              realName={row.realName}
+              compact={true}
+            />
           </div>
         ))}
       </div>
     </section>
   );
 }
+
 export default function ClassementsPage() {
   const [tab, setTab] = useState("week");
   const [week, setWeek] = useState(1);
   const [weekly, setWeekly] = useState([]);
   const [season, setSeason] = useState([]);
-const [rankProgression, setRankProgression] = useState(null);
-  
+  const [rankProgression, setRankProgression] = useState(null);
+
   useEffect(() => {
     async function loadData() {
       const { data: settings } = await supabase
@@ -451,61 +540,90 @@ const [rankProgression, setRankProgression] = useState(null);
         .select("*")
         .single();
 
-      const currentWeek = settings?.current_week || 1;
+      const currentWeek =
+        settings?.current_week || 1;
+
       setWeek(currentWeek);
 
       const { data: users } = await supabase
         .from("users")
-        .select("id, email, display_name");
+        .select(
+          "id, email, display_name, real_name"
+        );
 
       const { data: allScores } = await supabase
         .from("weekly_scores")
         .select("*")
-        .order("week", { ascending: true });
-const weeklyRankings = {};
+        .order("week", {
+          ascending: true,
+        });
 
-(allScores || []).forEach((score) => {
-  if (!weeklyRankings[score.week]) {
-    weeklyRankings[score.week] = [];
-  }
+      const weeklyRankings = {};
 
-  weeklyRankings[score.week].push(score);
-});
+      (allScores || []).forEach((score) => {
+        if (!weeklyRankings[score.week]) {
+          weeklyRankings[score.week] = [];
+        }
 
-Object.keys(weeklyRankings).forEach((week) => {
-  weeklyRankings[week] = weeklyRankings[week]
-    .sort(
-      (a, b) =>
-        Number(b.final_score || 0) -
-        Number(a.final_score || 0)
-    )
-    .map((score, index) => ({
-      userId: score.user_id,
-      rank: index + 1,
-    }));
-});
-      const getUserName = (userId) => {
-        const user = users?.find((u) => u.id === userId);
-        return displayName(user, userId);
+        weeklyRankings[score.week].push(score);
+      });
+
+      Object.keys(weeklyRankings).forEach((week) => {
+        weeklyRankings[week] = weeklyRankings[week]
+          .sort(
+            (a, b) =>
+              Number(b.final_score || 0) -
+              Number(a.final_score || 0)
+          )
+          .map((score, index) => ({
+            userId: score.user_id,
+            rank: index + 1,
+          }));
+      });
+
+      const getUser = (userId) => {
+        return users?.find(
+          (u) => u.id === userId
+        );
       };
 
       const weekScores = (allScores || [])
-        .filter((score) => score.week === currentWeek)
+        .filter(
+          (score) =>
+            score.week === currentWeek
+        )
         .sort(
           (a, b) =>
-            Number(b.final_score || 0) - Number(a.final_score || 0)
+            Number(b.final_score || 0) -
+            Number(a.final_score || 0)
         );
 
-      const weekLeader = Number(weekScores?.[0]?.final_score || 0);
+      const weekLeader = Number(
+        weekScores?.[0]?.final_score || 0
+      );
 
       setWeekly(
-        weekScores.map((score, index) => ({
-          rank: index + 1,
-          userId: score.user_id,
-          name: getUserName(score.user_id),
-          score: Number(score.final_score || 0),
-          diff: weekLeader - Number(score.final_score || 0),
-        }))
+        weekScores.map((score, index) => {
+          const user = getUser(score.user_id);
+
+          return {
+            rank: index + 1,
+            userId: score.user_id,
+            name: displayName(
+              user,
+              score.user_id
+            ),
+            realName: realName(user),
+            score: Number(
+              score.final_score || 0
+            ),
+            diff:
+              weekLeader -
+              Number(
+                score.final_score || 0
+              ),
+          };
+        })
       );
 
       function buildSeasonRows(scores) {
@@ -513,94 +631,191 @@ Object.keys(weeklyRankings).forEach((week) => {
 
         for (const score of scores || []) {
           if (!grouped[score.user_id]) {
+            const user = getUser(score.user_id);
+
             grouped[score.user_id] = {
               userId: score.user_id,
-              name: getUserName(score.user_id),
+              name: displayName(
+                user,
+                score.user_id
+              ),
+              realName: realName(user),
               total: 0,
               weeks: 0,
             };
           }
 
-          grouped[score.user_id].total += Number(score.final_score || 0);
+          grouped[score.user_id].total +=
+            Number(
+              score.final_score || 0
+            );
+
           grouped[score.user_id].weeks += 1;
         }
 
-        return Object.values(grouped).sort((a, b) => b.total - a.total);
+        return Object.values(grouped).sort(
+          (a, b) =>
+            b.total - a.total
+        );
       }
 
-      const seasonRows = buildSeasonRows(allScores || []);
-      const previousSeasonRows = buildSeasonRows(
-        (allScores || []).filter((score) => score.week < currentWeek)
-      );
+      const seasonRows =
+        buildSeasonRows(
+          allScores || []
+        );
+
+      const previousSeasonRows =
+        buildSeasonRows(
+          (allScores || []).filter(
+            (score) =>
+              score.week <
+              currentWeek
+          )
+        );
 
       const previousRanks = {};
-      previousSeasonRows.forEach((row, index) => {
-        previousRanks[row.userId] = index + 1;
-      });
 
-      const seasonLeader = Number(seasonRows?.[0]?.total || 0);
-const rankProgression = buildRankProgression(
-  allScores || [],
-  users || []
-);
+      previousSeasonRows.forEach(
+        (row, index) => {
+          previousRanks[row.userId] =
+            index + 1;
+        }
+      );
+
+      const seasonLeader = Number(
+        seasonRows?.[0]?.total || 0
+      );
+
+      const progression =
+        buildRankProgression(
+          allScores || [],
+          users || []
+        );
+
       setSeason(
         seasonRows.map((row, index) => {
-const currentRank = index + 1;
-const previousRank = previousRanks[row.userId] || currentRank;
-const movement = previousRank - currentRank;
+          const currentRank =
+            index + 1;
 
-const badges = [];
-          const recentWeeks = Object.keys(weeklyRankings)
-  .map(Number)
-  .sort((a, b) => b - a)
-  .slice(0, 3);
+          const previousRank =
+            previousRanks[row.userId] ||
+            currentRank;
 
-const recentRanks = recentWeeks.map((week) => {
-  const found = weeklyRankings[week]?.find(
-    (r) => r.userId === row.userId
-  );
+          const movement =
+            previousRank -
+            currentRank;
 
-  return found?.rank || 999;
-});
+          const badges = [];
 
-if (recentRanks.length === 3) {
-  if (recentRanks.every((rank) => rank <= 3)) {
-    badges.push("🔥 En feu");
-  }
+          const recentWeeks =
+            Object.keys(
+              weeklyRankings
+            )
+              .map(Number)
+              .sort(
+                (a, b) =>
+                  b - a
+              )
+              .slice(0, 3);
 
-  if (recentRanks.every((rank) => rank > 3)) {
-    badges.push("🧊 Glacé");
-  }
-}
+          const recentRanks =
+            recentWeeks.map(
+              (week) => {
+                const found =
+                  weeklyRankings[
+                    week
+                  ]?.find(
+                    (r) =>
+                      r.userId ===
+                      row.userId
+                  );
 
-if (movement <= -3) {
-  badges.push("📉 Chute libre");
-}
-        return {
-  ...row,
-  rank: currentRank,
-  average: row.weeks > 0 ? row.total / row.weeks : 0,
-  diff: seasonLeader - row.total,
-  movement: previousRank - currentRank,
-  badges,
-};
+                return (
+                  found?.rank ||
+                  999
+                );
+              }
+            );
+
+          if (
+            recentRanks.length ===
+            3
+          ) {
+            if (
+              recentRanks.every(
+                (rank) =>
+                  rank <= 3
+              )
+            ) {
+              badges.push(
+                "🔥 En feu"
+              );
+            }
+
+            if (
+              recentRanks.every(
+                (rank) =>
+                  rank > 3
+              )
+            ) {
+              badges.push(
+                "🧊 Glacé"
+              );
+            }
+          }
+
+          if (
+            movement <= -3
+          ) {
+            badges.push(
+              "📉 Chute libre"
+            );
+          }
+
+          return {
+            ...row,
+            rank:
+              currentRank,
+            average:
+              row.weeks > 0
+                ? row.total /
+                  row.weeks
+                : 0,
+            diff:
+              seasonLeader -
+              row.total,
+            movement,
+            badges,
+          };
         })
       );
-    setRankProgression(rankProgression);
+
+      setRankProgression(
+        progression
+      );
     }
 
     loadData();
   }, []);
 
-  const rows = tab === "week" ? weekly : season;
-  const topThree = rows.slice(0, 3);
-  const rest = rows.slice(3);
+  const rows =
+    tab === "week"
+      ? weekly
+      : season;
+
+  const topThree =
+    rows.slice(0, 3);
 
   return (
     <main className="page">
       <section className="header-card">
-        <h1>Classements 🏆</h1>
-        <p>Semaine {week} et saison complète</p>
+        <h1>
+          Classements 🏆
+        </h1>
+
+        <p>
+          Semaine {week} et saison complète
+        </p>
       </section>
 
       <section
@@ -608,20 +823,33 @@ if (movement <= -3) {
         style={{
           padding: 8,
           display: "grid",
-          gridTemplateColumns: "1fr 1fr",
+          gridTemplateColumns:
+            "1fr 1fr",
           gap: 8,
         }}
       >
         <button
-          className={tab === "week" ? "button" : "button-secondary"}
-          onClick={() => setTab("week")}
+          className={
+            tab === "week"
+              ? "button"
+              : "button-secondary"
+          }
+          onClick={() =>
+            setTab("week")
+          }
         >
           Semaine {week}
         </button>
 
         <button
-          className={tab === "season" ? "button" : "button-secondary"}
-          onClick={() => setTab("season")}
+          className={
+            tab === "season"
+              ? "button"
+              : "button-secondary"
+          }
+          onClick={() =>
+            setTab("season")
+          }
         >
           Saison complète
         </button>
@@ -629,45 +857,90 @@ if (movement <= -3) {
 
       {rows.length === 0 ? (
         <section className="card">
-          <p>Aucun score pour le moment.</p>
+          <p>
+            Aucun score pour le moment.
+          </p>
         </section>
       ) : (
         <>
           <section className="card">
-            <h2 style={{ marginTop: 0 }}>
-              Podium {tab === "week" ? `semaine ${week}` : "saison"}
+            <h2
+              style={{
+                marginTop: 0,
+              }}
+            >
+              Podium{" "}
+              {tab === "week"
+                ? `semaine ${week}`
+                : "saison"}
             </h2>
 
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "1fr 1.25fr 1fr",
+                gridTemplateColumns:
+                  "1fr 1.25fr 1fr",
                 gap: 12,
                 alignItems: "end",
               }}
             >
-              <PodiumCard row={topThree[1]} />
-              <PodiumCard row={topThree[0]} size="big" />
-              <PodiumCard row={topThree[2]} />
+              <PodiumCard
+                row={
+                  topThree[1]
+                }
+              />
+
+              <PodiumCard
+                row={
+                  topThree[0]
+                }
+                size="big"
+              />
+
+              <PodiumCard
+                row={
+                  topThree[2]
+                }
+              />
             </div>
           </section>
 
           {rows.length > 3 && (
             <section className="card">
-              {rows.slice(3).map((row) => (
-                <RankingRow
-                  key={row.userId}
-                  row={row}
-                  mode={tab === "week" ? "week" : "season"}
-                />
-              ))}
+              {rows
+                .slice(3)
+                .map(
+                  (row) => (
+                    <RankingRow
+                      key={
+                        row.userId
+                      }
+                      row={
+                        row
+                      }
+                      mode={
+                        tab ===
+                        "week"
+                          ? "week"
+                          : "season"
+                      }
+                    />
+                  )
+                )}
             </section>
           )}
         </>
       )}
-{tab === "season" && rankProgression && (
-  <RankProgressionChart progression={rankProgression} />
-)}
+
+      {tab === "season" &&
+        rankProgression && (
+          <RankProgressionChart
+            progression={
+              rankProgression
+            }
+          />
+        )}
+
       <BottomNav />
     </main>
   );
