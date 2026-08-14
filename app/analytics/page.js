@@ -10,11 +10,71 @@ function displayName(user) {
   return "Joueur";
 }
 
-function statValue(row) {
-  return Number(row?.final_score ?? row?.score ?? row?.total_score ?? row?.points ?? 0);
+function realName(user) {
+  return user?.real_name || "";
 }
 
-function StatCard({ icon, title, value, subtitle, color = "#22c55e" }) {
+function statValue(row) {
+  return Number(
+    row?.final_score ??
+      row?.score ??
+      row?.total_score ??
+      row?.points ??
+      0
+  );
+}
+
+function PlayerIdentity({
+  name,
+  realName: secondaryName,
+  align = "left",
+  compact = false,
+}) {
+  return (
+    <div
+      style={{
+        textAlign: align,
+        minWidth: 0,
+      }}
+    >
+      <strong
+        style={{
+          display: "block",
+          fontSize: compact ? 14 : 16,
+          lineHeight: 1.15,
+          color: "#f8fafc",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+        }}
+      >
+        {name}
+      </strong>
+
+      {secondaryName && (
+        <span
+          style={{
+            display: "block",
+            marginTop: 2,
+            color: "#94a3b8",
+            fontSize: compact ? 11 : 13,
+            fontWeight: 400,
+            lineHeight: 1.2,
+          }}
+        >
+          {secondaryName}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function StatCard({
+  icon,
+  title,
+  value,
+  subtitle,
+  color = "#22c55e",
+}) {
   return (
     <div
       style={{
@@ -24,13 +84,42 @@ function StatCard({ icon, title, value, subtitle, color = "#22c55e" }) {
         border: "1px solid rgba(148,163,184,0.16)",
       }}
     >
-      <div style={{ fontSize: 30, marginBottom: 10 }}>{icon}</div>
-      <p style={{ margin: 0, color: "#cbd5e1", fontWeight: 800 }}>{title}</p>
-      <h2 style={{ margin: "8px 0", color, fontSize: 34 }}>{value}</h2>
-      <p style={{ margin: 0, color: "#94a3b8" }}>{subtitle}</p>
+      <div style={{ fontSize: 30, marginBottom: 10 }}>
+        {icon}
+      </div>
+
+      <p
+        style={{
+          margin: 0,
+          color: "#cbd5e1",
+          fontWeight: 800,
+        }}
+      >
+        {title}
+      </p>
+
+      <h2
+        style={{
+          margin: "8px 0",
+          color,
+          fontSize: 34,
+        }}
+      >
+        {value}
+      </h2>
+
+      <div
+        style={{
+          margin: 0,
+          color: "#94a3b8",
+        }}
+      >
+        {subtitle}
+      </div>
     </div>
   );
 }
+
 function QBRecordCard({
   icon,
   title,
@@ -73,7 +162,9 @@ function QBRecordCard({
       </p>
 
       {!qb ? (
-        <p style={{ color: "#94a3b8" }}>Aucune donnée</p>
+        <p style={{ color: "#94a3b8" }}>
+          Aucune donnée
+        </p>
       ) : (
         <>
           <div
@@ -118,32 +209,66 @@ function QBRecordCard({
           </div>
 
           {isAverage ? (
-  <p style={{ margin: "3px 0", color: "#94a3b8" }}>
-    {qb.detail}
-  </p>
-) : (
-  <>
-    <p style={{ margin: "3px 0", color: "#94a3b8" }}>
-      Semaine {qb.week}
-    </p>
+            <p
+              style={{
+                margin: "3px 0",
+                color: "#94a3b8",
+              }}
+            >
+              {qb.detail}
+            </p>
+          ) : (
+            <>
+              <p
+                style={{
+                  margin: "3px 0",
+                  color: "#94a3b8",
+                }}
+              >
+                Semaine {qb.week}
+              </p>
 
-    <p style={{ margin: "3px 0", color: "#94a3b8" }}>
-      Choisi par {qb.selectedBy}
-    </p>
-  </>
-)}
+              <div
+                style={{
+                  marginTop: 6,
+                }}
+              >
+                <span
+                  style={{
+                    display: "block",
+                    color: "#94a3b8",
+                    fontSize: 13,
+                    marginBottom: 2,
+                  }}
+                >
+                  Choisi par
+                </span>
+
+                <PlayerIdentity
+                  name={qb.selectedBy}
+                  realName={qb.selectedByRealName}
+                  compact={true}
+                />
+              </div>
+            </>
+          )}
         </>
       )}
     </div>
   );
 }
+
 function MiniRanking({ title, rows, valueLabel }) {
   return (
     <section className="card">
-      <h2 style={{ marginTop: 0 }}>{title}</h2>
+      <h2 style={{ marginTop: 0 }}>
+        {title}
+      </h2>
 
       {rows.length === 0 ? (
-        <p style={{ color: "#94a3b8" }}>Aucune donnée.</p>
+        <p style={{ color: "#94a3b8" }}>
+          Aucune donnée.
+        </p>
       ) : (
         rows.slice(0, 5).map((row, index) => (
           <div
@@ -154,21 +279,44 @@ function MiniRanking({ title, rows, valueLabel }) {
               gap: 12,
               alignItems: "center",
               padding: "12px 0",
-              borderBottom: "1px solid rgba(148,163,184,0.12)",
+              borderBottom:
+                "1px solid rgba(148,163,184,0.12)",
             }}
           >
-            <strong style={{ color: index < 3 ? "#22c55e" : "#94a3b8" }}>
+            <strong
+              style={{
+                color:
+                  index < 3
+                    ? "#22c55e"
+                    : "#94a3b8",
+              }}
+            >
               #{index + 1}
             </strong>
 
             <div>
-              <strong>{row.name}</strong>
-              <p style={{ margin: "3px 0 0 0", color: "#94a3b8" }}>
+              <PlayerIdentity
+                name={row.name}
+                realName={row.realName}
+              />
+
+              <p
+                style={{
+                  margin: "4px 0 0 0",
+                  color: "#94a3b8",
+                  fontSize: 13,
+                }}
+              >
                 {row.detail}
               </p>
             </div>
 
-            <strong style={{ color: "#22c55e", fontSize: 22 }}>
+            <strong
+              style={{
+                color: "#22c55e",
+                fontSize: 22,
+              }}
+            >
               {row.value}
               {valueLabel}
             </strong>
@@ -180,25 +328,40 @@ function MiniRanking({ title, rows, valueLabel }) {
 }
 
 export default function AnalyticsPage() {
-  const [loading, setLoading] = useState(true);
-  const [message, setMessage] = useState("");
-  const [stats, setStats] = useState(null);
-const [teams, setTeams] = useState([]);
+  const [loading, setLoading] =
+    useState(true);
+
+  const [message, setMessage] =
+    useState("");
+
+  const [stats, setStats] =
+    useState(null);
+
+  const [teams, setTeams] =
+    useState([]);
+
   useEffect(() => {
     async function loadData() {
       setLoading(true);
 
-const { data: teamsData } = await supabase
-  .from("teams")
-  .select("*");
+      const { data: teamsData } =
+        await supabase
+          .from("teams")
+          .select("*");
 
-setTeams(teamsData || []);
+      setTeams(teamsData || []);
 
-const { data: usersData } = await supabase
-        .from("users")
-        .select("id, email, display_name");
+      const { data: usersData } =
+        await supabase
+          .from("users")
+          .select(
+            "id, email, display_name, real_name"
+          );
 
-      const { data: picksData, error: picksError } = await supabase
+      const {
+        data: picksData,
+        error: picksError,
+      } = await supabase
         .from("picks")
         .select(`
           id,
@@ -215,38 +378,57 @@ const { data: usersData } = await supabase
         `);
 
       if (picksError) {
-        setMessage("Erreur picks : " + picksError.message);
+        setMessage(
+          "Erreur picks : " +
+            picksError.message
+        );
+
         setLoading(false);
         return;
       }
 
-      const { data: weeklyScores } = await supabase
-        .from("weekly_scores")
-        .select("*");
+      const { data: weeklyScores } =
+        await supabase
+          .from("weekly_scores")
+          .select("*");
 
-      const { data: qbRatings } = await supabase
-        .from("qb_ratings")
-        .select("*");
+      const { data: qbRatings } =
+        await supabase
+          .from("qb_ratings")
+          .select("*");
 
-      const { data: qbPicks } = await supabase
-        .from("qb_picks")
-        .select("*");
+      const { data: qbPicks } =
+        await supabase
+          .from("qb_picks")
+          .select("*");
 
-      const { data: qbs } = await supabase
-        .from("qbs")
-        .select("*");
+      const { data: qbs } =
+        await supabase
+          .from("qbs")
+          .select("*");
 
-      const users = usersData || [];
-      const picks = (picksData || []).filter(
-        (p) => p.games?.home_score != null && p.games?.away_score != null
-      );
+      const users =
+        usersData || [];
+
+      const picks =
+        (picksData || []).filter(
+          (p) =>
+            p.games?.home_score != null &&
+            p.games?.away_score != null
+        );
 
       const byUser = {};
 
       users.forEach((user) => {
         byUser[user.id] = {
           userId: user.id,
-          name: displayName(user),
+
+          name:
+            displayName(user),
+
+          realName:
+            realName(user),
+
           totalPicks: 0,
           correctWinners: 0,
           exactMargins: 0,
@@ -255,16 +437,41 @@ const { data: usersData } = await supabase
       });
 
       picks.forEach((pick) => {
-        const game = pick.games;
-        const winner =
-          game.home_score > game.away_score ? game.home_team : game.away_team;
-        const realSpread = Math.abs(game.home_score - game.away_score);
+        const game =
+          pick.games;
 
-        if (!byUser[pick.user_id]) {
-          const user = users.find((u) => u.id === pick.user_id);
+        const winner =
+          game.home_score >
+          game.away_score
+            ? game.home_team
+            : game.away_team;
+
+        const realSpread =
+          Math.abs(
+            game.home_score -
+              game.away_score
+          );
+
+        if (
+          !byUser[pick.user_id]
+        ) {
+          const user =
+            users.find(
+              (u) =>
+                u.id ===
+                pick.user_id
+            );
+
           byUser[pick.user_id] = {
-            userId: pick.user_id,
-            name: displayName(user),
+            userId:
+              pick.user_id,
+
+            name:
+              displayName(user),
+
+            realName:
+              realName(user),
+
             totalPicks: 0,
             correctWinners: 0,
             exactMargins: 0,
@@ -272,166 +479,362 @@ const { data: usersData } = await supabase
           };
         }
 
-        byUser[pick.user_id].totalPicks += 1;
+        byUser[
+          pick.user_id
+        ].totalPicks += 1;
 
-        if (pick.picked_team === winner) {
-          byUser[pick.user_id].correctWinners += 1;
+        if (
+          pick.picked_team ===
+          winner
+        ) {
+          byUser[
+            pick.user_id
+          ].correctWinners += 1;
 
-          if (Number(pick.predicted_spread) === realSpread) {
-            byUser[pick.user_id].exactMargins += 1;
+          if (
+            Number(
+              pick.predicted_spread
+            ) ===
+            realSpread
+          ) {
+            byUser[
+              pick.user_id
+            ].exactMargins += 1;
           }
         } else {
-          byUser[pick.user_id].wrong += 1;
+          byUser[
+            pick.user_id
+          ].wrong += 1;
         }
       });
 
-      const userRows = Object.values(byUser).filter((u) => u.totalPicks > 0);
+      const userRows =
+        Object.values(
+          byUser
+        ).filter(
+          (u) =>
+            u.totalPicks > 0
+        );
 
-      const topExact = [...userRows]
-        .sort((a, b) => b.exactMargins - a.exactMargins)
-        .map((u) => ({
-          ...u,
-          value: u.exactMargins,
-          detail: `${u.exactMargins} / ${u.totalPicks} choix`,
-        }));
+      const topExact =
+        [...userRows]
+          .sort(
+            (a, b) =>
+              b.exactMargins -
+              a.exactMargins
+          )
+          .map((u) => ({
+            ...u,
 
-      const topCorrect = [...userRows]
-        .sort((a, b) => b.correctWinners - a.correctWinners)
-        .map((u) => ({
-          ...u,
-          value: u.correctWinners,
-          detail: `${Math.round((u.correctWinners / u.totalPicks) * 100)} % de bons gagnants`,
-        }));
+            value:
+              u.exactMargins,
 
-      const weeklyRows = (weeklyScores || []).map((row) => {
-        const user = users.find((u) => u.id === row.user_id);
-        return {
-          ...row,
-          name: displayName(user),
-          score: statValue(row),
-        };
-      });
+            detail:
+              `${u.exactMargins} / ${u.totalPicks} choix`,
+          }));
 
-      const bestWeek = [...weeklyRows].sort((a, b) => b.score - a.score)[0];
-      const worstWeek = [...weeklyRows].sort((a, b) => a.score - b.score)[0];
+      const topCorrect =
+        [...userRows]
+          .sort(
+            (a, b) =>
+              b.correctWinners -
+              a.correctWinners
+          )
+          .map((u) => ({
+            ...u,
 
-      const totalPicks = userRows.reduce((sum, u) => sum + u.totalPicks, 0);
-      const totalCorrect = userRows.reduce((sum, u) => sum + u.correctWinners, 0);
-      const totalExact = userRows.reduce((sum, u) => sum + u.exactMargins, 0);
+            value:
+              u.correctWinners,
 
-      const bestQb = [...(qbRatings || [])].sort(
-        (a, b) => Number(b.passer_rating || 0) - Number(a.passer_rating || 0)
-      )[0];
+            detail:
+              `${Math.round(
+                (
+                  u.correctWinners /
+                  u.totalPicks
+                ) * 100
+              )} % de bons gagnants`,
+          }));
 
-      const worstQb = [...(qbRatings || [])].sort(
-        (a, b) => Number(a.passer_rating || 999) - Number(b.passer_rating || 999)
-      )[0];
+      const weeklyRows =
+        (weeklyScores || []).map(
+          (row) => {
+            const user =
+              users.find(
+                (u) =>
+                  u.id ===
+                  row.user_id
+              );
 
-     function qbLabel(rating) {
-  if (!rating) return null;
+            return {
+              ...row,
 
-  const selectedQb = (qbs || []).find(
-    (q) => q.id === rating.qb_id
-  );
+              name:
+                displayName(
+                  user
+                ),
 
-  const actualQb = rating.actual_espn_athlete_id
-    ? (qbs || []).find(
-        (q) =>
-          String(q.espn_athlete_id) ===
-          String(rating.actual_espn_athlete_id)
-      )
-    : null;
+              realName:
+                realName(
+                  user
+                ),
 
-  const qbName =
-    rating.actual_qb_name ||
-    actualQb?.name ||
-    selectedQb?.name ||
-    "QB";
+              score:
+                statValue(
+                  row
+                ),
+            };
+          }
+        );
 
-  const pick = (qbPicks || []).find(
-    (p) =>
-      p.qb_id === rating.qb_id &&
-      p.week === rating.week
-  );
+      const bestWeek =
+        [...weeklyRows].sort(
+          (a, b) =>
+            b.score -
+            a.score
+        )[0];
 
-  const user = users.find(
-    (u) => u.id === pick?.user_id
-  );
+      const worstWeek =
+        [...weeklyRows].sort(
+          (a, b) =>
+            a.score -
+            b.score
+        )[0];
 
-  return {
-    name: qbName,
-    team: actualQb?.team || selectedQb?.team || "",
-    rating: Number(rating.passer_rating),
-    week: rating.week,
-    selectedBy: displayName(user),
-  };
-}
-     const qbAverageRows = Object.values(
-  (qbRatings || []).reduce((acc, rating) => {
-    const selectedQb = (qbs || []).find(
-      (q) => q.id === rating.qb_id
-    );
+      const totalPicks =
+        userRows.reduce(
+          (sum, u) =>
+            sum +
+            u.totalPicks,
+          0
+        );
 
-    const athleteId =
-      rating.actual_espn_athlete_id ||
-      selectedQb?.espn_athlete_id;
+      const totalCorrect =
+        userRows.reduce(
+          (sum, u) =>
+            sum +
+            u.correctWinners,
+          0
+        );
 
-    if (!athleteId) return acc;
+      const totalExact =
+        userRows.reduce(
+          (sum, u) =>
+            sum +
+            u.exactMargins,
+          0
+        );
 
-    const key = String(athleteId);
+      const bestQb =
+        [...(qbRatings || [])].sort(
+          (a, b) =>
+            Number(
+              b.passer_rating ||
+                0
+            ) -
+            Number(
+              a.passer_rating ||
+                0
+            )
+        )[0];
 
-    if (!acc[key]) {
-      const actualQb = (qbs || []).find(
-        (q) =>
-          String(q.espn_athlete_id) ===
-          String(athleteId)
-      );
+      const worstQb =
+        [...(qbRatings || [])].sort(
+          (a, b) =>
+            Number(
+              a.passer_rating ||
+                999
+            ) -
+            Number(
+              b.passer_rating ||
+                999
+            )
+        )[0];
 
-      acc[key] = {
-        espn_athlete_id: key,
-        name:
+      function qbLabel(rating) {
+        if (!rating) {
+          return null;
+        }
+
+        const selectedQb =
+          (qbs || []).find(
+            (q) =>
+              q.id ===
+              rating.qb_id
+          );
+
+        const actualQb =
+          rating.actual_espn_athlete_id
+            ? (qbs || []).find(
+                (q) =>
+                  String(
+                    q.espn_athlete_id
+                  ) ===
+                  String(
+                    rating.actual_espn_athlete_id
+                  )
+              )
+            : null;
+
+        const qbName =
           rating.actual_qb_name ||
           actualQb?.name ||
           selectedQb?.name ||
-          "QB",
-        team:
-          actualQb?.team ||
-          selectedQb?.team ||
-          "",
-        total: 0,
-        count: 0,
-      };
-    }
+          "QB";
 
-    acc[key].total += Number(
-      rating.passer_rating || 0
-    );
+        const pick =
+          (qbPicks || []).find(
+            (p) =>
+              p.qb_id ===
+                rating.qb_id &&
+              p.week ===
+                rating.week
+          );
 
-    acc[key].count += 1;
+        const user =
+          users.find(
+            (u) =>
+              u.id ===
+              pick?.user_id
+          );
 
-    return acc;
-  }, {})
-)
-  .map((row) => ({
-    name: row.name,
-    team: row.team,
-    rating: row.total / row.count,
-    detail: `${row.count} utilisation${
-      row.count > 1 ? "s" : ""
-    }`,
-  }))
-  .sort((a, b) => b.rating - a.rating);
+        return {
+          name:
+            qbName,
+
+          team:
+            actualQb?.team ||
+            selectedQb?.team ||
+            "",
+
+          rating:
+            Number(
+              rating.passer_rating
+            ),
+
+          week:
+            rating.week,
+
+          selectedBy:
+            displayName(user),
+
+          selectedByRealName:
+            realName(user),
+        };
+      }
+
+      const qbAverageRows =
+        Object.values(
+          (qbRatings || []).reduce(
+            (acc, rating) => {
+              const selectedQb =
+                (qbs || []).find(
+                  (q) =>
+                    q.id ===
+                    rating.qb_id
+                );
+
+              const athleteId =
+                rating.actual_espn_athlete_id ||
+                selectedQb?.espn_athlete_id;
+
+              if (
+                !athleteId
+              ) {
+                return acc;
+              }
+
+              const key =
+                String(
+                  athleteId
+                );
+
+              if (!acc[key]) {
+                const actualQb =
+                  (qbs || []).find(
+                    (q) =>
+                      String(
+                        q.espn_athlete_id
+                      ) ===
+                      String(
+                        athleteId
+                      )
+                  );
+
+                acc[key] = {
+                  espn_athlete_id:
+                    key,
+
+                  name:
+                    rating.actual_qb_name ||
+                    actualQb?.name ||
+                    selectedQb?.name ||
+                    "QB",
+
+                  team:
+                    actualQb?.team ||
+                    selectedQb?.team ||
+                    "",
+
+                  total: 0,
+                  count: 0,
+                };
+              }
+
+              acc[key].total +=
+                Number(
+                  rating.passer_rating ||
+                    0
+                );
+
+              acc[key].count +=
+                1;
+
+              return acc;
+            },
+            {}
+          )
+        )
+          .map((row) => ({
+            name:
+              row.name,
+
+            team:
+              row.team,
+
+            rating:
+              row.total /
+              row.count,
+
+            detail:
+              `${row.count} utilisation${
+                row.count > 1
+                  ? "s"
+                  : ""
+              }`,
+          }))
+          .sort(
+            (a, b) =>
+              b.rating -
+              a.rating
+          );
 
       setStats({
         bestWeek,
         worstWeek,
+
         totalPicks,
         totalCorrect,
         totalExact,
+
         topExact,
         topCorrect,
-        bestQb: qbLabel(bestQb),
-        worstQb: qbLabel(worstQb),
+
+        bestQb:
+          qbLabel(bestQb),
+
+        worstQb:
+          qbLabel(worstQb),
+
         qbAverageRows,
       });
 
@@ -442,154 +845,279 @@ const { data: usersData } = await supabase
   }, []);
 
   return (
-    <main className="page" style={{ maxWidth: 1100 }}>
+    <main
+      className="page"
+      style={{
+        maxWidth: 1100,
+      }}
+    >
       <section className="header-card">
-        <h1>Statistiques avancées 📈</h1>
-        <p>Records et statistiques de la saison.</p>
+        <h1>
+          Statistiques avancées 📈
+        </h1>
+
+        <p>
+          Records et statistiques de la saison.
+        </p>
       </section>
 
       {message && (
         <section className="card">
-          <p>{message}</p>
+          <p>
+            {message}
+          </p>
         </section>
       )}
 
       {loading && (
         <section className="card">
-          <p>Chargement des statistiques...</p>
+          <p>
+            Chargement des statistiques...
+          </p>
         </section>
       )}
 
-      {!loading && stats && (
+      {!loading &&
+        stats && (
         <>
           <section className="card">
-            <h2 style={{ marginTop: 0 }}>Records de saison</h2>
+            <h2
+              style={{
+                marginTop: 0,
+              }}
+            >
+              Records de saison
+            </h2>
 
             <div
               style={{
-                display: "grid",
+                display:
+                  "grid",
+
                 gridTemplateColumns:
-                  typeof window !== "undefined" && window.innerWidth < 800
+                  typeof window !==
+                    "undefined" &&
+                  window.innerWidth <
+                    800
                     ? "1fr"
                     : "repeat(4, 1fr)",
+
                 gap: 12,
               }}
             >
-             <StatCard
-  icon="🏆"
-  title="Meilleur score semaine"
-  value={stats.bestWeek ? stats.bestWeek.score.toFixed(3) : "--"}
-  subtitle={
-    stats.bestWeek ? (
-      <>
-        <div>{stats.bestWeek.name}</div>
-        <div>Semaine {stats.bestWeek.week}</div>
-      </>
-    ) : (
-      "Aucune donnée"
-    )
-  }
-  color="#facc15"
-/>
+              <StatCard
+                icon="🏆"
+                title="Meilleur score semaine"
+                value={
+                  stats.bestWeek
+                    ? stats.bestWeek.score.toFixed(
+                        3
+                      )
+                    : "--"
+                }
+                subtitle={
+                  stats.bestWeek ? (
+                    <>
+                      <PlayerIdentity
+                        name={
+                          stats.bestWeek.name
+                        }
+                        realName={
+                          stats.bestWeek.realName
+                        }
+                        compact={true}
+                      />
+
+                      <div
+                        style={{
+                          marginTop:
+                            5,
+                        }}
+                      >
+                        Semaine{" "}
+                        {
+                          stats.bestWeek.week
+                        }
+                      </div>
+                    </>
+                  ) : (
+                    "Aucune donnée"
+                  )
+                }
+                color="#facc15"
+              />
 
               <StatCard
                 icon="🎯"
                 title="Écarts exacts"
-                value={stats.totalExact}
+                value={
+                  stats.totalExact
+                }
                 subtitle="Total de la saison"
               />
 
               <StatCard
                 icon="✅"
                 title="Bons gagnants"
-                value={stats.totalCorrect}
+                value={
+                  stats.totalCorrect
+                }
                 subtitle={`${stats.totalPicks} choix calculés`}
                 color="#3b82f6"
               />
 
               <StatCard
-  icon="📉"
-  title="Pire semaine"
-  value={stats.worstWeek ? stats.worstWeek.score.toFixed(3) : "--"}
-  subtitle={
-    stats.worstWeek ? (
-      <>
-        <div>{stats.worstWeek.name}</div>
-        <div>Semaine {stats.worstWeek.week}</div>
-      </>
-    ) : (
-      "Aucune donnée"
-    )
-  }
-  color="#ef4444"
-/>
+                icon="📉"
+                title="Pire semaine"
+                value={
+                  stats.worstWeek
+                    ? stats.worstWeek.score.toFixed(
+                        3
+                      )
+                    : "--"
+                }
+                subtitle={
+                  stats.worstWeek ? (
+                    <>
+                      <PlayerIdentity
+                        name={
+                          stats.worstWeek.name
+                        }
+                        realName={
+                          stats.worstWeek.realName
+                        }
+                        compact={true}
+                      />
+
+                      <div
+                        style={{
+                          marginTop:
+                            5,
+                        }}
+                      >
+                        Semaine{" "}
+                        {
+                          stats.worstWeek.week
+                        }
+                      </div>
+                    </>
+                  ) : (
+                    "Aucune donnée"
+                  )
+                }
+                color="#ef4444"
+              />
             </div>
           </section>
 
           <div
             style={{
-              display: "grid",
+              display:
+                "grid",
+
               gridTemplateColumns:
-                typeof window !== "undefined" && window.innerWidth < 900
+                typeof window !==
+                  "undefined" &&
+                window.innerWidth <
+                  900
                   ? "1fr"
                   : "1fr 1fr",
+
               gap: 16,
             }}
           >
             <MiniRanking
               title="Top écarts exacts 🎯"
-              rows={stats.topExact}
+              rows={
+                stats.topExact
+              }
               valueLabel=""
             />
 
             <MiniRanking
               title="Top bons gagnants ✅"
-              rows={stats.topCorrect}
+              rows={
+                stats.topCorrect
+              }
               valueLabel=""
             />
           </div>
 
           <section className="card">
-            <h2 style={{ marginTop: 0 }}>Records QB 🔥</h2>
+            <h2
+              style={{
+                marginTop: 0,
+              }}
+            >
+              Records QB 🔥
+            </h2>
 
             <div
               style={{
-                display: "grid",
+                display:
+                  "grid",
+
                 gridTemplateColumns:
-                  typeof window !== "undefined" && window.innerWidth < 900
+                  typeof window !==
+                    "undefined" &&
+                  window.innerWidth <
+                    900
                     ? "1fr"
                     : "1fr 1fr 1fr",
+
                 gap: 12,
               }}
             >
               <QBRecordCard
-  icon="🔥"
-  title="Meilleur QB utilisé"
-  qb={stats.bestQb}
-  teams={teams}
-/>
-
-<QBRecordCard
-  icon="💀"
-  title="Pire QB utilisé"
-  qb={stats.worstQb}
-  teams={teams}
-  color="#ef4444"
-/>
+                icon="🔥"
+                title="Meilleur QB utilisé"
+                qb={
+                  stats.bestQb
+                }
+                teams={
+                  teams
+                }
+              />
 
               <QBRecordCard
-  icon="📊"
-  title="Meilleure moyenne QB"
-  qb={stats.qbAverageRows[0] || null}
-  teams={teams}
-  color="#38bdf8"
-  isAverage={true}
-/>
+                icon="💀"
+                title="Pire QB utilisé"
+                qb={
+                  stats.worstQb
+                }
+                teams={
+                  teams
+                }
+                color="#ef4444"
+              />
+
+              <QBRecordCard
+                icon="📊"
+                title="Meilleure moyenne QB"
+                qb={
+                  stats.qbAverageRows[
+                    0
+                  ] || null
+                }
+                teams={
+                  teams
+                }
+                color="#38bdf8"
+                isAverage={
+                  true
+                }
+              />
             </div>
           </section>
 
           <section className="card">
-            <p style={{ margin: 0, color: "#94a3b8" }}>
+            <p
+              style={{
+                margin: 0,
+                color:
+                  "#94a3b8",
+              }}
+            >
               ⭐ Les statistiques se mettent à jour automatiquement après le calcul des scores.
             </p>
           </section>
