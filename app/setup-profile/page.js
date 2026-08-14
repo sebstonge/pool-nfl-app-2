@@ -27,11 +27,18 @@ export default function SetupProfilePage() {
 
       setUser(currentUser);
 
-      const { data: profile } = await supabase
+      const { data: profile, error } = await supabase
         .from("users")
         .select("display_name")
         .eq("id", currentUser.id)
         .maybeSingle();
+
+      if (error) {
+        console.error(
+          "Erreur chargement profil :",
+          error.message
+        );
+      }
 
       if (profile?.display_name) {
         router.push("/");
@@ -42,31 +49,51 @@ export default function SetupProfilePage() {
   }, [router]);
 
   async function saveProfile() {
-    if (!displayName.trim()) {
+    const cleanName = displayName.trim();
+
+    if (!cleanName) {
       setMessage("Entre un nom d’utilisateur.");
       return;
     }
 
-    if (displayName.length < 3) {
+    if (cleanName.length < 3) {
       setMessage("Minimum 3 caractères.");
       return;
     }
 
+    if (!user) {
+      setMessage("Session introuvable. Reconnecte-toi.");
+      return;
+    }
+
     setLoading(true);
+    setMessage("");
 
     const { error } = await supabase
       .from("users")
-      .update({
-        display_name: displayName.trim(),
-      })
-      .eq("id", user.id);
+      .upsert(
+        {
+          id: user.id,
+          email: user.email,
+          display_name: cleanName,
+        },
+        {
+          onConflict: "id",
+        }
+      );
 
     setLoading(false);
 
     if (error) {
+      console.error(
+        "Erreur sauvegarde profil :",
+        error.message
+      );
+
       setMessage(
         "Nom déjà utilisé ou invalide."
       );
+
       return;
     }
 
@@ -93,13 +120,16 @@ export default function SetupProfilePage() {
             setDisplayName(e.target.value)
           }
           maxLength={20}
+          disabled={loading}
         />
 
         <button
           className="button"
           onClick={saveProfile}
-          disabled={loading}
-          style={{ width: "100%" }}
+          disabled={loading || !user}
+          style={{
+            width: "100%",
+          }}
         >
           {loading
             ? "Sauvegarde..."
