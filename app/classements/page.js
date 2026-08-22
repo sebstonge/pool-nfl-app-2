@@ -313,7 +313,18 @@ function RankProgressionChart({ progression }) {
   if (!progression?.weeks?.length || !progression?.rows?.length) {
     return (
       <section className="card">
-        <h2>Progression au classement 📈</h2>
+        <h2
+  style={{
+    marginTop: 0,
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    flexWrap: "nowrap",
+  }}
+>
+  <span>Progression au classement</span>
+  <span style={{ flexShrink: 0 }}>📈</span>
+</h2>
         <p style={{ color: "#94a3b8" }}>
           Aucun classement historique pour le moment.
         </p>
@@ -809,9 +820,18 @@ export default function ClassementsPage() {
   return (
     <main className="page">
       <section className="header-card">
-        <h1>
-          Classements 🏆
-        </h1>
+     <h1
+  style={{
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    flexWrap: "nowrap",
+    whiteSpace: "nowrap",
+  }}
+>
+  <span>Classements</span>
+  <span style={{ flexShrink: 0 }}>🏆</span>
+</h1>
 
         <p>
           Semaine {week} et saison complète
