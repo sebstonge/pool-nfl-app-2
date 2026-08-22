@@ -823,21 +823,19 @@ export default function ClassementsPage() {
   return (
     <main className="page">
       <section className="header-card">
-    <h1
+  <h1
   style={{
     margin: 0,
     lineHeight: 1.05,
     fontSize:
       typeof window !== "undefined" &&
       window.innerWidth < 700
-        ? 44
+        ? 40
         : undefined,
+    whiteSpace: "nowrap",
   }}
 >
-  Classements{" "}
-  <span style={{ whiteSpace: "nowrap" }}>
-    🏆
-  </span>
+  Classements 🏆
 </h1>
 
         <p>
