@@ -822,26 +822,69 @@ export default function ClassementsPage() {
 
   return (
     <main className="page">
-      <section className="header-card">
-  <h1
+    <section
+  className="header-card"
   style={{
-    margin: 0,
-    lineHeight: 1.05,
-    fontSize:
-      typeof window !== "undefined" &&
-      window.innerWidth < 700
-        ? 40
-        : undefined,
-    whiteSpace: "nowrap",
+    position: "relative",
+    overflow: "hidden",
   }}
 >
-  Classements 🏆
-</h1>
+  <div
+    style={{
+      paddingRight: 64,
+    }}
+  >
+    <h1
+      style={{
+        margin: 0,
+        lineHeight: 1.05,
+        fontSize:
+          typeof window !== "undefined" &&
+          window.innerWidth < 700
+            ? 40
+            : undefined,
+        wordBreak: "normal",
+        overflowWrap: "normal",
+      }}
+    >
+      Classements
+    </h1>
 
-        <p>
-          Semaine {week} et saison complète
-        </p>
-      </section>
+    <p
+      style={{
+        marginTop: 18,
+      }}
+    >
+      Semaine {week} et saison complète
+    </p>
+  </div>
+
+  <span
+    aria-hidden="true"
+    style={{
+      position: "absolute",
+      top:
+        typeof window !== "undefined" &&
+        window.innerWidth < 700
+          ? 54
+          : 28,
+      right:
+        typeof window !== "undefined" &&
+        window.innerWidth < 700
+          ? 24
+          : 28,
+      fontSize:
+        typeof window !== "undefined" &&
+        window.innerWidth < 700
+          ? 40
+          : 48,
+      lineHeight: 1,
+      pointerEvents: "none",
+    }}
+  >
+    🏆
+  </span>
+</section>
 
       <section
         className="card"
