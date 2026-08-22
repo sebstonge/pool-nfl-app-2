@@ -822,68 +822,49 @@ export default function ClassementsPage() {
 
   return (
     <main className="page">
-    <section
-  className="header-card"
-  style={{
-    position: "relative",
-    overflow: "hidden",
-  }}
->
+    <section className="header-card">
   <div
     style={{
-      paddingRight: 64,
+      display: "grid",
+      gridTemplateColumns: "minmax(0, 1fr) auto",
+      alignItems: "center",
+      gap: 10,
+      width: "100%",
     }}
   >
-    <h1
+    <div
       style={{
-        margin: 0,
-        lineHeight: 1.05,
-        fontSize:
-          typeof window !== "undefined" &&
-          window.innerWidth < 700
-            ? 40
-            : undefined,
-        wordBreak: "normal",
-        overflowWrap: "normal",
+        minWidth: 0,
+        fontSize: "clamp(32px, 9vw, 48px)",
+        fontWeight: 900,
+        lineHeight: 1,
+        color: "#f8fafc",
+        whiteSpace: "nowrap",
+        letterSpacing: "-1px",
       }}
     >
       Classements
-    </h1>
+    </div>
 
-    <p
+    <div
       style={{
-        marginTop: 18,
+        fontSize: "clamp(30px, 8vw, 42px)",
+        lineHeight: 1,
+        flexShrink: 0,
       }}
     >
-      Semaine {week} et saison complète
-    </p>
+      🏆
+    </div>
   </div>
 
-  <span
-    aria-hidden="true"
+  <p
     style={{
-      position: "absolute",
-      top:
-        typeof window !== "undefined" &&
-        window.innerWidth < 700
-          ? 54
-          : 28,
-      right:
-        typeof window !== "undefined" &&
-        window.innerWidth < 700
-          ? 24
-          : 28,
-      fontSize:
-        typeof window !== "undefined" &&
-        window.innerWidth < 700
-          ? 40
-          : 48,
-      lineHeight: 1,
-      pointerEvents: "none",
+      marginTop: 22,
+      marginBottom: 0,
     }}
   >
-    🏆
-  </span>
+    Semaine {week} et saison complète
+  </p>
 </section>
 
       <section
