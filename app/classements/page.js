@@ -825,41 +825,43 @@ export default function ClassementsPage() {
     <section className="header-card">
   <div
     style={{
-      display: "grid",
-      gridTemplateColumns: "minmax(0, 1fr) auto",
+      display: "flex",
       alignItems: "center",
       gap: 10,
+      flexWrap: "nowrap",
       width: "100%",
+      minWidth: 0,
     }}
   >
     <div
       style={{
-        minWidth: 0,
-        fontSize: "clamp(32px, 9vw, 48px)",
+        fontSize: "clamp(44px, 10vw, 64px)",
         fontWeight: 900,
         lineHeight: 1,
         color: "#f8fafc",
+        letterSpacing: "-1.5px",
         whiteSpace: "nowrap",
-        letterSpacing: "-1px",
+        minWidth: 0,
       }}
     >
       Classements
     </div>
 
-    <div
+    <span
       style={{
-        fontSize: "clamp(30px, 8vw, 42px)",
+        fontSize: "clamp(34px, 8vw, 48px)",
         lineHeight: 1,
         flexShrink: 0,
+        transform: "translateY(1px)",
       }}
     >
       🏆
-    </div>
+    </span>
   </div>
 
   <p
     style={{
-      marginTop: 22,
+      marginTop: 20,
       marginBottom: 0,
     }}
   >
