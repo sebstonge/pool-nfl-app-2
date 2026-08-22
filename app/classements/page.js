@@ -316,14 +316,17 @@ function RankProgressionChart({ progression }) {
         <h2
   style={{
     marginTop: 0,
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-    flexWrap: "nowrap",
+    lineHeight: 1.15,
   }}
 >
-  <span>Progression au classement</span>
-  <span style={{ flexShrink: 0 }}>📈</span>
+  Progression au{" "}
+  <span
+    style={{
+      whiteSpace: "nowrap",
+    }}
+  >
+    classement 📈
+  </span>
 </h2>
         <p style={{ color: "#94a3b8" }}>
           Aucun classement historique pour le moment.
@@ -820,17 +823,21 @@ export default function ClassementsPage() {
   return (
     <main className="page">
       <section className="header-card">
-     <h1
+    <h1
   style={{
-    display: "flex",
-    alignItems: "center",
-    gap: 10,
-    flexWrap: "nowrap",
-    whiteSpace: "nowrap",
+    margin: 0,
+    lineHeight: 1.05,
+    fontSize:
+      typeof window !== "undefined" &&
+      window.innerWidth < 700
+        ? 44
+        : undefined,
   }}
 >
-  <span>Classements</span>
-  <span style={{ flexShrink: 0 }}>🏆</span>
+  Classements{" "}
+  <span style={{ whiteSpace: "nowrap" }}>
+    🏆
+  </span>
 </h1>
 
         <p>
