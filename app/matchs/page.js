@@ -338,7 +338,7 @@ function SelectionOrderBar({
                 fontSize: 18,
               }}
             >
-              Ordre de sélection QB
+              Ordre de sélection
             </strong>
 
             <span
@@ -350,7 +350,7 @@ function SelectionOrderBar({
                 fontWeight: 800,
               }}
             >
-              ✅ Tous les QB ont été choisis
+              ✅ Tous les choix ont été faits. Bonne semaine!
             </span>
           </div>
         </div>
