@@ -389,7 +389,7 @@ function SelectionOrderBar({
                 color: "#f8fafc",
               }}
             >
-              Ordre de sélection QB
+              Ordre de sélection
             </h2>
           </div>
 
