@@ -4,6 +4,118 @@ import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import BottomNav from "../components/BottomNav";
 
+/* =========================================================
+   ORDRE OFFICIEL — SEMAINE 1
+   ========================================================= */
+
+const WEEK_1_QB_ORDER = [
+  "Alexandre",
+  "Edouard",
+  "Louis-Simon",
+  "Séb",
+  "Charles",
+  "Naomie",
+  "Léa",
+  "Félix",
+  "Carolyne",
+  "Mathieu",
+  "Katy",
+  "Pierre-André",
+  "Étienne",
+];
+
+function normalizeName(value = "") {
+  return String(value)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[’']/g, "")
+    .replace(/[-_]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function playerRealName(player) {
+  return (
+    player?.real_name ||
+    player?.display_name ||
+    player?.email?.split("@")[0] ||
+    "Joueur"
+  );
+}
+
+function getWeek1Order(players) {
+  const ordered = [];
+  const usedIds = new Set();
+
+  WEEK_1_QB_ORDER.forEach((wantedName) => {
+    const wanted = normalizeName(wantedName);
+
+    let player = players.find(
+      (p) =>
+        !usedIds.has(p.id) &&
+        normalizeName(p.real_name) === wanted
+    );
+
+    if (!player) {
+      player = players.find((p) => {
+        if (usedIds.has(p.id)) return false;
+
+        const actual = normalizeName(p.real_name);
+
+        return (
+          actual.startsWith(wanted) ||
+          wanted.startsWith(actual)
+        );
+      });
+    }
+
+    if (player) {
+      ordered.push(player);
+      usedIds.add(player.id);
+    }
+  });
+
+  const leftovers = players
+    .filter((p) => !usedIds.has(p.id))
+    .sort((a, b) =>
+      playerRealName(a).localeCompare(
+        playerRealName(b),
+        "fr"
+      )
+    );
+
+  return [...ordered, ...leftovers];
+}
+
+function getWeeklyScoreValue(row) {
+  const candidates = [
+    row?.total_score,
+    row?.final_score,
+    row?.weekly_score,
+    row?.score,
+    row?.points,
+    row?.total,
+  ];
+
+  for (const value of candidates) {
+    if (
+      value !== null &&
+      value !== undefined &&
+      value !== "" &&
+      Number.isFinite(Number(value))
+    ) {
+      return Number(value);
+    }
+  }
+
+  return null;
+}
+
+/* =========================================================
+   HELPERS EXISTANTS
+   ========================================================= */
+
 function getQbHeadshot(qb) {
   if (!qb?.espn_athlete_id) return null;
 
@@ -195,6 +307,223 @@ function QBPhoto({ qb, mobile = false }) {
   );
 }
 
+/* =========================================================
+   ORDRE DE SÉLECTION QB
+   ========================================================= */
+
+function SelectionOrderBar({
+  players,
+  currentUserId,
+  currentWeek,
+}) {
+  if (!currentWeek) return null;
+
+  if (!players?.length) {
+    return (
+      <section className="card">
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+          }}
+        >
+          <span style={{ fontSize: 24 }}>🏈</span>
+
+          <div>
+            <strong
+              style={{
+                display: "block",
+                color: "#f8fafc",
+                fontSize: 18,
+              }}
+            >
+              Ordre de sélection QB
+            </strong>
+
+            <span
+              style={{
+                display: "block",
+                marginTop: 3,
+                color: "#86efac",
+                fontSize: 14,
+                fontWeight: 800,
+              }}
+            >
+              ✅ Tous les QB ont été choisis
+            </span>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  const nextPlayer = players[0];
+  const isMyTurn = nextPlayer?.id === currentUserId;
+
+  return (
+    <section className="card">
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 12,
+          marginBottom: 14,
+        }}
+      >
+        <div>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+            }}
+          >
+            <span style={{ fontSize: 23 }}>🏈</span>
+
+            <h2
+              style={{
+                margin: 0,
+                fontSize: 20,
+                color: "#f8fafc",
+              }}
+            >
+              Ordre de sélection QB
+            </h2>
+          </div>
+
+          <p
+            style={{
+              margin: "5px 0 0",
+              color: "#94a3b8",
+              fontSize: 13,
+            }}
+          >
+            Ordre restant · Semaine {currentWeek}
+          </p>
+        </div>
+      </div>
+
+      <div
+        style={{
+          padding: "12px 14px",
+          marginBottom: 14,
+          borderRadius: 14,
+          background: isMyTurn
+            ? "rgba(34,197,94,0.13)"
+            : "rgba(148,163,184,0.08)",
+          border: isMyTurn
+            ? "1px solid rgba(34,197,94,0.35)"
+            : "1px solid rgba(148,163,184,0.15)",
+        }}
+      >
+        <span
+          style={{
+            display: "block",
+            color: isMyTurn ? "#86efac" : "#94a3b8",
+            fontSize: 12,
+            fontWeight: 900,
+            textTransform: "uppercase",
+            letterSpacing: "0.5px",
+          }}
+        >
+          {isMyTurn ? "🟢 C'est à toi" : "⏳ Prochain à choisir"}
+        </span>
+
+        <strong
+          style={{
+            display: "block",
+            marginTop: 3,
+            color: "#f8fafc",
+            fontSize: 20,
+          }}
+        >
+          {playerRealName(nextPlayer)}
+        </strong>
+      </div>
+
+      <div
+        style={{
+          display: "flex",
+          gap: 8,
+          overflowX: "auto",
+          paddingBottom: 4,
+          WebkitOverflowScrolling: "touch",
+        }}
+      >
+        {players.map((player, index) => {
+          const first = index === 0;
+          const me = player.id === currentUserId;
+
+          return (
+            <div
+              key={player.id}
+              style={{
+                flexShrink: 0,
+                minWidth: 105,
+                padding: "10px 12px",
+                borderRadius: 13,
+                background: first
+                  ? "rgba(34,197,94,0.12)"
+                  : me
+                  ? "rgba(59,130,246,0.10)"
+                  : "rgba(15,23,42,0.72)",
+                border: first
+                  ? "1px solid rgba(34,197,94,0.30)"
+                  : me
+                  ? "1px solid rgba(59,130,246,0.25)"
+                  : "1px solid rgba(148,163,184,0.13)",
+              }}
+            >
+              <span
+                style={{
+                  display: "block",
+                  marginBottom: 3,
+                  color: first ? "#86efac" : "#64748b",
+                  fontSize: 11,
+                  fontWeight: 900,
+                }}
+              >
+                {first ? "PROCHAIN" : `#${index + 1}`}
+              </span>
+
+              <strong
+                style={{
+                  display: "block",
+                  color: "#f8fafc",
+                  fontSize: 14,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {playerRealName(player)}
+              </strong>
+
+              {me && !first && (
+                <span
+                  style={{
+                    display: "block",
+                    marginTop: 3,
+                    color: "#93c5fd",
+                    fontSize: 10,
+                    fontWeight: 800,
+                  }}
+                >
+                  TOI
+                </span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+/* =========================================================
+   PAGE
+   ========================================================= */
+
 export default function Matchs() {
   const [user, setUser] = useState(null);
   const [currentWeek, setCurrentWeek] = useState(null);
@@ -219,6 +548,8 @@ export default function Matchs() {
   const [qbSeasonAverages, setQbSeasonAverages] = useState({});
 
   const [isMobile, setIsMobile] = useState(false);
+
+  const [selectionOrder, setSelectionOrder] = useState([]);
 
   useEffect(() => {
     const updateMobile = () => {
@@ -279,6 +610,99 @@ export default function Matchs() {
     setQbs(qbsData || []);
 
     if (!currentUser) return;
+
+    /* =========================================================
+       ORDRE DE SÉLECTION QB
+       ========================================================= */
+
+    const { data: playersData, error: playersError } =
+      await supabase
+        .from("users")
+        .select("id, email, display_name, real_name");
+
+    if (playersError) {
+      console.error(
+        "Erreur chargement joueurs :",
+        playersError.message
+      );
+    }
+
+    const players = playersData || [];
+
+    const { data: currentWeekQbPicks, error: orderQbError } =
+      await supabase
+        .from("qb_picks")
+        .select("user_id")
+        .eq("week", week);
+
+    if (orderQbError) {
+      console.error(
+        "Erreur chargement QB picks pour l'ordre :",
+        orderQbError.message
+      );
+    }
+
+    const alreadyPickedIds = new Set(
+      (currentWeekQbPicks || []).map((row) => row.user_id)
+    );
+
+    let fullOrder = [];
+
+    if (Number(week) === 1) {
+      fullOrder = getWeek1Order(players);
+    } else {
+      const { data: previousScores, error: scoreError } =
+        await supabase
+          .from("weekly_scores")
+          .select("*")
+          .eq("week", Number(week) - 1);
+
+      if (scoreError) {
+        console.error(
+          "Erreur chargement scores précédents :",
+          scoreError.message
+        );
+      }
+
+      const scoreByUser = {};
+
+      (previousScores || []).forEach((row) => {
+        scoreByUser[row.user_id] = getWeeklyScoreValue(row);
+      });
+
+      fullOrder = [...players].sort((a, b) => {
+        const scoreA = scoreByUser[a.id];
+        const scoreB = scoreByUser[b.id];
+
+        const hasA =
+          scoreA !== null &&
+          scoreA !== undefined;
+
+        const hasB =
+          scoreB !== null &&
+          scoreB !== undefined;
+
+        if (hasA && !hasB) return -1;
+        if (!hasA && hasB) return 1;
+
+        if (hasA && hasB && scoreA !== scoreB) {
+          return scoreA - scoreB;
+        }
+
+        return playerRealName(a).localeCompare(
+          playerRealName(b),
+          "fr"
+        );
+      });
+    }
+
+    const remainingOrder = fullOrder.filter(
+      (player) => !alreadyPickedIds.has(player.id)
+    );
+
+    setSelectionOrder(remainingOrder);
+
+    /* ========================================================= */
 
     const { data: picksData } = await supabase
       .from("picks")
@@ -404,77 +828,75 @@ export default function Matchs() {
       ? `https://a.espncdn.com/i/teamlogos/nfl/500/${team.espn_abbr.toLowerCase()}.png`
       : team?.logo || null;
   };
-const getTeamInfo = (teamName) => {
-  return teams.find(
-    (t) =>
-      t.name?.toLowerCase().trim() ===
-      teamName?.toLowerCase().trim()
-  );
-};
 
-const translateDivision = (division) => {
-  if (!division) return "";
+  const getTeamInfo = (teamName) => {
+    return teams.find(
+      (t) =>
+        t.name?.toLowerCase().trim() ===
+        teamName?.toLowerCase().trim()
+    );
+  };
 
-  return division
-    .replace("East", "Est")
-    .replace("West", "Ouest")
-    .replace("North", "Nord")
-    .replace("South", "Sud");
-};
+  const translateDivision = (division) => {
+    if (!division) return "";
 
-const formatDivisionRank = (rank) => {
-  const value = Number(rank);
-
-  if (!value) return "";
-
-  return value === 1
-    ? "1er"
-    : `${value}e`;
-};
-
-const formatTeamRecord = (teamName) => {
-  const team = getTeamInfo(teamName);
-
-  if (!team) return "";
-
-  const wins = Number(team.wins || 0);
-  const losses = Number(team.losses || 0);
-  const ties = Number(team.ties || 0);
-
-  const record =
-    ties > 0
-      ? `${wins}-${losses}-${ties}`
-      : `${wins}-${losses}`;
-
-  const division =
-    translateDivision(team.division_name);
-
-  const gamesPlayed =
-    wins + losses + ties;
-
-  // Avant qu'un match soit joué :
-  // 0-0 • AFC Est
-  if (gamesPlayed === 0) {
     return division
-      ? `${record} • ${division}`
-      : record;
-  }
+      .replace("East", "Est")
+      .replace("West", "Ouest")
+      .replace("North", "Nord")
+      .replace("South", "Sud");
+  };
 
-  // Une fois la saison commencée :
-  // 3-2 • 2e AFC Est
-  const rank =
-    formatDivisionRank(team.division_rank);
+  const formatDivisionRank = (rank) => {
+    const value = Number(rank);
 
-  if (rank && division) {
-    return `${record} • ${rank} ${division}`;
-  }
+    if (!value) return "";
 
-  if (division) {
-    return `${record} • ${division}`;
-  }
+    return value === 1
+      ? "1er"
+      : `${value}e`;
+  };
 
-  return record;
-};
+  const formatTeamRecord = (teamName) => {
+    const team = getTeamInfo(teamName);
+
+    if (!team) return "";
+
+    const wins = Number(team.wins || 0);
+    const losses = Number(team.losses || 0);
+    const ties = Number(team.ties || 0);
+
+    const record =
+      ties > 0
+        ? `${wins}-${losses}-${ties}`
+        : `${wins}-${losses}`;
+
+    const division =
+      translateDivision(team.division_name);
+
+    const gamesPlayed =
+      wins + losses + ties;
+
+    if (gamesPlayed === 0) {
+      return division
+        ? `${record} • ${division}`
+        : record;
+    }
+
+    const rank =
+      formatDivisionRank(team.division_rank);
+
+    if (rank && division) {
+      return `${record} • ${rank} ${division}`;
+    }
+
+    if (division) {
+      return `${record} • ${division}`;
+    }
+
+    return record;
+  };
+
   const selectedQb = qbs.find(
     (qb) => qb.id === selectedQbId
   );
@@ -616,6 +1038,14 @@ const formatTeamRecord = (teamName) => {
           <p>{message}</p>
         </section>
       )}
+
+      {/* ================= ORDRE QB ================= */}
+
+      <SelectionOrderBar
+        players={selectionOrder}
+        currentUserId={user?.id}
+        currentWeek={currentWeek}
+      />
 
       {/* ================= QB ================= */}
 
@@ -766,8 +1196,6 @@ const formatTeamRecord = (teamName) => {
                   zIndex: qbMenuOpen ? 100 : 1,
                 }}
               >
-                {/* BOUTON DU MENU QB */}
-
                 <div
                   style={{
                     position: "relative",
@@ -806,8 +1234,6 @@ const formatTeamRecord = (teamName) => {
                           flex: 1,
                         }}
                       >
-                        {/* NOM + LOGO ENSEMBLE */}
-
                         <div
                           style={{
                             display: "flex",
@@ -884,8 +1310,6 @@ const formatTeamRecord = (teamName) => {
                     </span>
                   </button>
 
-                  {/* MENU DÉROULANT */}
-
                   {qbMenuOpen && (
                     <div
                       style={{
@@ -941,8 +1365,6 @@ const formatTeamRecord = (teamName) => {
                               textAlign: "left",
                             }}
                           >
-                            {/* NOM + LOGO COLLÉS */}
-
                             <div
                               style={{
                                 display: "flex",
@@ -978,8 +1400,6 @@ const formatTeamRecord = (teamName) => {
                               />
                             </div>
 
-                            {/* MOYENNE À DROITE */}
-
                             <span
                               style={{
                                 color: "#94a3b8",
@@ -1000,17 +1420,71 @@ const formatTeamRecord = (teamName) => {
                   )}
                 </div>
 
-                              {/* EXPLICATION QB — DESKTOP SEULEMENT */}
+                {!isMobile && (
+                  <div
+                    style={{
+                      marginTop: 12,
+                      padding: 14,
+                      borderRadius: 18,
+                      background: "rgba(34,197,94,0.08)",
+                      border: "1px solid rgba(34,197,94,0.20)",
+                      color: "#cbd5e1",
+                      lineHeight: 1.45,
+                    }}
+                  >
+                    ✅ Un QB ne peut être choisi qu’une seule
+                    fois par semaine et ne peut pas être
+                    réutilisé.
+                  </div>
+                )}
+              </div>
 
-              {!isMobile && (
+              <div
+                style={{
+                  textAlign: "center",
+                  display:
+                    isMobile && !selectedQb
+                      ? "none"
+                      : "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                {selectedQb ? (
+                  <QBPhoto
+                    qb={selectedQb}
+                    mobile={isMobile}
+                  />
+                ) : (
+                  <div style={{ color: "#94a3b8" }}>
+                    Aucun QB
+                  </div>
+                )}
+
+                {selectedQb && (
+                  <p
+                    style={{
+                      marginTop: 8,
+                      marginBottom: 0,
+                      fontWeight: 800,
+                    }}
+                  >
+                    {selectedQb.team}
+                  </p>
+                )}
+              </div>
+
+              {isMobile && (
                 <div
                   style={{
-                    marginTop: 12,
-                    padding: 14,
+                    marginTop: 0,
+                    padding: 12,
                     borderRadius: 18,
                     background: "rgba(34,197,94,0.08)",
                     border: "1px solid rgba(34,197,94,0.20)",
                     color: "#cbd5e1",
+                    fontSize: 14,
                     lineHeight: 1.45,
                   }}
                 >
@@ -1020,69 +1494,9 @@ const formatTeamRecord = (teamName) => {
                 </div>
               )}
             </div>
-
-            {/* PHOTO QB */}
-
-            <div
-              style={{
-                textAlign: "center",
-                display:
-                  isMobile && !selectedQb
-                    ? "none"
-                    : "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              {selectedQb ? (
-                <QBPhoto
-                  qb={selectedQb}
-                  mobile={isMobile}
-                />
-              ) : (
-                <div style={{ color: "#94a3b8" }}>
-                  Aucun QB
-                </div>
-              )}
-
-              {selectedQb && (
-                <p
-                  style={{
-                    marginTop: 8,
-                    marginBottom: 0,
-                    fontWeight: 800,
-                  }}
-                >
-                  {selectedQb.team}
-                </p>
-              )}
-            </div>
-
-            {/* EXPLICATION QB — MOBILE SEULEMENT */}
-
-            {isMobile && (
-              <div
-                style={{
-                  marginTop: 0,
-                  padding: 12,
-                  borderRadius: 18,
-                  background: "rgba(34,197,94,0.08)",
-                  border: "1px solid rgba(34,197,94,0.20)",
-                  color: "#cbd5e1",
-                  fontSize: 14,
-                  lineHeight: 1.45,
-                }}
-              >
-                ✅ Un QB ne peut être choisi qu’une seule
-                fois par semaine et ne peut pas être
-                réutilisé.
-              </div>
-            )}
-          </div>
-        </>
-      )}
-    </section>
+          </>
+        )}
+      </section>
 
       {/* ================= MATCHS À CHOISIR ================= */}
 
@@ -1121,72 +1535,72 @@ const formatTeamRecord = (teamName) => {
                 </div>
 
                 <button
-  type="button"
-  onClick={() =>
-    updateDraftPick(
-      game.id,
-      "picked_team",
-      game.away_team
-    )
-  }
-  style={{
-    background: "transparent",
-    border: "none",
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "center",
-    alignItems: "center",
-    cursor: "pointer",
-    padding: 0,
-    minWidth: 0,
-  }}
->
-  <img
-    src={getTeamLogo(game.away_team)}
-    alt={game.away_team}
-    style={{
-      width: isMobile ? 62 : 96,
-      height: isMobile ? 62 : 96,
-      maxWidth: "100%",
-      objectFit: "contain",
-      opacity: awaySelected ? 1 : 0.82,
-      transform: awaySelected
-        ? "scale(1.08)"
-        : "scale(1)",
-      transition: "0.2s ease",
-      filter: awaySelected
-        ? "drop-shadow(0 0 12px rgba(255,255,255,0.35))"
-        : "none",
-    }}
-  />
+                  type="button"
+                  onClick={() =>
+                    updateDraftPick(
+                      game.id,
+                      "picked_team",
+                      game.away_team
+                    )
+                  }
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    cursor: "pointer",
+                    padding: 0,
+                    minWidth: 0,
+                  }}
+                >
+                  <img
+                    src={getTeamLogo(game.away_team)}
+                    alt={game.away_team}
+                    style={{
+                      width: isMobile ? 62 : 96,
+                      height: isMobile ? 62 : 96,
+                      maxWidth: "100%",
+                      objectFit: "contain",
+                      opacity: awaySelected ? 1 : 0.82,
+                      transform: awaySelected
+                        ? "scale(1.08)"
+                        : "scale(1)",
+                      transition: "0.2s ease",
+                      filter: awaySelected
+                        ? "drop-shadow(0 0 12px rgba(255,255,255,0.35))"
+                        : "none",
+                    }}
+                  />
 
-  <strong
-    style={{
-      marginTop: 5,
-      color: "#f8fafc",
-      fontSize: isMobile ? 12 : 14,
-      lineHeight: 1.1,
-      textAlign: "center",
-      whiteSpace: "nowrap",
-    }}
-  >
-    {game.away_team}
-  </strong>
+                  <strong
+                    style={{
+                      marginTop: 5,
+                      color: "#f8fafc",
+                      fontSize: isMobile ? 12 : 14,
+                      lineHeight: 1.1,
+                      textAlign: "center",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {game.away_team}
+                  </strong>
 
-  <span
-    style={{
-      marginTop: 3,
-      color: "#94a3b8",
-      fontSize: isMobile ? 10 : 12,
-      lineHeight: 1.15,
-      fontWeight: 700,
-      textAlign: "center",
-      whiteSpace: "nowrap",
-    }}
-  >
-    {formatTeamRecord(game.away_team)}
-  </span>
-</button>
+                  <span
+                    style={{
+                      marginTop: 3,
+                      color: "#94a3b8",
+                      fontSize: isMobile ? 10 : 12,
+                      lineHeight: 1.15,
+                      fontWeight: 700,
+                      textAlign: "center",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {formatTeamRecord(game.away_team)}
+                  </span>
+                </button>
 
                 <div
                   style={{
@@ -1200,72 +1614,72 @@ const formatTeamRecord = (teamName) => {
                 </div>
 
                 <button
-  type="button"
-  onClick={() =>
-    updateDraftPick(
-      game.id,
-      "picked_team",
-      game.home_team
-    )
-  }
-  style={{
-    background: "transparent",
-    border: "none",
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "center",
-    alignItems: "center",
-    cursor: "pointer",
-    padding: 0,
-    minWidth: 0,
-  }}
->
-  <img
-    src={getTeamLogo(game.home_team)}
-    alt={game.home_team}
-    style={{
-      width: isMobile ? 62 : 96,
-      height: isMobile ? 62 : 96,
-      maxWidth: "100%",
-      objectFit: "contain",
-      opacity: homeSelected ? 1 : 0.82,
-      transform: homeSelected
-        ? "scale(1.08)"
-        : "scale(1)",
-      transition: "0.2s ease",
-      filter: homeSelected
-        ? "drop-shadow(0 0 12px rgba(255,255,255,0.35))"
-        : "none",
-    }}
-  />
+                  type="button"
+                  onClick={() =>
+                    updateDraftPick(
+                      game.id,
+                      "picked_team",
+                      game.home_team
+                    )
+                  }
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    cursor: "pointer",
+                    padding: 0,
+                    minWidth: 0,
+                  }}
+                >
+                  <img
+                    src={getTeamLogo(game.home_team)}
+                    alt={game.home_team}
+                    style={{
+                      width: isMobile ? 62 : 96,
+                      height: isMobile ? 62 : 96,
+                      maxWidth: "100%",
+                      objectFit: "contain",
+                      opacity: homeSelected ? 1 : 0.82,
+                      transform: homeSelected
+                        ? "scale(1.08)"
+                        : "scale(1)",
+                      transition: "0.2s ease",
+                      filter: homeSelected
+                        ? "drop-shadow(0 0 12px rgba(255,255,255,0.35))"
+                        : "none",
+                    }}
+                  />
 
-  <strong
-    style={{
-      marginTop: 5,
-      color: "#f8fafc",
-      fontSize: isMobile ? 12 : 14,
-      lineHeight: 1.1,
-      textAlign: "center",
-      whiteSpace: "nowrap",
-    }}
-  >
-    {game.home_team}
-  </strong>
+                  <strong
+                    style={{
+                      marginTop: 5,
+                      color: "#f8fafc",
+                      fontSize: isMobile ? 12 : 14,
+                      lineHeight: 1.1,
+                      textAlign: "center",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {game.home_team}
+                  </strong>
 
-  <span
-    style={{
-      marginTop: 3,
-      color: "#94a3b8",
-      fontSize: isMobile ? 10 : 12,
-      lineHeight: 1.15,
-      fontWeight: 700,
-      textAlign: "center",
-      whiteSpace: "nowrap",
-    }}
-  >
-    {formatTeamRecord(game.home_team)}
-  </span>
-</button>
+                  <span
+                    style={{
+                      marginTop: 3,
+                      color: "#94a3b8",
+                      fontSize: isMobile ? 10 : 12,
+                      lineHeight: 1.15,
+                      fontWeight: 700,
+                      textAlign: "center",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {formatTeamRecord(game.home_team)}
+                  </span>
+                </button>
 
                 <div
                   style={{
