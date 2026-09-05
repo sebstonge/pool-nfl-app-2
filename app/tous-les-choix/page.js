@@ -59,16 +59,6 @@ function PlayerIdentity({
   );
 }
 
-function statValue(row) {
-  return Number(
-    row?.final_score ??
-      row?.score ??
-      row?.total_score ??
-      row?.points ??
-      0
-  );
-}
-
 function getQbHeadshot(qb) {
   if (!qb?.espn_athlete_id) return null;
 
@@ -360,118 +350,6 @@ function WeekNavigator({
   );
 }
 
-function SelectionOrderBar({
-  players,
-  currentWeek,
-}) {
-  if (
-    currentWeek <= 1 ||
-    players.length === 0
-  ) {
-    return null;
-  }
-
-  return (
-    <section
-      className="card"
-      style={{
-        padding: 14,
-        background:
-          "rgba(34,197,94,0.06)",
-        border:
-          "1px solid rgba(34,197,94,0.18)",
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          marginBottom: 10,
-        }}
-      >
-        <strong
-          style={{
-            color: "#86efac",
-            fontSize: 13,
-            fontWeight: 900,
-            letterSpacing: "0.4px",
-          }}
-        >
-          ⏳ ORDRE DE SÉLECTION
-        </strong>
-
-        <span
-          style={{
-            color: "#64748b",
-            fontSize: 12,
-          }}
-        >
-          · Semaine {currentWeek}
-        </span>
-      </div>
-
-      <div
-        style={{
-          display: "flex",
-          gap: 8,
-          flexWrap: "wrap",
-        }}
-      >
-        {players.map((player, index) => (
-          <div
-            key={player.userId}
-            style={{
-              padding: "7px 11px",
-              borderRadius: 10,
-
-              background:
-                index === 0
-                  ? "rgba(34,197,94,0.18)"
-                  : "rgba(148,163,184,0.08)",
-
-              border:
-                index === 0
-                  ? "1px solid rgba(34,197,94,0.32)"
-                  : "1px solid rgba(148,163,184,0.14)",
-
-              minWidth: 0,
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "flex-start",
-                gap: 5,
-              }}
-            >
-              <strong
-                style={{
-                  color:
-                    index === 0
-                      ? "#86efac"
-                      : "#cbd5e1",
-                  fontSize: 13,
-                  fontWeight: 900,
-                  lineHeight: 1.15,
-                }}
-              >
-                {index + 1}.
-              </strong>
-
-              <PlayerIdentity
-                name={player.name}
-                realName={player.realName}
-                compact={true}
-              />
-            </div>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
 export default function TousLesChoix() {
   const [players, setPlayers] = useState([]);
   const [picks, setPicks] = useState([]);
@@ -493,11 +371,6 @@ export default function TousLesChoix() {
     qbSeasonAverages,
     setQbSeasonAverages,
   ] = useState({});
-
-  const [
-    selectionOrder,
-    setSelectionOrder,
-  ] = useState([]);
 
   const [message, setMessage] =
     useState("");
@@ -532,8 +405,8 @@ export default function TousLesChoix() {
       setTeams(teamsData || []);
 
       /*
-       * IMPORTANT :
-       * on charge maintenant real_name.
+       * On conserve real_name puisqu'il sert
+       * à l'identité affichée des joueurs.
        */
       const { data: usersData } =
         await supabase
@@ -756,116 +629,6 @@ export default function TousLesChoix() {
 
       setQbSeasonAverages(formatted);
 
-      /*
-       * ORDRE DE SÉLECTION
-       */
-      if (
-        viewedWeek === currentWeek &&
-        currentWeek > 1
-      ) {
-        const {
-          data: previousScores,
-          error: orderError,
-        } = await supabase
-          .from("weekly_scores")
-          .select("*")
-          .eq(
-            "week",
-            currentWeek - 1
-          );
-
-        if (orderError) {
-          console.error(
-            "Erreur ordre de sélection :",
-            orderError
-          );
-
-          setSelectionOrder([]);
-        } else {
-          const alreadyPicked =
-            new Set(
-              (qbData || []).map(
-                (pick) =>
-                  pick.user_id
-              )
-            );
-
-          const scoreMap = new Map(
-            (previousScores || []).map(
-              (row) => [
-                row.user_id,
-                statValue(row),
-              ]
-            )
-          );
-
-          const remainingPlayers =
-            (players || [])
-              .filter(
-                (player) =>
-                  !alreadyPicked.has(
-                    player.id
-                  )
-              )
-              .map((player) => ({
-                userId:
-                  player.id,
-
-                name:
-                  displayName(player),
-
-                realName:
-                  realName(player),
-
-                previousScore:
-                  scoreMap.has(
-                    player.id
-                  )
-                    ? scoreMap.get(
-                        player.id
-                      )
-                    : null,
-              }))
-              .sort((a, b) => {
-                if (
-                  a.previousScore == null &&
-                  b.previousScore != null
-                ) {
-                  return 1;
-                }
-
-                if (
-                  a.previousScore != null &&
-                  b.previousScore == null
-                ) {
-                  return -1;
-                }
-
-                if (
-                  a.previousScore != null &&
-                  b.previousScore != null &&
-                  a.previousScore !==
-                    b.previousScore
-                ) {
-                  return (
-                    a.previousScore -
-                    b.previousScore
-                  );
-                }
-
-                return a.name.localeCompare(
-                  b.name
-                );
-              });
-
-          setSelectionOrder(
-            remainingPlayers
-          );
-        }
-      } else {
-        setSelectionOrder([]);
-      }
-
       setLoading(false);
     }
 
@@ -950,17 +713,6 @@ export default function TousLesChoix() {
             }
           />
         )}
-
-      {viewedWeek === currentWeek && (
-        <SelectionOrderBar
-          players={
-            selectionOrder
-          }
-          currentWeek={
-            currentWeek
-          }
-        />
-      )}
 
       {message && (
         <section className="card">
