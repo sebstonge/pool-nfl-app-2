@@ -359,7 +359,7 @@ function SelectionOrderBar({
             fontWeight: 900,
           }}
         >
-          ✅ Tous les QB ont été choisis
+          ✅ Tous les choix ont été faits. Bonne semaine!
         </div>
       </section>
     );
