@@ -1954,26 +1954,8 @@ export default function AdminPage() {
               color: "#f8fafc",
             }}
           >
-            ⏱️ Temps de sélection QB
+            ⏱️ Temps de sélection
           </h2>
-
-          <p
-            style={{
-              margin: "7px 0 0",
-              color: "#94a3b8",
-              fontSize: 13,
-              lineHeight: 1.5,
-            }}
-          >
-            Le chrono commence à la
-            sélection du joueur
-            précédent. Pour le premier
-            joueur, semaine 1 =
-            signal réel à 19 h 05;
-            semaines suivantes =
-            9 h si la semaine est
-            ouverte avant 9 h.
-          </p>
         </div>
 
         {selectionStatsLoading ? (
