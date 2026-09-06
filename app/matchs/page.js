@@ -244,23 +244,20 @@ function GameTimeBar({ gameDate }) {
   return (
     <div
       style={{
-        display: "flex",
+        display: "inline-flex",
         alignItems: "center",
-        justifyContent: "center",
         gap: 7,
-        padding: "7px 12px",
-        marginBottom: 8,
-        borderRadius: 10,
-        background: "rgba(34,197,94,0.10)",
-        border: "1px solid rgba(34,197,94,0.18)",
-        color: "#86efac",
+        color: "#4ade80",
         fontSize: 12,
         fontWeight: 900,
-        letterSpacing: "0.4px",
+        letterSpacing: "0.25px",
       }}
     >
       <span>🗓️</span>
-      <span>{formatGameDate(gameDate)}</span>
+
+      <span>
+        {formatGameDate(gameDate)}
+      </span>
     </div>
   );
 }
@@ -316,47 +313,168 @@ function SelectionOrderBar({
   currentUserId,
   currentWeek,
 }) {
-  if (!currentWeek) return null;
-
-  if (!players?.length) {
+  if (!players || players.length === 0) {
     return (
-      <section className="card">
-        <div
+      <section
+        className="card"
+        style={{
+          padding: 20,
+        }}
+      >
+        <h2
           style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
+            margin: 0,
+            color: "#f8fafc",
+            fontSize: 22,
           }}
         >
-          <span style={{ fontSize: 24 }}>🏈</span>
+          🏈 Ordre de sélection
+        </h2>
 
-          <div>
-            <strong
-              style={{
-                display: "block",
-                color: "#f8fafc",
-                fontSize: 18,
-              }}
-            >
-              Ordre de sélection
-            </strong>
+        <p
+          style={{
+            margin: "6px 0 0",
+            color: "#94a3b8",
+            fontSize: 13,
+          }}
+        >
+          Semaine {currentWeek}
+        </p>
 
-            <span
-              style={{
-                display: "block",
-                marginTop: 3,
-                color: "#86efac",
-                fontSize: 14,
-                fontWeight: 800,
-              }}
-            >
-              ✅ Tous les choix ont été faits. Bonne semaine!
-            </span>
-          </div>
+        <div
+          style={{
+            marginTop: 16,
+            padding: "14px 16px",
+            borderRadius: 14,
+            background: "rgba(34,197,94,0.08)",
+            border: "1px solid rgba(34,197,94,0.20)",
+            color: "#86efac",
+            fontWeight: 900,
+          }}
+        >
+          ✅ Tous les QB ont été choisis
         </div>
       </section>
     );
   }
+
+  return (
+    <section
+      className="card"
+      style={{
+        padding: 20,
+        overflow: "hidden",
+      }}
+    >
+      <div>
+        <h2
+          style={{
+            margin: 0,
+            color: "#f8fafc",
+            fontSize: 22,
+          }}
+        >
+          🏈 Ordre de sélection
+        </h2>
+
+        <p
+          style={{
+            margin: "6px 0 0",
+            color: "#94a3b8",
+            fontSize: 13,
+          }}
+        >
+          Ordre restant · Semaine {currentWeek}
+        </p>
+      </div>
+
+      <div
+        style={{
+          display: "flex",
+          gap: 10,
+          overflowX: "auto",
+          paddingTop: 18,
+          paddingBottom: 4,
+          WebkitOverflowScrolling: "touch",
+        }}
+      >
+        {players.map((player, index) => {
+          const isNext = index === 0;
+          const isMe =
+            player.id === currentUserId;
+
+          return (
+            <div
+              key={player.id}
+              style={{
+                flex: "0 0 auto",
+                minWidth: 160,
+                maxWidth: 220,
+                padding: "12px 14px",
+                borderRadius: 14,
+
+                background: isNext
+                  ? "rgba(34,197,94,0.11)"
+                  : isMe
+                  ? "rgba(37,99,235,0.14)"
+                  : "rgba(15,23,42,0.72)",
+
+                border: isNext
+                  ? "1px solid rgba(34,197,94,0.42)"
+                  : isMe
+                  ? "1px solid rgba(59,130,246,0.35)"
+                  : "1px solid rgba(148,163,184,0.14)",
+              }}
+            >
+              <span
+                style={{
+                  display: "block",
+                  marginBottom: 4,
+                  color: isNext
+                    ? "#86efac"
+                    : "#64748b",
+                  fontSize: 10,
+                  fontWeight: 900,
+                  letterSpacing: "0.4px",
+                }}
+              >
+                {isNext
+                  ? "PROCHAIN"
+                  : `#${index + 1}`}
+              </span>
+
+              <strong
+                style={{
+                  display: "block",
+                  color: "#f8fafc",
+                  fontSize: 14,
+                  fontWeight: 900,
+                  lineHeight: 1.2,
+                }}
+              >
+                {playerRealName(player)}
+              </strong>
+
+              {isMe && (
+                <span
+                  style={{
+                    display: "block",
+                    marginTop: 4,
+                    color: "#93c5fd",
+                    fontSize: 10,
+                    fontWeight: 900,
+                  }}
+                >
+                  TOI
+                </span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
 
   const nextPlayer = players[0];
   const isMyTurn = nextPlayer?.id === currentUserId;
