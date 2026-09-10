@@ -89,121 +89,133 @@ function RankingRow({ row, mode }) {
     <div
       style={{
         display: "grid",
-        gridTemplateColumns: "46px minmax(0, 1fr)",
-        gap: 12,
+        gridTemplateColumns: "38px minmax(0, 1fr) auto",
+        gap: 10,
         alignItems: "center",
-        padding: "14px 0",
+        padding: "11px 0",
         borderBottom: "1px solid rgba(148,163,184,0.12)",
       }}
     >
+      {/* RANG */}
       <div
         style={{
-          width: 42,
-          height: 42,
+          width: 38,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           fontWeight: 900,
           color: "#f8fafc",
-          fontSize: row.rank <= 3 ? 24 : 18,
+          fontSize: row.rank <= 3 ? 22 : 17,
         }}
       >
         {row.rank <= 3 ? medal(row.rank) : row.rank}
       </div>
 
-      <div style={{ minWidth: 0 }}>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "flex-start",
-            gap: 8,
-            flexWrap: "wrap",
-          }}
-        >
-          <PlayerIdentity
-            name={row.name}
-            realName={row.realName}
-          />
+      {/* JOUEUR */}
+      <div
+        style={{
+          minWidth: 0,
+        }}
+      >
+        <PlayerIdentity
+          name={row.name}
+          realName={row.realName}
+          compact={true}
+        />
 
-          {mode === "season" && (
-            <span
+        {mode === "season" && (
+          <div
+            style={{
+              marginTop: 5,
+              fontSize: 12,
+              fontWeight: 800,
+              color:
+                row.movement > 0
+                  ? "#22c55e"
+                  : row.movement < 0
+                  ? "#ef4444"
+                  : "#64748b",
+            }}
+          >
+            {movement}
+          </div>
+        )}
+
+        {mode === "season" &&
+          row.badges?.length > 0 && (
+            <div
               style={{
-                fontSize: 13,
-                fontWeight: 800,
-                color:
-                  row.movement > 0
-                    ? "#22c55e"
-                    : row.movement < 0
-                    ? "#ef4444"
-                    : "#94a3b8",
-                marginTop: 1,
-                whiteSpace: "nowrap",
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 5,
+                marginTop: 6,
               }}
             >
-              {movement}
-            </span>
+              {row.badges.map((badge) => (
+                <span
+                  key={badge}
+                  style={{
+                    padding: "4px 7px",
+                    borderRadius: 999,
+                    background: "rgba(148,163,184,0.14)",
+                    color: "#e2e8f0",
+                    fontSize: 10,
+                    fontWeight: 800,
+                  }}
+                >
+                  {badge}
+                </span>
+              ))}
+            </div>
           )}
-        </div>
+      </div>
 
-        <p
+      {/* POINTS */}
+      <div
+        style={{
+          textAlign: "right",
+          minWidth: 100,
+          paddingLeft: 6,
+        }}
+      >
+        <div
           style={{
-            margin: "6px 0 0 0",
             color: "#f8fafc",
-            fontWeight: 800,
+            fontWeight: 900,
             fontSize: 16,
+            whiteSpace: "nowrap",
           }}
         >
-          {(mode === "season" ? row.total : row.score).toFixed(3)} pts
-        </p>
+          {(mode === "season"
+            ? row.total
+            : row.score
+          ).toFixed(3)}{" "}
+          pts
+        </div>
 
         {row.rank !== 1 && (
-          <p
+          <div
             style={{
-              margin: "4px 0 0 0",
+              marginTop: 3,
               color: "#ef4444",
-              fontSize: 14,
+              fontSize: 12,
+              whiteSpace: "nowrap",
             }}
           >
             -{row.diff.toFixed(3)} du meneur
-          </p>
+          </div>
         )}
 
         {mode === "season" && (
-          <p
-            style={{
-              margin: "4px 0 0 0",
-              color: "#94a3b8",
-              fontSize: 14,
-            }}
-          >
-            Moy. {row.average.toFixed(3)} / semaine
-          </p>
-        )}
-
-        {mode === "season" && row.badges?.length > 0 && (
           <div
             style={{
-              display: "flex",
-              flexWrap: "wrap",
-              gap: 6,
-              marginTop: 8,
+              marginTop: 3,
+              color: "#94a3b8",
+              fontSize: 11,
+              whiteSpace: "nowrap",
             }}
           >
-            {row.badges.map((badge) => (
-              <span
-                key={badge}
-                style={{
-                  padding: "5px 9px",
-                  borderRadius: 999,
-                  background: "rgba(148,163,184,0.14)",
-                  color: "#e2e8f0",
-                  fontSize: 12,
-                  fontWeight: 800,
-                }}
-              >
-                {badge}
-              </span>
-            ))}
+            Moy. {row.average.toFixed(3)} / sem.
           </div>
         )}
       </div>
