@@ -2801,7 +2801,29 @@ export default function Matchs() {
           .qbs
           .espn_athlete_id
       );
+  const qbNextGame =
+    displayedQb?.team
+      ? allWeekGames.find(
+          (game) =>
+            normalizeName(game.home_team) ===
+              normalizeName(displayedQb.team) ||
+            normalizeName(game.away_team) ===
+              normalizeName(displayedQb.team)
+        )
+      : null;
 
+  const qbOpponent =
+    qbNextGame
+      ? normalizeName(qbNextGame.home_team) ===
+        normalizeName(displayedQb?.team)
+        ? qbNextGame.away_team
+        : qbNextGame.home_team
+      : null;
+
+  const qbIsHome =
+    qbNextGame &&
+    normalizeName(qbNextGame.home_team) ===
+      normalizeName(displayedQb?.team);
   /* =========================================================
      DRAFT PICKS
      ========================================================= */
@@ -3149,7 +3171,76 @@ export default function Matchs() {
                     {displayedQb?.team}
                   </strong>
                 </div>
+                {qbNextGame && qbOpponent && (
+                  <div
+                    style={{
+                      marginTop: 14,
+                      marginBottom: 14,
+                      padding: "12px 14px",
+                      borderRadius: 14,
+                      background:
+                        "rgba(30,41,59,0.72)",
+                      border:
+                        "1px solid rgba(148,163,184,0.13)",
+                    }}
+                  >
+                    <div
+                      style={{
+                        color: "#94a3b8",
+                        fontSize: 11,
+                        fontWeight: 900,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.5px",
+                        marginBottom: 8,
+                      }}
+                    >
+                      Prochain match
+                    </div>
 
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 9,
+                      }}
+                    >
+                      <img
+                        src={getTeamLogo(qbOpponent)}
+                        alt={qbOpponent}
+                        style={{
+                          width: isMobile ? 28 : 34,
+                          height: isMobile ? 28 : 34,
+                          objectFit: "contain",
+                        }}
+                      />
+
+                      <strong
+                        style={{
+                          color: "#f8fafc",
+                          fontSize: isMobile
+                            ? 14
+                            : 16,
+                        }}
+                      >
+                        {qbIsHome ? "vs" : "@"}{" "}
+                        {qbOpponent}
+                      </strong>
+                    </div>
+
+                    <div
+                      style={{
+                        marginTop: 7,
+                        color: "#4ade80",
+                        fontSize: 12,
+                        fontWeight: 800,
+                      }}
+                    >
+                      {formatGameDate(
+                        qbNextGame.game_date
+                      )}
+                    </div>
+                  </div>
+                )}
                 {qbWasReplaced && (
                   <p
                     style={{
