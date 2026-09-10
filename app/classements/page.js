@@ -26,20 +26,27 @@ function PlayerIdentity({
   realName: secondaryName,
   align = "left",
   compact = false,
+  podium = false,
 }) {
   return (
     <div
       style={{
         textAlign: align,
         minWidth: 0,
+        width: "100%",
       }}
     >
       <strong
         style={{
           display: "block",
-          fontSize: compact ? 14 : 18,
+          fontSize: podium
+            ? "clamp(11px, 3vw, 15px)"
+            : compact
+            ? 14
+            : 18,
           lineHeight: 1.15,
           color: "#f8fafc",
+          overflowWrap: "anywhere",
           wordBreak: "break-word",
         }}
       >
@@ -52,9 +59,14 @@ function PlayerIdentity({
             display: "block",
             marginTop: 2,
             color: "#94a3b8",
-            fontSize: compact ? 11 : 13,
+            fontSize: podium
+              ? "clamp(9px, 2.5vw, 12px)"
+              : compact
+              ? 11
+              : 13,
             fontWeight: 400,
             lineHeight: 1.2,
+            overflowWrap: "anywhere",
             wordBreak: "break-word",
           }}
         >
@@ -77,7 +89,7 @@ function RankingRow({ row, mode }) {
     <div
       style={{
         display: "grid",
-        gridTemplateColumns: "46px 1fr auto",
+        gridTemplateColumns: "46px minmax(0, 1fr)",
         gap: 12,
         alignItems: "center",
         padding: "14px 0",
@@ -99,7 +111,7 @@ function RankingRow({ row, mode }) {
         {row.rank <= 3 ? medal(row.rank) : row.rank}
       </div>
 
-      <div>
+      <div style={{ minWidth: 0 }}>
         <div
           style={{
             display: "flex",
@@ -125,6 +137,7 @@ function RankingRow({ row, mode }) {
                     ? "#ef4444"
                     : "#94a3b8",
                 marginTop: 1,
+                whiteSpace: "nowrap",
               }}
             >
               {movement}
@@ -198,16 +211,16 @@ function RankingRow({ row, mode }) {
   );
 }
 
-function PodiumCard({ row, size = "small" }) {
-  if (!row) return null;
-
-  const isBig = size === "big";
+function PodiumCard({ row, first = false }) {
+  if (!row) return <div />;
 
   return (
     <div
       style={{
-        padding: isBig ? 24 : 18,
-        borderRadius: 24,
+        padding: first
+          ? "18px 6px"
+          : "14px 5px",
+        borderRadius: 18,
         background:
           row.rank === 1
             ? "linear-gradient(180deg, rgba(34,197,94,0.20), rgba(15,23,42,0.70))"
@@ -217,35 +230,52 @@ function PodiumCard({ row, size = "small" }) {
             ? "1px solid rgba(34,197,94,0.35)"
             : "1px solid rgba(148,163,184,0.16)",
         textAlign: "center",
-        minHeight: isBig ? 230 : 190,
+        minHeight: first ? 190 : 165,
         display: "flex",
         flexDirection: "column",
         justifyContent: "center",
+        alignItems: "center",
+        minWidth: 0,
+        overflow: "hidden",
       }}
     >
-      <div style={{ fontSize: isBig ? 42 : 32 }}>
+      <div
+        style={{
+          fontSize: first
+            ? "clamp(30px, 9vw, 42px)"
+            : "clamp(25px, 7vw, 34px)",
+          lineHeight: 1,
+        }}
+      >
         {medal(row.rank)}
       </div>
 
       <div
         style={{
-          marginTop: 24,
-          marginBottom: 8,
+          marginTop: first ? 18 : 14,
+          marginBottom: 9,
+          width: "100%",
+          minWidth: 0,
         }}
       >
         <PlayerIdentity
           name={row.name}
           realName={row.realName}
           align="center"
-          compact={!isBig}
+          compact={!first}
+          podium={true}
         />
       </div>
 
       <div
         style={{
-          fontSize: isBig ? 42 : 30,
+          fontSize: first
+            ? "clamp(22px, 6vw, 34px)"
+            : "clamp(19px, 5vw, 28px)",
           fontWeight: 900,
           color: "#22c55e",
+          whiteSpace: "nowrap",
+          letterSpacing: "-0.5px",
         }}
       >
         {(row.total ?? row.score).toFixed(3)}
@@ -256,7 +286,11 @@ function PodiumCard({ row, size = "small" }) {
 
 function buildRankProgression(weeklyScores, users) {
   const weeks = Array.from(
-    new Set((weeklyScores || []).map((score) => score.week))
+    new Set(
+      (weeklyScores || []).map((score) =>
+        Number(score.week)
+      )
+    )
   ).sort((a, b) => a - b);
 
   const totalsByUser = {};
@@ -264,18 +298,24 @@ function buildRankProgression(weeklyScores, users) {
 
   weeks.forEach((week) => {
     (weeklyScores || [])
-      .filter((score) => score.week === week)
+      .filter(
+        (score) => Number(score.week) === week
+      )
       .forEach((score) => {
         if (!totalsByUser[score.user_id]) {
           totalsByUser[score.user_id] = 0;
         }
 
-        totalsByUser[score.user_id] += Number(score.final_score || 0);
+        totalsByUser[score.user_id] += Number(
+          score.final_score || 0
+        );
       });
 
     const ranked = Object.entries(totalsByUser)
       .map(([userId, total]) => {
-        const user = users.find((u) => u.id === userId);
+        const user = users.find(
+          (u) => u.id === userId
+        );
 
         return {
           userId,
@@ -310,24 +350,21 @@ function buildRankProgression(weeklyScores, users) {
 }
 
 function RankProgressionChart({ progression }) {
-  if (!progression?.weeks?.length || !progression?.rows?.length) {
+  if (
+    !progression?.weeks?.length ||
+    !progression?.rows?.length
+  ) {
     return (
       <section className="card">
         <h2
-  style={{
-    marginTop: 0,
-    lineHeight: 1.15,
-  }}
->
-  Progression au{" "}
-  <span
-    style={{
-      whiteSpace: "nowrap",
-    }}
-  >
-    classement 📈
-  </span>
-</h2>
+          style={{
+            marginTop: 0,
+            lineHeight: 1.15,
+          }}
+        >
+          Progression au classement 📈
+        </h2>
+
         <p style={{ color: "#94a3b8" }}>
           Aucun classement historique pour le moment.
         </p>
@@ -336,21 +373,41 @@ function RankProgressionChart({ progression }) {
   }
 
   const weeks = progression.weeks;
+
+  /*
+   * On garde les 8 premiers joueurs affichés,
+   * comme dans ta version actuelle.
+   */
   const rows = progression.rows.slice(0, 8);
 
   const maxRank = Math.max(
-    ...rows.flatMap((row) => row.points.map((p) => p.rank))
+    ...rows.flatMap((row) =>
+      row.points.map((p) => p.rank)
+    )
   );
 
-  const width = 720;
-  const height = 320;
-  const paddingLeft = 46;
-  const paddingRight = 20;
-  const paddingTop = 24;
-  const paddingBottom = 46;
+  /*
+   * Le SVG utilise un viewBox fixe,
+   * mais il se redimensionne entièrement
+   * selon la largeur disponible.
+   *
+   * IMPORTANT :
+   * aucun minWidth
+   * aucun overflow horizontal
+   */
+  const width = 760;
+  const height = 340;
 
-  const chartWidth = width - paddingLeft - paddingRight;
-  const chartHeight = height - paddingTop - paddingBottom;
+  const paddingLeft = 48;
+  const paddingRight = 18;
+  const paddingTop = 24;
+  const paddingBottom = 48;
+
+  const chartWidth =
+    width - paddingLeft - paddingRight;
+
+  const chartHeight =
+    height - paddingTop - paddingBottom;
 
   const colors = [
     "#22c55e",
@@ -366,6 +423,10 @@ function RankProgressionChart({ progression }) {
   const xForWeek = (week) => {
     const index = weeks.indexOf(week);
 
+    /*
+     * Avec une seule semaine,
+     * on place S1 près du centre.
+     */
     if (weeks.length === 1) {
       return paddingLeft + chartWidth / 2;
     }
@@ -383,13 +444,36 @@ function RankProgressionChart({ progression }) {
 
     return (
       paddingTop +
-      ((rank - 1) / (maxRank - 1)) * chartHeight
+      ((rank - 1) / (maxRank - 1)) *
+        chartHeight
     );
+  };
+
+  /*
+   * Quand il y aura beaucoup de semaines,
+   * on peut réduire le nombre de libellés
+   * affichés pour éviter qu'ils se chevauchent.
+   *
+   * Les points/lignes demeurent présents
+   * pour TOUTES les semaines.
+   */
+  const shouldShowWeekLabel = (index) => {
+    if (weeks.length <= 10) return true;
+
+    if (index === 0) return true;
+    if (index === weeks.length - 1) return true;
+
+    return index % 2 === 0;
   };
 
   return (
     <section className="card">
-      <h2 style={{ marginTop: 0 }}>
+      <h2
+        style={{
+          marginTop: 0,
+          lineHeight: 1.15,
+        }}
+      >
         Progression au classement 📈
       </h2>
 
@@ -402,44 +486,58 @@ function RankProgressionChart({ progression }) {
         Rang cumulatif par semaine
       </p>
 
-      <div style={{ overflowX: "auto" }}>
+      <div
+        style={{
+          width: "100%",
+          maxWidth: "100%",
+          overflow: "hidden",
+        }}
+      >
         <svg
           viewBox={`0 0 ${width} ${height}`}
+          preserveAspectRatio="xMidYMid meet"
           style={{
+            display: "block",
             width: "100%",
-            minWidth: 620,
             height: "auto",
+            maxWidth: "100%",
           }}
         >
-          {[...Array(maxRank)].map((_, index) => {
-            const rank = index + 1;
-            const y = yForRank(rank);
+          {[...Array(maxRank)].map(
+            (_, index) => {
+              const rank = index + 1;
+              const y = yForRank(rank);
 
-            return (
-              <g key={rank}>
-                <text
-                  x={8}
-                  y={y + 5}
-                  fill="#cbd5e1"
-                  fontSize="15"
-                  fontWeight="800"
-                >
-                  #{rank}
-                </text>
+              return (
+                <g key={rank}>
+                  <text
+                    x={8}
+                    y={y + 5}
+                    fill="#cbd5e1"
+                    fontSize="15"
+                    fontWeight="800"
+                  >
+                    #{rank}
+                  </text>
 
-                <line
-                  x1={paddingLeft}
-                  x2={width - paddingRight}
-                  y1={y}
-                  y2={y}
-                  stroke="rgba(148,163,184,0.12)"
-                  strokeWidth="1"
-                />
-              </g>
-            );
-          })}
+                  <line
+                    x1={paddingLeft}
+                    x2={width - paddingRight}
+                    y1={y}
+                    y2={y}
+                    stroke="rgba(148,163,184,0.12)"
+                    strokeWidth="1"
+                  />
+                </g>
+              );
+            }
+          )}
 
-          {weeks.map((week) => {
+          {weeks.map((week, index) => {
+            if (!shouldShowWeekLabel(index)) {
+              return null;
+            }
+
             const x = xForWeek(week);
 
             return (
@@ -459,31 +557,43 @@ function RankProgressionChart({ progression }) {
 
           {rows.map((row, rowIndex) => {
             const color =
-              colors[rowIndex % colors.length];
+              colors[
+                rowIndex % colors.length
+              ];
 
             const points = row.points
               .map(
                 (point) =>
-                  `${xForWeek(point.week)},${yForRank(point.rank)}`
+                  `${xForWeek(
+                    point.week
+                  )},${yForRank(
+                    point.rank
+                  )}`
               )
               .join(" ");
 
             return (
               <g key={row.userId}>
-                <polyline
-                  points={points}
-                  fill="none"
-                  stroke={color}
-                  strokeWidth="4"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
+                {row.points.length > 1 && (
+                  <polyline
+                    points={points}
+                    fill="none"
+                    stroke={color}
+                    strokeWidth="4"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                )}
 
                 {row.points.map((point) => (
                   <circle
                     key={`${row.userId}-${point.week}`}
-                    cx={xForWeek(point.week)}
-                    cy={yForRank(point.rank)}
+                    cx={xForWeek(
+                      point.week
+                    )}
+                    cy={yForRank(
+                      point.rank
+                    )}
                     r="6"
                     fill={color}
                     stroke="#020617"
@@ -498,10 +608,11 @@ function RankProgressionChart({ progression }) {
 
       <div
         style={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: 12,
-          marginTop: 12,
+          display: "grid",
+          gridTemplateColumns:
+            "repeat(2, minmax(0, 1fr))",
+          gap: "10px 14px",
+          marginTop: 14,
         }}
       >
         {rows.map((row, index) => (
@@ -510,9 +621,10 @@ function RankProgressionChart({ progression }) {
             style={{
               display: "flex",
               alignItems: "flex-start",
-              gap: 6,
+              gap: 7,
               color: "#cbd5e1",
               fontSize: 13,
+              minWidth: 0,
             }}
           >
             <span
@@ -521,7 +633,9 @@ function RankProgressionChart({ progression }) {
                 height: 10,
                 borderRadius: "50%",
                 background:
-                  colors[index % colors.length],
+                  colors[
+                    index % colors.length
+                  ],
                 display: "inline-block",
                 marginTop: 4,
                 flexShrink: 0,
@@ -545,7 +659,8 @@ export default function ClassementsPage() {
   const [week, setWeek] = useState(1);
   const [weekly, setWeekly] = useState([]);
   const [season, setSeason] = useState([]);
-  const [rankProgression, setRankProgression] = useState(null);
+  const [rankProgression, setRankProgression] =
+    useState(null);
 
   useEffect(() => {
     async function loadData() {
@@ -555,7 +670,7 @@ export default function ClassementsPage() {
         .single();
 
       const currentWeek =
-        settings?.current_week || 1;
+        Number(settings?.current_week) || 1;
 
       setWeek(currentWeek);
 
@@ -572,39 +687,59 @@ export default function ClassementsPage() {
           ascending: true,
         });
 
-      const weeklyRankings = {};
+      const safeUsers = users || [];
+      const safeScores = allScores || [];
 
-      (allScores || []).forEach((score) => {
-        if (!weeklyRankings[score.week]) {
-          weeklyRankings[score.week] = [];
-        }
-
-        weeklyRankings[score.week].push(score);
-      });
-
-      Object.keys(weeklyRankings).forEach((week) => {
-        weeklyRankings[week] = weeklyRankings[week]
-          .sort(
-            (a, b) =>
-              Number(b.final_score || 0) -
-              Number(a.final_score || 0)
-          )
-          .map((score, index) => ({
-            userId: score.user_id,
-            rank: index + 1,
-          }));
-      });
-
-      const getUser = (userId) => {
-        return users?.find(
+      const getUser = (userId) =>
+        safeUsers.find(
           (u) => u.id === userId
         );
-      };
 
-      const weekScores = (allScores || [])
+      /* =====================================================
+         CLASSEMENTS HEBDOMADAIRES
+         ===================================================== */
+
+      const weeklyRankings = {};
+
+      safeScores.forEach((score) => {
+        const scoreWeek = Number(score.week);
+
+        if (!weeklyRankings[scoreWeek]) {
+          weeklyRankings[scoreWeek] = [];
+        }
+
+        weeklyRankings[scoreWeek].push(score);
+      });
+
+      Object.keys(
+        weeklyRankings
+      ).forEach((weekKey) => {
+        weeklyRankings[weekKey] =
+          weeklyRankings[weekKey]
+            .sort(
+              (a, b) =>
+                Number(
+                  b.final_score || 0
+                ) -
+                Number(
+                  a.final_score || 0
+                )
+            )
+            .map((score, index) => ({
+              userId: score.user_id,
+              rank: index + 1,
+            }));
+      });
+
+      /* =====================================================
+         CLASSEMENT DE LA SEMAINE ACTIVE
+         ===================================================== */
+
+      const weekScores = safeScores
         .filter(
           (score) =>
-            score.week === currentWeek
+            Number(score.week) ===
+            currentWeek
         )
         .sort(
           (a, b) =>
@@ -618,7 +753,13 @@ export default function ClassementsPage() {
 
       setWeekly(
         weekScores.map((score, index) => {
-          const user = getUser(score.user_id);
+          const user = getUser(
+            score.user_id
+          );
+
+          const scoreValue = Number(
+            score.final_score || 0
+          );
 
           return {
             rank: index + 1,
@@ -628,24 +769,25 @@ export default function ClassementsPage() {
               score.user_id
             ),
             realName: realName(user),
-            score: Number(
-              score.final_score || 0
-            ),
+            score: scoreValue,
             diff:
-              weekLeader -
-              Number(
-                score.final_score || 0
-              ),
+              weekLeader - scoreValue,
           };
         })
       );
+
+      /* =====================================================
+         CLASSEMENT SAISON
+         ===================================================== */
 
       function buildSeasonRows(scores) {
         const grouped = {};
 
         for (const score of scores || []) {
           if (!grouped[score.user_id]) {
-            const user = getUser(score.user_id);
+            const user = getUser(
+              score.user_id
+            );
 
             grouped[score.user_id] = {
               userId: score.user_id,
@@ -667,22 +809,43 @@ export default function ClassementsPage() {
           grouped[score.user_id].weeks += 1;
         }
 
-        return Object.values(grouped).sort(
+        return Object.values(
+          grouped
+        ).sort(
           (a, b) =>
             b.total - a.total
         );
       }
 
+      /*
+       * CLASSEMENT SAISON ACTUEL
+       *
+       * Toutes les semaines qui existent
+       * présentement dans weekly_scores.
+       */
       const seasonRows =
-        buildSeasonRows(
-          allScores || []
-        );
+        buildSeasonRows(safeScores);
 
+      /*
+       * CLASSEMENT DE RÉFÉRENCE POUR LES FLÈCHES
+       *
+       * TRÈS IMPORTANT :
+       * on exclut TOUJOURS la semaine active.
+       *
+       * Ainsi les flèches représentent :
+       *
+       * classement fin semaine précédente
+       *                  VS
+       * classement incluant semaine actuelle
+       *
+       * Elles ne dépendent PAS du nombre
+       * de fois où le bouton Admin est utilisé.
+       */
       const previousSeasonRows =
         buildSeasonRows(
-          (allScores || []).filter(
+          safeScores.filter(
             (score) =>
-              score.week <
+              Number(score.week) <
               currentWeek
           )
         );
@@ -702,8 +865,8 @@ export default function ClassementsPage() {
 
       const progression =
         buildRankProgression(
-          allScores || [],
-          users || []
+          safeScores,
+          safeUsers
         );
 
       setSeason(
@@ -711,13 +874,23 @@ export default function ClassementsPage() {
           const currentRank =
             index + 1;
 
+          /*
+           * Semaine 1 :
+           * aucun classement précédent.
+           * Donc mouvement = 0.
+           */
+          const hasPreviousWeek =
+            currentWeek > 1 &&
+            previousRanks[row.userId] !=
+              null;
+
           const previousRank =
-            previousRanks[row.userId] ||
-            currentRank;
+            hasPreviousWeek
+              ? previousRanks[row.userId]
+              : currentRank;
 
           const movement =
-            previousRank -
-            currentRank;
+            previousRank - currentRank;
 
           const badges = [];
 
@@ -726,6 +899,11 @@ export default function ClassementsPage() {
               weeklyRankings
             )
               .map(Number)
+              .filter(
+                (weekNumber) =>
+                  weekNumber <=
+                  currentWeek
+              )
               .sort(
                 (a, b) =>
                   b - a
@@ -734,10 +912,10 @@ export default function ClassementsPage() {
 
           const recentRanks =
             recentWeeks.map(
-              (week) => {
+              (weekNumber) => {
                 const found =
                   weeklyRankings[
-                    week
+                    weekNumber
                   ]?.find(
                     (r) =>
                       r.userId ===
@@ -745,20 +923,17 @@ export default function ClassementsPage() {
                   );
 
                 return (
-                  found?.rank ||
-                  999
+                  found?.rank || 999
                 );
               }
             );
 
           if (
-            recentRanks.length ===
-            3
+            recentRanks.length === 3
           ) {
             if (
               recentRanks.every(
-                (rank) =>
-                  rank <= 3
+                (rank) => rank <= 3
               )
             ) {
               badges.push(
@@ -768,8 +943,7 @@ export default function ClassementsPage() {
 
             if (
               recentRanks.every(
-                (rank) =>
-                  rank > 3
+                (rank) => rank > 3
               )
             ) {
               badges.push(
@@ -778,9 +952,7 @@ export default function ClassementsPage() {
             }
           }
 
-          if (
-            movement <= -3
-          ) {
+          if (movement <= -3) {
             badges.push(
               "📉 Chute libre"
             );
@@ -788,8 +960,7 @@ export default function ClassementsPage() {
 
           return {
             ...row,
-            rank:
-              currentRank,
+            rank: currentRank,
             average:
               row.weeks > 0
                 ? row.total /
@@ -822,52 +993,55 @@ export default function ClassementsPage() {
 
   return (
     <main className="page">
-    <section className="header-card">
-  <div
-    style={{
-      display: "flex",
-      alignItems: "center",
-      gap: 10,
-      flexWrap: "nowrap",
-      width: "100%",
-      minWidth: 0,
-    }}
-  >
-    <div
-      style={{
-        fontSize: "clamp(44px, 10vw, 64px)",
-        fontWeight: 900,
-        lineHeight: 1,
-        color: "#f8fafc",
-        letterSpacing: "-1.5px",
-        whiteSpace: "nowrap",
-        minWidth: 0,
-      }}
-    >
-      Classements
-    </div>
+      <section className="header-card">
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            flexWrap: "nowrap",
+            width: "100%",
+            minWidth: 0,
+          }}
+        >
+          <div
+            style={{
+              fontSize:
+                "clamp(40px, 10vw, 64px)",
+              fontWeight: 900,
+              lineHeight: 1,
+              color: "#f8fafc",
+              letterSpacing: "-1.5px",
+              whiteSpace: "nowrap",
+              minWidth: 0,
+            }}
+          >
+            Classements
+          </div>
 
-    <span
-      style={{
-        fontSize: "clamp(34px, 8vw, 48px)",
-        lineHeight: 1,
-        flexShrink: 0,
-        transform: "translateY(1px)",
-      }}
-    >
-      🏆
-    </span>
-  </div>
+          <span
+            style={{
+              fontSize:
+                "clamp(32px, 8vw, 48px)",
+              lineHeight: 1,
+              flexShrink: 0,
+              transform:
+                "translateY(1px)",
+            }}
+          >
+            🏆
+          </span>
+        </div>
 
-  <p
-    style={{
-      marginTop: 20,
-      marginBottom: 0,
-    }}
-  >
-    Semaine {week} et saison complète
-  </p>
-</section>
+        <p
+          style={{
+            marginTop: 20,
+            marginBottom: 0,
+          }}
+        >
+          Semaine {week} et saison complète
+        </p>
+      </section>
 
       <section
         className="card"
@@ -929,29 +1103,34 @@ export default function ClassementsPage() {
             <div
               style={{
                 display: "grid",
+
+                /*
+                 * Les 3 cartes restent TOUJOURS
+                 * dans la largeur disponible.
+                 */
                 gridTemplateColumns:
-                  "1fr 1.25fr 1fr",
-                gap: 12,
+                  "minmax(0, 1fr) minmax(0, 1.12fr) minmax(0, 1fr)",
+
+                gap:
+                  "clamp(4px, 1.5vw, 10px)",
+
                 alignItems: "end",
+                width: "100%",
+                maxWidth: "100%",
+                overflow: "hidden",
               }}
             >
               <PodiumCard
-                row={
-                  topThree[1]
-                }
+                row={topThree[1]}
               />
 
               <PodiumCard
-                row={
-                  topThree[0]
-                }
-                size="big"
+                row={topThree[0]}
+                first={true}
               />
 
               <PodiumCard
-                row={
-                  topThree[2]
-                }
+                row={topThree[2]}
               />
             </div>
           </section>
@@ -960,24 +1139,17 @@ export default function ClassementsPage() {
             <section className="card">
               {rows
                 .slice(3)
-                .map(
-                  (row) => (
-                    <RankingRow
-                      key={
-                        row.userId
-                      }
-                      row={
-                        row
-                      }
-                      mode={
-                        tab ===
-                        "week"
-                          ? "week"
-                          : "season"
-                      }
-                    />
-                  )
-                )}
+                .map((row) => (
+                  <RankingRow
+                    key={row.userId}
+                    row={row}
+                    mode={
+                      tab === "week"
+                        ? "week"
+                        : "season"
+                    }
+                  />
+                ))}
             </section>
           )}
         </>
