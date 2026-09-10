@@ -1066,25 +1066,27 @@ function SubmittedGameCard({
         {/* ================= VISITEUR ================= */}
 
         <div
-          style={{
-            textAlign: "center",
-            minWidth: 0,
-          }}
-        >
-          <TeamLogo
-            logo={getTeamLogo(
-              game.away_team
-            )}
-            name={
-              game.away_team
-            }
-            size={
-              isMobile
-                ? 62
-                : 82
-            }
-            plain={true}
-          />
+  style={{
+    textAlign: "center",
+    minWidth: 0,
+  }}
+>
+  <div
+    style={{
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+    }}
+  >
+    <TeamLogo
+      logo={getTeamLogo(
+        game.away_team
+      )}
+      name={game.away_team}
+      size={isMobile ? 62 : 82}
+      plain={true}
+    />
+  </div>
 
           <strong
             style={{
@@ -1210,26 +1212,27 @@ function SubmittedGameCard({
         {/* ================= DOMICILE ================= */}
 
         <div
-          style={{
-            textAlign: "center",
-            minWidth: 0,
-          }}
-        >
-          <TeamLogo
-            logo={getTeamLogo(
-              game.home_team
-            )}
-            name={
-              game.home_team
-            }
-            size={
-              isMobile
-                ? 62
-                : 82
-            }
-            plain={true}
-          />
-
+  style={{
+    textAlign: "center",
+    minWidth: 0,
+  }}
+>
+  <div
+    style={{
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+    }}
+  >
+    <TeamLogo
+      logo={getTeamLogo(
+        game.home_team
+      )}
+      name={game.home_team}
+      size={isMobile ? 62 : 82}
+      plain={true}
+    />
+  </div>
           <strong
             style={{
               display: "block",
