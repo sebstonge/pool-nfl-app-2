@@ -965,10 +965,10 @@ function QbPickCard({
     <div
       style={{
         minWidth: 0,
-        padding:
-          isMobile
-            ? "9px"
-            : "10px 11px",
+     padding:
+  isMobile
+    ? "10px"
+    : "14px",
         borderRadius: 14,
         background:
           "rgba(15,23,42,0.72)",
@@ -984,23 +984,23 @@ function QbPickCard({
       <div
         style={{
           display: "grid",
-          gridTemplateColumns:
-            isMobile
-              ? "44px minmax(0,1fr)"
-              : "50px minmax(0,1fr)",
-          gap: 8,
+       gridTemplateColumns:
+  isMobile
+    ? "46px minmax(0,1fr)"
+    : "62px minmax(0,1fr)",
+       gap: isMobile ? 8 : 12,
           alignItems: "center",
           marginTop: 7,
         }}
       >
         <QBPhoto
-          qb={displayedQb}
-          size={
-            isMobile
-              ? 44
-              : 50
-          }
-        />
+  qb={displayedQb}
+  size={
+    isMobile
+      ? 46
+      : 62
+  }
+/>
 
         <div
           style={{
@@ -1028,10 +1028,10 @@ function QbPickCard({
             <strong
               style={{
                 color: "#f8fafc",
-                fontSize:
-                  isMobile
-                    ? 11
-                    : 12,
+             fontSize:
+  isMobile
+    ? 11
+    : 14,
                 lineHeight: 1.15,
                 overflowWrap: "anywhere",
               }}
@@ -1196,14 +1196,14 @@ function QbWeekSection({
         <div
           style={{
             display: "grid",
-            gridTemplateColumns:
-              isMobile
-                ? "repeat(2, minmax(0, 1fr))"
-                : "repeat(4, minmax(0, 1fr))",
+         gridTemplateColumns:
+  isMobile
+    ? "repeat(2, minmax(0, 1fr))"
+    : "repeat(3, minmax(0, 1fr))",
             gap:
               isMobile
-                ? 7
-                : 9,
+                ? 8
+                : 12,
           }}
         >
           {visibleQbPicks.map(
