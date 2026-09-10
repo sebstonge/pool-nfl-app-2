@@ -839,6 +839,7 @@ function SelectionOrderBar({
     </section>
   );
 }
+
 /* =========================================================
    CARTE D'UN MATCH DÉJÀ SOUMIS
    ========================================================= */
@@ -1450,7 +1451,6 @@ function SubmittedGameCard({
     </div>
   );
 }
-
 /* =========================================================
    PAGE
    ========================================================= */
@@ -1827,11 +1827,6 @@ export default function Matchs() {
         }
       );
 
-      /*
-       * Plus mauvais résultat
-       * précédent = sélection
-       * plus tôt cette semaine.
-       */
       fullOrder =
         [...players].sort(
           (a, b) => {
@@ -1845,33 +1840,42 @@ export default function Matchs() {
                 b.id
               ];
 
-            const hasA =
-              scoreA !== null &&
-              scoreA !==
-                undefined;
-
-            const hasB =
-              scoreB !== null &&
-              scoreB !==
-                undefined;
-
+            /*
+             * Les joueurs sans score
+             * sont placés après ceux
+             * qui possèdent un score.
+             */
             if (
-              hasA &&
-              !hasB
+              scoreA == null &&
+              scoreB == null
             ) {
-              return -1;
+              return playerRealName(
+                a
+              ).localeCompare(
+                playerRealName(
+                  b
+                ),
+                "fr"
+              );
             }
 
             if (
-              !hasA &&
-              hasB
+              scoreA == null
             ) {
               return 1;
             }
 
             if (
-              hasA &&
-              hasB &&
+              scoreB == null
+            ) {
+              return -1;
+            }
+
+            /*
+             * Inverse du classement :
+             * plus petit score = premier.
+             */
+            if (
               scoreA !== scoreB
             ) {
               return (
@@ -1910,6 +1914,7 @@ export default function Matchs() {
 
     const {
       data: picksData,
+      error: picksError,
     } =
       await supabase
         .from("picks")
@@ -1918,6 +1923,13 @@ export default function Matchs() {
           "user_id",
           currentUser.id
         );
+
+    if (picksError) {
+      console.error(
+        "Erreur chargement choix :",
+        picksError.message
+      );
+    }
 
     const picksByGame =
       {};
@@ -1937,14 +1949,19 @@ export default function Matchs() {
     );
 
     /* =========================================================
-       QB DU JOUEUR
+       QB DÉJÀ SOUMIS CETTE SEMAINE
        ========================================================= */
 
     const {
-      data: myQbPick,
+      data:
+        existingQbPickData,
+      error:
+        existingQbPickError,
     } =
       await supabase
-        .from("qb_picks")
+        .from(
+          "qb_picks"
+        )
         .select(`
           *,
           qbs (
@@ -1965,15 +1982,34 @@ export default function Matchs() {
         )
         .maybeSingle();
 
+    if (
+      existingQbPickError
+    ) {
+      console.error(
+        "Erreur chargement QB soumis :",
+        existingQbPickError.message
+      );
+    }
+
     setExistingQbPick(
-      myQbPick || null
+      existingQbPickData ||
+        null
     );
 
+    /* =========================================================
+       RATING OFFICIEL DU QB
+       ========================================================= */
+
+    let officialRating =
+      null;
+
     if (
-      myQbPick?.qb_id
+      existingQbPickData
+        ?.qb_id
     ) {
       const {
         data: ratingData,
+        error: ratingError,
       } =
         await supabase
           .from(
@@ -1981,59 +2017,84 @@ export default function Matchs() {
           )
           .select("*")
           .eq(
-            "qb_id",
-            myQbPick.qb_id
-          )
-          .eq(
             "week",
             week
           )
+          .eq(
+            "qb_id",
+            existingQbPickData
+              .qb_id
+          )
           .maybeSingle();
 
-      setQbRating(
-        ratingData || null
-      );
-    } else {
-      setQbRating(null);
+      if (
+        ratingError
+      ) {
+        console.error(
+          "Erreur chargement rating QB :",
+          ratingError.message
+        );
+      }
+
+      officialRating =
+        ratingData ||
+        null;
     }
 
+    setQbRating(
+      officialRating
+    );
+
     /* =========================================================
-       MOYENNES QB
+       MOYENNES SAISON QB
        ========================================================= */
 
     const {
-      data: allRatings,
+      data:
+        allRatingsData,
+      error:
+        allRatingsError,
     } =
       await supabase
-        .from("qb_ratings")
+        .from(
+          "qb_ratings"
+        )
         .select(`
-          qb_id,
-          passer_rating,
-          actual_espn_athlete_id,
+          *,
           qbs (
             espn_athlete_id
           )
         `);
 
-    const averages = {};
+    if (
+      allRatingsError
+    ) {
+      console.error(
+        "Erreur chargement moyennes QB :",
+        allRatingsError.message
+      );
+    }
+
+    const ratingsByQb =
+      {};
 
     (
-      allRatings || []
+      allRatingsData || []
     ).forEach(
       (row) => {
-        if (
-          row.passer_rating ==
-          null
-        ) {
-          return;
-        }
-
         const athleteId =
-          row.actual_espn_athlete_id ||
-          row.qbs
+          row
+            .actual_espn_athlete_id ||
+          row
+            .qbs
             ?.espn_athlete_id;
 
-        if (!athleteId) {
+        if (
+          !athleteId ||
+          row
+            .passer_rating ==
+            null
+        ) {
           return;
         }
 
@@ -2043,123 +2104,186 @@ export default function Matchs() {
           );
 
         if (
-          !averages[key]
+          !ratingsByQb[
+            key
+          ]
         ) {
-          averages[key] = {
-            total: 0,
-            count: 0,
-          };
+          ratingsByQb[
+            key
+          ] = [];
         }
 
-        averages[
+        ratingsByQb[
           key
-        ].total +=
+        ].push(
           Number(
-            row.passer_rating
-          );
-
-        averages[
-          key
-        ].count += 1;
+            row
+              .passer_rating
+          )
+        );
       }
     );
 
-    const formatted =
+    const averages =
       {};
 
-    Object.keys(
-      averages
+    Object.entries(
+      ratingsByQb
     ).forEach(
-      (athleteId) => {
-        formatted[
+      ([
+        athleteId,
+        values,
+      ]) => {
+        if (
+          values.length ===
+          0
+        ) {
+          return;
+        }
+
+        averages[
           athleteId
         ] =
-          averages[
-            athleteId
-          ].total /
-          averages[
-            athleteId
-          ].count;
+          values.reduce(
+            (
+              total,
+              value
+            ) =>
+              total +
+              value,
+            0
+          ) /
+          values.length;
       }
     );
 
     setQbSeasonAverages(
-      formatted
+      averages
+    );
+
+    /* =========================================================
+       QB DÉJÀ PRIS CETTE SEMAINE
+       ========================================================= */
+
+    const {
+      data:
+        takenQbsData,
+      error:
+        takenQbsError,
+    } =
+      await supabase
+        .from(
+          "qb_picks"
+        )
+        .select(
+          "qb_id"
+        )
+        .eq(
+          "week",
+          week
+        );
+
+    if (
+      takenQbsError
+    ) {
+      console.error(
+        "Erreur chargement QB pris :",
+        takenQbsError.message
+      );
+    }
+
+    const takenQbIds =
+      new Set(
+        (
+          takenQbsData ||
+          []
+        ).map(
+          (row) =>
+            row.qb_id
+        )
+      );
+
+    /* =========================================================
+       QB DÉJÀ UTILISÉS PAR CE JOUEUR
+       ========================================================= */
+
+    const {
+      data:
+        qbHistoryData,
+      error:
+        qbHistoryError,
+    } =
+      await supabase
+        .from(
+          "qb_history"
+        )
+        .select(
+          "qb_id"
+        )
+        .eq(
+          "user_id",
+          currentUser.id
+        );
+
+    if (
+      qbHistoryError
+    ) {
+      console.error(
+        "Erreur historique QB :",
+        qbHistoryError.message
+      );
+    }
+
+    const usedQbIds =
+      new Set(
+        (
+          qbHistoryData ||
+          []
+        ).map(
+          (row) =>
+            row.qb_id
+        )
+      );
+
+    /* =========================================================
+       ÉQUIPES QUI JOUENT CETTE SEMAINE
+       ========================================================= */
+
+    const playingTeams =
+      new Set();
+
+    weekSchedule.forEach(
+      (game) => {
+        if (
+          game.home_team
+        ) {
+          playingTeams.add(
+            normalizeName(
+              game.home_team
+            )
+          );
+        }
+
+        if (
+          game.away_team
+        ) {
+          playingTeams.add(
+            normalizeName(
+              game.away_team
+            )
+          );
+        }
+      }
     );
 
     /* =========================================================
        QB DISPONIBLES
        ========================================================= */
 
-    const {
-      data: takenThisWeek,
-    } =
-      await supabase
-        .from("qb_picks")
-        .select("qb_id")
-        .eq(
-          "week",
-          week
-        );
-
-    const {
-      data: myHistory,
-    } =
-      await supabase
-        .from("qb_history")
-        .select("qb_id")
-        .eq(
-          "user_id",
-          currentUser.id
-        );
-
-    const takenIds =
+    const filteredQbs =
       (
-        takenThisWeek || []
-      ).map(
-        (q) =>
-          q.qb_id
-      );
-
-    const usedIds =
-      (
-        myHistory || []
-      ).map(
-        (q) =>
-          q.qb_id
-      );
-
-    /*
-     * IMPORTANT :
-     *
-     * On utilise TOUS les matchs NFL
-     * de la semaine et non seulement
-     * les matchs du pool.
-     *
-     * Une équipe absente de cet horaire
-     * est donc en BYE.
-     */
-    const playingTeams =
-      new Set(
-        weekSchedule
-          .flatMap(
-            (game) => [
-              game.away_team,
-              game.home_team,
-            ]
-          )
-          .filter(Boolean)
-          .map(
-            (team) =>
-              normalizeName(
-                team
-              )
-          )
-      );
-
-    setAvailableQbs(
-      (
-        qbsData || []
+        qbsData ||
+        []
       ).filter(
         (qb) => {
           const teamIsPlaying =
@@ -2170,12 +2294,12 @@ export default function Matchs() {
             );
 
           const alreadyTaken =
-            takenIds.includes(
+            takenQbIds.has(
               qb.id
             );
 
           const alreadyUsed =
-            usedIds.includes(
+            usedQbIds.has(
               qb.id
             );
 
@@ -2185,11 +2309,13 @@ export default function Matchs() {
             !alreadyUsed
           );
         }
-      )
+      );
+
+    setAvailableQbs(
+      filteredQbs
     );
   }
-
-  useEffect(() => {
+     useEffect(() => {
     loadData();
   }, []);
 
@@ -2425,23 +2551,43 @@ export default function Matchs() {
       return "";
     }
 
-    return division
-      .replace(
-        "East",
-        "Est"
+    const value =
+      String(
+        division
       )
-      .replace(
-        "West",
-        "Ouest"
-      )
-      .replace(
-        "North",
-        "Nord"
-      )
-      .replace(
-        "South",
-        "Sud"
-      );
+        .trim()
+        .toUpperCase();
+
+    const map = {
+      "AFC EAST":
+        "AFC Est",
+
+      "AFC NORTH":
+        "AFC Nord",
+
+      "AFC SOUTH":
+        "AFC Sud",
+
+      "AFC WEST":
+        "AFC Ouest",
+
+      "NFC EAST":
+        "NFC Est",
+
+      "NFC NORTH":
+        "NFC Nord",
+
+      "NFC SOUTH":
+        "NFC Sud",
+
+      "NFC WEST":
+        "NFC Ouest",
+    };
+
+    return (
+      map[value] ||
+      division
+    );
   };
 
   const formatDivisionRank = (
@@ -2630,6 +2776,16 @@ export default function Matchs() {
       )
     ];
 
+  /*
+   * CORRECTION DU CRASH :
+   *
+   * C'est CETTE variable qui doit
+   * être utilisée plus bas dans
+   * le rendu.
+   *
+   * On ne doit plus avoir :
+   * qbDisplayData?.replaced
+   */
   const qbWasReplaced =
     displayedQb
       ?.espn_athlete_id &&
@@ -2670,8 +2826,7 @@ export default function Matchs() {
       })
     );
   };
-
-  /* =========================================================
+     /* =========================================================
      SOUMISSION
      ========================================================= */
 
@@ -2890,6 +3045,7 @@ export default function Matchs() {
           game.id
         ]
     );
+
   /* =========================================================
      RENDER
      ========================================================= */
@@ -2994,7 +3150,7 @@ export default function Matchs() {
                   </strong>
                 </div>
 
-                {qbDisplayData?.replaced && (
+                {qbWasReplaced && (
                   <p
                     style={{
                       margin: "4px 0",
@@ -3246,7 +3402,6 @@ export default function Matchs() {
                         : "▼"}
                     </span>
                   </button>
-
                   {qbMenuOpen && (
                     <div
                       style={{
@@ -3651,7 +3806,6 @@ export default function Matchs() {
                 >
                   @
                 </div>
-
                 {/* ÉQUIPE DOMICILE */}
 
                 <button
