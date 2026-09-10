@@ -76,10 +76,7 @@ function getQbHeadshot(qb) {
   return `https://a.espncdn.com/i/headshots/nfl/players/full/${qb.espn_athlete_id}.png`;
 }
 
-function QBPhoto({
-  qb,
-  size = 58,
-}) {
+function QBPhoto({ qb, size = 58 }) {
   const [error, setError] = useState(false);
 
   const src = getQbHeadshot(qb);
@@ -275,9 +272,7 @@ function formatGameDate(dateString) {
   return `${day} · ${time}`;
 }
 
-function GameTimeBar({
-  gameDate,
-}) {
+function GameTimeBar({ gameDate }) {
   return (
     <div
       style={{
@@ -291,10 +286,7 @@ function GameTimeBar({
       }}
     >
       <span>🗓️</span>
-
-      <span>
-        {formatGameDate(gameDate)}
-      </span>
+      <span>{formatGameDate(gameDate)}</span>
     </div>
   );
 }
@@ -308,22 +300,21 @@ function getLiveGameStatus(summary) {
     summary?.header?.competitions?.[0];
 
   const status =
-    competition?.status ||
-    summary?.header?.competitions?.[0]?.status;
-
-  const state =
-    status?.type?.state || "";
-
-  const completed =
-    status?.type?.completed === true;
+    competition?.status || null;
 
   return {
-    state,
-    completed,
+    state:
+      status?.type?.state || "",
+
+    completed:
+      status?.type?.completed === true,
+
     period:
       Number(status?.period || 0),
+
     clock:
       status?.displayClock || "",
+
     detail:
       status?.type?.shortDetail ||
       status?.type?.detail ||
@@ -389,101 +380,123 @@ function getLivePassers(summary) {
   const boxscoreTeams =
     summary?.boxscore?.players || [];
 
-  boxscoreTeams.forEach(
-    (teamBox) => {
-      const team =
-        teamBox?.team || {};
+  boxscoreTeams.forEach((teamBox) => {
+    const team =
+      teamBox?.team || {};
 
-      const teamNames = [
-        team.abbreviation,
-        team.shortDisplayName,
-        team.displayName,
-        team.name,
-      ]
-        .filter(Boolean)
-        .map((value) =>
-          String(value)
-            .toLowerCase()
-            .trim()
-        );
+    const teamNames = [
+      team.abbreviation,
+      team.shortDisplayName,
+      team.displayName,
+      team.name,
+    ]
+      .filter(Boolean)
+      .map((value) =>
+        String(value)
+          .toLowerCase()
+          .trim()
+      );
 
-      const passingCategory =
-        teamBox.statistics?.find(
-          (category) =>
-            category.name ===
-              "passing" ||
-            category.displayName ===
-              "Passing"
-        );
+    const passingCategory =
+      teamBox.statistics?.find(
+        (category) =>
+          category.name === "passing" ||
+          category.displayName === "Passing"
+      );
 
-      if (!passingCategory) {
-        return;
-      }
-
-      const labels =
-        passingCategory.labels || [];
-
-      const ratingIndex =
-        labels.findIndex(
-          (label) =>
-            [
-              "RTG",
-              "RAT",
-              "RATE",
-            ].includes(
-              String(label).toUpperCase()
-            )
-        );
-
-      if (ratingIndex === -1) {
-        return;
-      }
-
-      (
-        passingCategory.athletes || []
-      ).forEach((row) => {
-        const rating =
-          Number(
-            row.stats?.[
-              ratingIndex
-            ]
-          );
-
-        if (
-          Number.isNaN(rating)
-        ) {
-          return;
-        }
-
-        passers.push({
-          athleteId:
-            row.athlete?.id
-              ? String(
-                  row.athlete.id
-                )
-              : null,
-
-          name:
-            row.athlete
-              ?.displayName ||
-            row.athlete
-              ?.shortName ||
-            "",
-
-          rating,
-
-          teamNames,
-        });
-      });
+    if (!passingCategory) {
+      return;
     }
-  );
+
+    const labels =
+      passingCategory.labels || [];
+
+    const ratingIndex =
+      labels.findIndex(
+        (label) =>
+          ["RTG", "RAT", "RATE"].includes(
+            String(label).toUpperCase()
+          )
+      );
+
+    if (ratingIndex === -1) {
+      return;
+    }
+
+    (
+      passingCategory.athletes || []
+    ).forEach((row) => {
+      const rating =
+        Number(
+          row.stats?.[
+            ratingIndex
+          ]
+        );
+
+      if (Number.isNaN(rating)) {
+        return;
+      }
+
+      passers.push({
+        athleteId:
+          row.athlete?.id
+            ? String(
+                row.athlete.id
+              )
+            : null,
+
+        name:
+          row.athlete
+            ?.displayName ||
+          row.athlete
+            ?.shortName ||
+          "",
+
+        rating,
+
+        teamNames,
+      });
+    });
+  });
 
   return passers;
 }
 
-function findLiveQbData(
+function teamMatches(
+  qbTeam,
+  teamNames
+) {
+  const normalized =
+    String(qbTeam || "")
+      .toLowerCase()
+      .trim();
+
+  if (!normalized) {
+    return false;
+  }
+
+  return (
+    teamNames || []
+  ).some(
+    (name) =>
+      name === normalized ||
+      name.includes(normalized) ||
+      normalized.includes(name)
+  );
+}
+
+/*
+ * Trouve le match ESPN correspondant
+ * au QB choisi.
+ *
+ * includePost = true :
+ * permet de continuer à lire le rating
+ * après la fin du match.
+ */
+function findQbGameData(
   qbPick,
-  liveGames
+  liveGames,
+  includePost = true
 ) {
   const qb =
     qbPick?.qbs;
@@ -492,42 +505,50 @@ function findLiveQbData(
     return null;
   }
 
-  const qbTeam =
-    String(qb.team)
-      .toLowerCase()
-      .trim();
-
-  const liveGame =
+  const game =
     Object.values(
       liveGames || {}
-    ).find((game) => {
-      if (
-        !game ||
-        game.status?.state !== "in"
-      ) {
+    ).find((item) => {
+      if (!item) {
         return false;
       }
 
-      const teamNames =
-        game.teamNames || [];
+      const state =
+        item.status?.state;
 
-      return teamNames.some(
-        (name) =>
-          name === qbTeam ||
-          name.includes(qbTeam) ||
-          qbTeam.includes(name)
+      const validState =
+        state === "in" ||
+        (
+          includePost &&
+          state === "post"
+        );
+
+      if (!validState) {
+        return false;
+      }
+
+      return teamMatches(
+        qb.team,
+        item.teamNames
       );
     });
 
-  if (!liveGame) {
+  if (!game) {
     return null;
   }
 
   const passers =
-    liveGame.passers || [];
+    game.passers || [];
 
   let passer = null;
 
+  /*
+   * Priorité absolue :
+   * le QB sélectionné, s'il a joué.
+   *
+   * Donc un QB qui se blesse en cours
+   * de match conserve SON rating.
+   */
   if (qb.espn_athlete_id) {
     passer =
       passers.find(
@@ -560,27 +581,23 @@ function findLiveQbData(
   }
 
   /*
-   * Si le QB choisi ne joue pas,
-   * on peut afficher le passeur réel
-   * de son équipe en direct.
+   * Si le QB choisi n'a PAS joué,
+   * on prend le passeur réel de
+   * la même équipe.
    */
   if (!passer) {
     passer =
       passers.find(
         (row) =>
-          (
-            row.teamNames || []
-          ).some(
-            (name) =>
-              name === qbTeam ||
-              name.includes(qbTeam) ||
-              qbTeam.includes(name)
+          teamMatches(
+            qb.team,
+            row.teamNames
           )
       ) || null;
   }
 
   return {
-    game: liveGame,
+    game,
     passer,
   };
 }
@@ -714,7 +731,303 @@ function WeekNavigator({
 }
 
 /* =========================================================
-   BLOC QB
+   CARTE QB RÉUTILISABLE
+   ========================================================= */
+
+function QbPickCard({
+  qbPick,
+  qbRatings,
+  players,
+  qbSeasonAverages,
+  getTeamLogo,
+  isMobile,
+  liveGames,
+  inGame = false,
+}) {
+  const player =
+    players.find(
+      (p) =>
+        p.id ===
+        qbPick.user_id
+    );
+
+  const officialRating =
+    qbRatings.find(
+      (row) =>
+        row.qb_id ===
+        qbPick.qb_id
+    );
+
+  /*
+   * On récupère aussi les données POST.
+   *
+   * Elles servent seulement si
+   * Supabase n'a pas encore le rating.
+   */
+  const espnQb =
+    findQbGameData(
+      qbPick,
+      liveGames,
+      true
+    );
+
+  const espnPasser =
+    espnQb?.passer;
+
+  const isLive =
+    espnQb?.game?.status
+      ?.state === "in";
+
+  /*
+   * Si le rating officiel existe,
+   * Supabase gagne toujours.
+   *
+   * Sinon ESPN peut continuer à
+   * fournir le résultat LIVE/POST.
+   */
+  const useOfficial =
+    officialRating?.passer_rating !=
+    null;
+
+  const displayedRating =
+    useOfficial
+      ? Number(
+          officialRating.passer_rating
+        )
+      : espnPasser?.rating != null
+      ? Number(
+          espnPasser.rating
+        )
+      : null;
+
+  const actualAthleteId =
+    useOfficial
+      ? officialRating
+          ?.actual_espn_athlete_id ||
+        qbPick.qbs
+          ?.espn_athlete_id
+      : espnPasser?.athleteId ||
+        qbPick.qbs
+          ?.espn_athlete_id;
+
+  const actualName =
+    useOfficial
+      ? officialRating
+          ?.actual_qb_name ||
+        qbPick.qbs?.name
+      : espnPasser?.name ||
+        qbPick.qbs?.name;
+
+  const displayedQb = {
+    name: actualName,
+    team: qbPick.qbs?.team,
+    espn_athlete_id:
+      actualAthleteId,
+  };
+
+  const replaced =
+    actualAthleteId &&
+    qbPick.qbs
+      ?.espn_athlete_id &&
+    String(actualAthleteId) !==
+      String(
+        qbPick.qbs
+          .espn_athlete_id
+      );
+
+  const average =
+    qbSeasonAverages[
+      String(
+        actualAthleteId || ""
+      )
+    ];
+
+  return (
+    <div
+      style={{
+        minWidth: 0,
+
+        /*
+         * Cartes beaucoup plus compactes.
+         */
+        padding: inGame
+          ? isMobile
+            ? 10
+            : 11
+          : isMobile
+          ? 9
+          : 10,
+
+        borderRadius: 14,
+
+        background:
+          inGame
+            ? "rgba(15,23,42,0.62)"
+            : "rgba(15,23,42,0.72)",
+
+        border:
+          isLive
+            ? "1px solid rgba(239,68,68,0.38)"
+            : "1px solid rgba(148,163,184,0.13)",
+      }}
+    >
+      <PlayerIdentity
+        player={player}
+        compact={true}
+      />
+
+      <div
+        style={{
+          marginTop: 7,
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          minWidth: 0,
+        }}
+      >
+        <QBPhoto
+          qb={displayedQb}
+          size={
+            isMobile
+              ? 46
+              : 52
+          }
+        />
+
+        <div
+          style={{
+            minWidth: 0,
+            flex: 1,
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 5,
+              minWidth: 0,
+            }}
+          >
+            <TeamLogo
+              logo={getTeamLogo(
+                displayedQb?.team
+              )}
+              name={
+                displayedQb?.team
+              }
+              size={19}
+            />
+
+            <strong
+              style={{
+                color: "#f8fafc",
+                fontSize:
+                  isMobile
+                    ? 11
+                    : 12,
+                lineHeight: 1.15,
+                overflow: "hidden",
+                textOverflow:
+                  "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {displayedQb?.name ||
+                "QB"}
+            </strong>
+          </div>
+
+          {replaced && (
+            <div
+              style={{
+                marginTop: 3,
+                color: "#facc15",
+                fontSize: 8,
+                fontWeight: 900,
+              }}
+            >
+              🔄 Remplacement
+            </div>
+          )}
+
+          <div
+            style={{
+              marginTop: 4,
+              fontSize: 10,
+              color: "#94a3b8",
+              lineHeight: 1.2,
+            }}
+          >
+            {displayedRating != null ? (
+              <>
+                Rating{" "}
+                <strong
+                  style={{
+                    color:
+                      ratingColor(
+                        displayedRating
+                      ),
+                  }}
+                >
+                  {displayedRating.toFixed(
+                    1
+                  )}
+                </strong>
+              </>
+            ) : (
+              <>
+                Rating{" "}
+                <strong
+                  style={{
+                    color: "#64748b",
+                  }}
+                >
+                  --
+                </strong>
+              </>
+            )}
+
+            {average != null && (
+              <>
+                <span> · </span>
+                Moy.{" "}
+                <strong
+                  style={{
+                    color:
+                      ratingColor(
+                        average
+                      ),
+                  }}
+                >
+                  {average.toFixed(1)}
+                </strong>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {isLive && (
+        <div
+          style={{
+            marginTop: 6,
+            textAlign: "center",
+            color: "#f87171",
+            fontSize: 9,
+            fontWeight: 900,
+            letterSpacing:
+              "0.5px",
+          }}
+        >
+          ● EN DIRECT
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* =========================================================
+   BLOC QB DU HAUT
    ========================================================= */
 
 function QbWeekSection({
@@ -726,11 +1039,36 @@ function QbWeekSection({
   isMobile,
   liveGames,
 }) {
+  /*
+   * Pendant un match LIVE :
+   * les QB concernés disparaissent
+   * temporairement de cette section.
+   *
+   * Ils seront affichés dans la carte
+   * du match correspondant.
+   */
+  const visibleQbPicks =
+    qbPicks.filter(
+      (qbPick) => {
+        const liveData =
+          findQbGameData(
+            qbPick,
+            liveGames,
+            false
+          );
+
+        return (
+          liveData?.game?.status
+            ?.state !== "in"
+        );
+      }
+    );
+
   return (
     <section className="card">
       <div
         style={{
-          marginBottom: 16,
+          marginBottom: 12,
         }}
       >
         <h2
@@ -761,16 +1099,34 @@ function QbWeekSection({
             ? "s"
             : ""}
         </p>
+
+        {visibleQbPicks.length <
+          qbPicks.length && (
+          <p
+            style={{
+              margin: "4px 0 0",
+              color: "#f87171",
+              fontSize: 10,
+              fontWeight: 800,
+            }}
+          >
+            Les QB actuellement en
+            match sont affichés dans
+            leur carte de match.
+          </p>
+        )}
       </div>
 
-      {qbPicks.length === 0 ? (
+      {visibleQbPicks.length ===
+      0 ? (
         <p
           style={{
             margin: 0,
             color: "#64748b",
           }}
         >
-          Aucun QB soumis pour le moment.
+          Tous les QB concernés jouent
+          actuellement.
         </p>
       ) : (
         <div
@@ -779,330 +1135,35 @@ function QbWeekSection({
             gridTemplateColumns: isMobile
               ? "repeat(2, minmax(0, 1fr))"
               : "repeat(5, minmax(0, 1fr))",
-            gap: isMobile ? 8 : 10,
+            gap: isMobile ? 7 : 9,
           }}
         >
-          {qbPicks.map((qbPick) => {
-            const player =
-              players.find(
-                (p) =>
-                  p.id ===
-                  qbPick.user_id
-              );
-
-            const rating =
-              qbRatings.find(
-                (row) =>
-                  row.qb_id ===
-                  qbPick.qb_id
-              );
-
-            const liveQb =
-              findLiveQbData(
-                qbPick,
-                liveGames
-              );
-
-            const livePasser =
-              liveQb?.passer;
-
-            /*
-             * Pendant le match :
-             * priorité au passeur réellement
-             * détecté en direct.
-             *
-             * Hors match :
-             * comportement original inchangé.
-             */
-            const displayedQb =
-              livePasser?.athleteId
-                ? {
-                    name:
-                      livePasser.name ||
-                      qbPick.qbs?.name,
-                    team:
-                      qbPick.qbs?.team,
-                    espn_athlete_id:
-                      livePasser.athleteId,
-                  }
-                : rating?.actual_espn_athlete_id
-                ? {
-                    name:
-                      rating.actual_qb_name ||
-                      qbPick.qbs?.name,
-                    team:
-                      qbPick.qbs?.team,
-                    espn_athlete_id:
-                      rating.actual_espn_athlete_id,
-                  }
-                : qbPick.qbs;
-
-            const replaced =
-              (
-                livePasser?.athleteId &&
-                String(
-                  livePasser.athleteId
-                ) !==
-                  String(
-                    qbPick.qbs
-                      ?.espn_athlete_id
-                  )
-              ) ||
-              (
-                !livePasser &&
-                rating?.actual_espn_athlete_id &&
-                String(
-                  rating.actual_espn_athlete_id
-                ) !==
-                  String(
-                    qbPick.qbs
-                      ?.espn_athlete_id
-                  )
-              );
-
-            const average =
-              qbSeasonAverages[
-                String(
-                  rating?.actual_espn_athlete_id ||
-                    qbPick.qbs
-                      ?.espn_athlete_id
-                )
-              ];
-
-            const isLive =
-              liveQb?.game?.status
-                ?.state === "in";
-
-            const liveRating =
-              livePasser?.rating;
-
-            return (
-              <div
+          {visibleQbPicks.map(
+            (qbPick) => (
+              <QbPickCard
                 key={qbPick.id}
-                style={{
-                  minWidth: 0,
-                  padding: isMobile
-                    ? 10
-                    : 12,
-                  borderRadius: 15,
-                  background:
-                    "rgba(15,23,42,0.72)",
-                  border: isLive
-                    ? "1px solid rgba(239,68,68,0.35)"
-                    : "1px solid rgba(148,163,184,0.13)",
-                }}
-              >
-                <PlayerIdentity
-                  player={player}
-                  compact={true}
-                />
-
-                <div
-                  style={{
-                    marginTop: 10,
-                    display: "flex",
-                    justifyContent:
-                      "center",
-                  }}
-                >
-                  <QBPhoto
-                    qb={displayedQb}
-                    size={
-                      isMobile
-                        ? 55
-                        : 66
-                    }
-                  />
-                </div>
-
-                <div
-                  style={{
-                    marginTop: 6,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent:
-                      "center",
-                    gap: 5,
-                    minWidth: 0,
-                  }}
-                >
-                  <TeamLogo
-                    logo={getTeamLogo(
-                      displayedQb?.team
-                    )}
-                    name={
-                      displayedQb?.team
-                    }
-                    size={22}
-                  />
-
-                  <strong
-                    style={{
-                      color: "#f8fafc",
-                      fontSize: isMobile
-                        ? 11
-                        : 13,
-                      lineHeight: 1.15,
-                      textAlign: "center",
-                      overflow: "hidden",
-                      textOverflow:
-                        "ellipsis",
-                    }}
-                  >
-                    {displayedQb?.name ||
-                      "QB"}
-                  </strong>
-                </div>
-
-                {replaced && (
-                  <div
-                    style={{
-                      marginTop: 5,
-                      color: "#facc15",
-                      fontSize: 9,
-                      textAlign: "center",
-                      fontWeight: 900,
-                    }}
-                  >
-                    🔄 Remplacement
-                  </div>
-                )}
-
-                {isLive && (
-                  <div
-                    style={{
-                      marginTop: 6,
-                      textAlign: "center",
-                      color: "#f87171",
-                      fontSize: 9,
-                      fontWeight: 900,
-                      letterSpacing:
-                        "0.5px",
-                    }}
-                  >
-                    ● EN DIRECT
-                  </div>
-                )}
-
-                <div
-                  style={{
-                    marginTop: isLive
-                      ? 4
-                      : 7,
-                    textAlign: "center",
-                    fontSize: 10,
-                    color: "#94a3b8",
-                  }}
-                >
-                  {isLive ? (
-                    liveRating != null ? (
-                      <>
-                        Rating{" "}
-                        <strong
-                          style={{
-                            color:
-                              "#f8fafc",
-                          }}
-                        >
-                          {Number(
-                            liveRating
-                          ).toFixed(1)}
-                        </strong>
-
-                        {average != null && (
-                          <>
-                            <span>
-                              {" "}
-                              ·{" "}
-                            </span>
-
-                            Moy.{" "}
-                            <strong
-                              style={{
-                                color:
-                                  ratingColor(
-                                    average
-                                  ),
-                              }}
-                            >
-                              {average.toFixed(
-                                1
-                              )}
-                            </strong>
-                          </>
-                        )}
-                      </>
-                    ) : (
-                      <>
-                        Rating{" "}
-                        <strong
-                          style={{
-                            color:
-                              "#64748b",
-                          }}
-                        >
-                          --
-                        </strong>
-                      </>
-                    )
-                  ) : (
-                    <>
-                      {rating?.passer_rating !=
-                        null && (
-                        <>
-                          Rating{" "}
-                          <strong
-                            style={{
-                              color:
-                                ratingColor(
-                                  rating.passer_rating
-                                ),
-                            }}
-                          >
-                            {Number(
-                              rating.passer_rating
-                            ).toFixed(1)}
-                          </strong>
-                        </>
-                      )}
-
-                      {rating?.passer_rating !=
-                        null &&
-                        average != null && (
-                          <span>
-                            {" "}
-                            ·{" "}
-                          </span>
-                        )}
-
-                      {average != null && (
-                        <>
-                          Moy.{" "}
-                          <strong
-                            style={{
-                              color:
-                                ratingColor(
-                                  average
-                                ),
-                            }}
-                          >
-                            {average.toFixed(
-                              1
-                            )}
-                          </strong>
-                        </>
-                      )}
-
-                      {rating?.passer_rating ==
-                        null &&
-                        average == null &&
-                        "--"}
-                    </>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+                qbPick={qbPick}
+                qbRatings={
+                  qbRatings
+                }
+                players={
+                  players
+                }
+                qbSeasonAverages={
+                  qbSeasonAverages
+                }
+                getTeamLogo={
+                  getTeamLogo
+                }
+                isMobile={
+                  isMobile
+                }
+                liveGames={
+                  liveGames
+                }
+              />
+            )
+          )}
         </div>
       )}
     </section>
@@ -1208,29 +1269,60 @@ function GamePicksCard({
   getTeamLogo,
   isMobile,
   liveGame,
+  qbPicks,
+  qbRatings,
+  qbSeasonAverages,
+  liveGames,
 }) {
   /*
-   * IMPORTANT :
-   *
-   * hasScore = données OFFICIELLES
-   * enregistrées dans Supabase.
-   *
-   * liveGame = affichage temporaire
-   * seulement.
+   * Données OFFICIELLES Supabase.
    */
-  const hasScore =
+  const hasOfficialScore =
     game.home_score != null &&
     game.away_score != null;
+
+  /*
+   * Données ESPN temporaires.
+   *
+   * Elles peuvent être :
+   * - in   = match en cours
+   * - post = match terminé
+   */
+  const espnScore =
+    liveGame?.score || null;
 
   const isLive =
     liveGame?.status?.state ===
     "in";
 
-  const liveScore =
-    liveGame?.score || null;
+  const isPost =
+    liveGame?.status?.state ===
+      "post" ||
+    liveGame?.status
+      ?.completed === true;
 
-  const displayLiveScore =
-    isLive && liveScore;
+  /*
+   * Priorité :
+   *
+   * 1. Supabase officiel
+   * 2. ESPN temporaire
+   * 3. aucun score
+   */
+  const displayedScore =
+    hasOfficialScore
+      ? {
+          awayScore:
+            game.away_score,
+          homeScore:
+            game.home_score,
+          official: true,
+        }
+      : espnScore
+      ? {
+          ...espnScore,
+          official: false,
+        }
+      : null;
 
   const sortedPicks = [
     ...gamePicks,
@@ -1258,9 +1350,10 @@ function GamePicksCard({
         game.home_team
     ).length;
 
-  const splitPoint = Math.ceil(
-    sortedPicks.length / 2
-  );
+  const splitPoint =
+    Math.ceil(
+      sortedPicks.length / 2
+    );
 
   const leftPicks =
     sortedPicks.slice(
@@ -1273,6 +1366,32 @@ function GamePicksCard({
       splitPoint
     );
 
+  /*
+   * QB impliqués dans CE match,
+   * mais seulement pendant le LIVE.
+   *
+   * Ils sont retirés de la liste du haut
+   * au même moment.
+   */
+  const liveQbPicks =
+    isLive
+      ? qbPicks.filter(
+          (qbPick) => {
+            const data =
+              findQbGameData(
+                qbPick,
+                liveGames,
+                false
+              );
+
+            return (
+              data?.game?.gameId ===
+              game.id
+            );
+          }
+        )
+      : [];
+
   return (
     <section
       className="card"
@@ -1280,8 +1399,6 @@ function GamePicksCard({
         overflow: "hidden",
       }}
     >
-      {/* HEURE — INCHANGÉE HORS MATCH */}
-
       <GameTimeBar
         gameDate={game.game_date}
       />
@@ -1293,9 +1410,7 @@ function GamePicksCard({
           display: "grid",
           gridTemplateColumns:
             "minmax(0,1fr) auto minmax(0,1fr)",
-          gap: isMobile
-            ? 8
-            : 20,
+          gap: isMobile ? 8 : 20,
           alignItems: "center",
           marginTop: 18,
         }}
@@ -1321,9 +1436,7 @@ function GamePicksCard({
               )}
               name={game.away_team}
               size={
-                isMobile
-                  ? 62
-                  : 86
+                isMobile ? 62 : 86
               }
             />
           </div>
@@ -1333,9 +1446,8 @@ function GamePicksCard({
               display: "block",
               marginTop: 6,
               color: "#f8fafc",
-              fontSize: isMobile
-                ? 14
-                : 19,
+              fontSize:
+                isMobile ? 14 : 19,
               fontWeight: 900,
             }}
           >
@@ -1348,111 +1460,92 @@ function GamePicksCard({
         <div
           style={{
             textAlign: "center",
-            minWidth: isMobile
-              ? 72
-              : 125,
+            minWidth:
+              isMobile ? 72 : 125,
           }}
         >
-          {displayLiveScore ? (
+          {displayedScore ? (
             <>
               <strong
                 style={{
                   display: "block",
                   color: "#f8fafc",
-                  fontSize: isMobile
-                    ? 23
-                    : 34,
+                  fontSize:
+                    isMobile ? 23 : 34,
                   fontWeight: 900,
                   whiteSpace: "nowrap",
                 }}
               >
-                {liveScore.awayScore} -{" "}
-                {liveScore.homeScore}
+                {
+                  displayedScore.awayScore
+                }{" "}
+                -{" "}
+                {
+                  displayedScore.homeScore
+                }
               </strong>
 
-              <span
-                style={{
-                  display: "block",
-                  marginTop: 4,
-                  color: "#f87171",
-                  fontSize: 10,
-                  fontWeight: 900,
-                  letterSpacing:
-                    "0.55px",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                ● EN DIRECT
-              </span>
+              {isLive &&
+              !hasOfficialScore ? (
+                <>
+                  <span
+                    style={{
+                      display: "block",
+                      marginTop: 4,
+                      color: "#f87171",
+                      fontSize: 10,
+                      fontWeight: 900,
+                      letterSpacing:
+                        "0.55px",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    ● EN DIRECT
+                  </span>
 
-              <span
-                style={{
-                  display: "block",
-                  marginTop: 3,
-                  color: "#cbd5e1",
-                  fontSize: 10,
-                  fontWeight: 800,
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {getQuarterLabel(
-                  liveGame.status
-                    ?.period
-                )}
+                  <span
+                    style={{
+                      display: "block",
+                      marginTop: 3,
+                      color: "#cbd5e1",
+                      fontSize: 10,
+                      fontWeight: 800,
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {getQuarterLabel(
+                      liveGame.status
+                        ?.period
+                    )}
 
-                {liveGame.status
-                  ?.clock
-                  ? ` · ${liveGame.status.clock}`
-                  : ""}
-              </span>
-            </>
-          ) : hasScore ? (
-            /*
-             * AFFICHAGE ORIGINAL
-             * lorsque le résultat officiel
-             * est dans Supabase.
-             */
-            <>
-              <strong
-                style={{
-                  display: "block",
-                  color: "#f8fafc",
-                  fontSize: isMobile
-                    ? 23
-                    : 34,
-                  fontWeight: 900,
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {game.away_score} -{" "}
-                {game.home_score}
-              </strong>
-
-              <span
-                style={{
-                  display: "block",
-                  marginTop: 4,
-                  color: "#94a3b8",
-                  fontSize: 10,
-                  fontWeight: 900,
-                  letterSpacing:
-                    "0.7px",
-                }}
-              >
-                FINAL
-              </span>
+                    {liveGame.status
+                      ?.clock
+                      ? ` · ${liveGame.status.clock}`
+                      : ""}
+                  </span>
+                </>
+              ) : (
+                <span
+                  style={{
+                    display: "block",
+                    marginTop: 4,
+                    color: "#94a3b8",
+                    fontSize: 10,
+                    fontWeight: 900,
+                    letterSpacing:
+                      "0.7px",
+                  }}
+                >
+                  FINAL
+                </span>
+              )}
             </>
           ) : (
-            /*
-             * AFFICHAGE ORIGINAL
-             * avant le match.
-             */
             <strong
               style={{
                 color: "#64748b",
-                fontSize: isMobile
-                  ? 20
-                  : 28,
+                fontSize:
+                  isMobile ? 20 : 28,
               }}
             >
               @
@@ -1481,9 +1574,7 @@ function GamePicksCard({
               )}
               name={game.home_team}
               size={
-                isMobile
-                  ? 62
-                  : 86
+                isMobile ? 62 : 86
               }
             />
           </div>
@@ -1493,9 +1584,8 @@ function GamePicksCard({
               display: "block",
               marginTop: 6,
               color: "#f8fafc",
-              fontSize: isMobile
-                ? 14
-                : 19,
+              fontSize:
+                isMobile ? 14 : 19,
               fontWeight: 900,
             }}
           >
@@ -1504,7 +1594,7 @@ function GamePicksCard({
         </div>
       </div>
 
-      {/* CONSENSUS — INCHANGÉ */}
+      {/* CONSENSUS */}
 
       {sortedPicks.length > 0 && (
         <div
@@ -1562,6 +1652,100 @@ function GamePicksCard({
         </div>
       )}
 
+      {/* QB DU MATCH EN DIRECT */}
+
+      {liveQbPicks.length > 0 && (
+        <div
+          style={{
+            marginTop: 14,
+            padding:
+              isMobile
+                ? "11px"
+                : "13px",
+            borderRadius: 14,
+            background:
+              "rgba(239,68,68,0.06)",
+            border:
+              "1px solid rgba(239,68,68,0.18)",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent:
+                "space-between",
+              gap: 10,
+              marginBottom: 9,
+            }}
+          >
+            <strong
+              style={{
+                color: "#f87171",
+                fontSize:
+                  isMobile
+                    ? 12
+                    : 14,
+              }}
+            >
+              🏈 QB du pool dans ce match
+            </strong>
+
+            <span
+              style={{
+                color: "#f87171",
+                fontSize: 9,
+                fontWeight: 900,
+                letterSpacing:
+                  "0.5px",
+                whiteSpace: "nowrap",
+              }}
+            >
+              ● EN DIRECT
+            </span>
+          </div>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns:
+                liveQbPicks.length === 1
+                  ? "1fr"
+                  : "repeat(2, minmax(0,1fr))",
+              gap: 7,
+            }}
+          >
+            {liveQbPicks.map(
+              (qbPick) => (
+                <QbPickCard
+                  key={qbPick.id}
+                  qbPick={qbPick}
+                  qbRatings={
+                    qbRatings
+                  }
+                  players={
+                    players
+                  }
+                  qbSeasonAverages={
+                    qbSeasonAverages
+                  }
+                  getTeamLogo={
+                    getTeamLogo
+                  }
+                  isMobile={
+                    isMobile
+                  }
+                  liveGames={
+                    liveGames
+                  }
+                  inGame={true}
+                />
+              )
+            )}
+          </div>
+        </div>
+      )}
+
       {sortedPicks.length === 0 && (
         <div
           style={{
@@ -1576,7 +1760,7 @@ function GamePicksCard({
         </div>
       )}
 
-      {/* PICKS MOBILE — INCHANGÉS */}
+      {/* PICKS MOBILE */}
 
       {sortedPicks.length > 0 &&
         isMobile && (
@@ -1607,7 +1791,7 @@ function GamePicksCard({
           </div>
         )}
 
-      {/* PICKS DESKTOP — INCHANGÉS */}
+      {/* PICKS DESKTOP */}
 
       {sortedPicks.length > 0 &&
         !isMobile && (
@@ -1737,9 +1921,11 @@ export default function TousLesChoix() {
   ] = useState(false);
 
   /*
-   * Données LIVE uniquement.
+   * Données ESPN temporaires.
    *
-   * Rien ici n'est écrit dans Supabase.
+   * Important :
+   * elles ne sont JAMAIS écrites
+   * dans Supabase ici.
    */
   const [
     liveGames,
@@ -1792,13 +1978,8 @@ export default function TousLesChoix() {
           settingsData?.current_week
         ) || 1;
 
-      setCurrentWeek(
-        activeWeek
-      );
-
-      setViewedWeek(
-        activeWeek
-      );
+      setCurrentWeek(activeWeek);
+      setViewedWeek(activeWeek);
 
       const {
         data: teamsData,
@@ -1852,8 +2033,7 @@ export default function TousLesChoix() {
               )
           )
         ).sort(
-          (a, b) =>
-            a - b
+          (a, b) => a - b
         );
 
       setAvailableWeeks(
@@ -1884,11 +2064,6 @@ export default function TousLesChoix() {
       setLoading(true);
       setMessage("");
       setLiveGames({});
-
-      /* MATCHS
-         IMPORTANT :
-         seulement is_pool_eligible = TRUE
-      */
 
       const {
         data: gamesData,
@@ -1926,7 +2101,6 @@ export default function TousLesChoix() {
           "Erreur matchs : " +
             gamesError.message
         );
-
         setLoading(false);
         return;
       }
@@ -1934,23 +2108,16 @@ export default function TousLesChoix() {
       const games =
         gamesData || [];
 
-      setWeekGames(
-        games
-      );
-
-      /* PICKS */
+      setWeekGames(games);
 
       const gameIds =
         games.map(
-          (game) =>
-            game.id
+          (game) => game.id
         );
 
       let weekPicks = [];
 
-      if (
-        gameIds.length > 0
-      ) {
+      if (gameIds.length > 0) {
         const {
           data: picksData,
           error: picksError,
@@ -1974,7 +2141,6 @@ export default function TousLesChoix() {
             "Erreur choix : " +
               picksError.message
           );
-
           setLoading(false);
           return;
         }
@@ -1983,11 +2149,7 @@ export default function TousLesChoix() {
           picksData || [];
       }
 
-      setPicks(
-        weekPicks
-      );
-
-      /* QB PICKS */
+      setPicks(weekPicks);
 
       const {
         data: qbData,
@@ -2024,7 +2186,6 @@ export default function TousLesChoix() {
           "Erreur QB : " +
             qbError.message
         );
-
         setLoading(false);
         return;
       }
@@ -2032,8 +2193,6 @@ export default function TousLesChoix() {
       setQbPicks(
         qbData || []
       );
-
-      /* RATINGS OFFICIELS */
 
       const {
         data: ratingsData,
@@ -2051,7 +2210,6 @@ export default function TousLesChoix() {
           "Erreur ratings : " +
             ratingsError.message
         );
-
         setLoading(false);
         return;
       }
@@ -2059,8 +2217,6 @@ export default function TousLesChoix() {
       setQbRatings(
         ratingsData || []
       );
-
-      /* MOYENNES QB */
 
       const {
         data: allRatings,
@@ -2084,68 +2240,56 @@ export default function TousLesChoix() {
 
       (
         allRatings || []
-      ).forEach(
-        (row) => {
-          if (
-            row.passer_rating ==
-            null
-          ) {
-            return;
-          }
-
-          const athleteId =
-            row.actual_espn_athlete_id ||
-            row.qbs
-              ?.espn_athlete_id;
-
-          if (!athleteId) {
-            return;
-          }
-
-          const key =
-            String(
-              athleteId
-            );
-
-          if (
-            !averages[key]
-          ) {
-            averages[key] = {
-              total: 0,
-              count: 0,
-            };
-          }
-
-          averages[
-            key
-          ].total +=
-            Number(
-              row.passer_rating
-            );
-
-          averages[
-            key
-          ].count += 1;
+      ).forEach((row) => {
+        if (
+          row.passer_rating ==
+          null
+        ) {
+          return;
         }
-      );
+
+        const athleteId =
+          row.actual_espn_athlete_id ||
+          row.qbs
+            ?.espn_athlete_id;
+
+        if (!athleteId) {
+          return;
+        }
+
+        const key =
+          String(athleteId);
+
+        if (!averages[key]) {
+          averages[key] = {
+            total: 0,
+            count: 0,
+          };
+        }
+
+        averages[key].total +=
+          Number(
+            row.passer_rating
+          );
+
+        averages[key].count += 1;
+      });
 
       const formatted = {};
 
       Object.keys(
         averages
-      ).forEach(
-        (athleteId) => {
-          formatted[
+      ).forEach((athleteId) => {
+        formatted[
+          athleteId
+        ] =
+          averages[
             athleteId
-          ] =
-            averages[
-              athleteId
-            ].total /
-            averages[
-              athleteId
-            ].count;
-        }
-      );
+          ].total /
+          averages[
+            athleteId
+          ].count;
+      });
 
       setQbSeasonAverages(
         formatted
@@ -2161,17 +2305,10 @@ export default function TousLesChoix() {
   ]);
 
   /* =========================================================
-     LIVE
+     LIVE + POST-MATCH
      ========================================================= */
 
   useEffect(() => {
-    /*
-     * Le live ne fonctionne que sur
-     * la semaine active.
-     *
-     * L'historique reste exactement
-     * comme avant.
-     */
     if (
       viewedWeek == null ||
       currentWeek == null ||
@@ -2185,10 +2322,6 @@ export default function TousLesChoix() {
     let cancelled = false;
 
     async function refreshLive() {
-      /*
-       * Encore une protection :
-       * on ne touche qu'aux matchs TRUE.
-       */
       const eligibleGames =
         weekGames.filter(
           (game) =>
@@ -2231,16 +2364,20 @@ export default function TousLesChoix() {
                 );
 
               /*
-               * On conserve seulement
-               * les matchs réellement
-               * EN COURS.
+               * IMPORTANT :
                *
-               * Donc avant le match et
-               * après le match, l'affichage
-               * original reste intact.
+               * On conserve maintenant :
+               *
+               * - "in"   = match LIVE
+               * - "post" = match terminé
+               *
+               * C'est ce qui empêche
+               * score et rating de disparaître
+               * après le coup de sifflet final.
                */
               if (
-                status.state !== "in"
+                status.state !== "in" &&
+                status.state !== "post"
               ) {
                 return;
               }
@@ -2317,15 +2454,8 @@ export default function TousLesChoix() {
       }
     }
 
-    /*
-     * Première lecture immédiatement.
-     */
     refreshLive();
 
-    /*
-     * Puis mise à jour automatique
-     * toutes les 30 secondes.
-     */
     const interval =
       window.setInterval(
         refreshLive,
@@ -2480,12 +2610,8 @@ export default function TousLesChoix() {
 
                 return (
                   <GamePicksCard
-                    key={
-                      game.id
-                    }
-                    game={
-                      game
-                    }
+                    key={game.id}
+                    game={game}
                     gamePicks={
                       gamePicks
                     }
@@ -2503,6 +2629,18 @@ export default function TousLesChoix() {
                         game.id
                       ] ||
                       null
+                    }
+                    qbPicks={
+                      qbPicks
+                    }
+                    qbRatings={
+                      qbRatings
+                    }
+                    qbSeasonAverages={
+                      qbSeasonAverages
+                    }
+                    liveGames={
+                      liveGames
                     }
                   />
                 );
