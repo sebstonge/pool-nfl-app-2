@@ -37,9 +37,7 @@ function PlayerIdentity({
           fontSize: compact ? 13 : 15,
           fontWeight: 900,
           lineHeight: 1.15,
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          whiteSpace: "nowrap",
+          overflowWrap: "anywhere",
         }}
       >
         {displayName(player)}
@@ -54,9 +52,7 @@ function PlayerIdentity({
             fontSize: compact ? 10 : 11,
             fontWeight: 500,
             lineHeight: 1.15,
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
+            overflowWrap: "anywhere",
           }}
         >
           {realName(player)}
@@ -76,7 +72,10 @@ function getQbHeadshot(qb) {
   return `https://a.espncdn.com/i/headshots/nfl/players/full/${qb.espn_athlete_id}.png`;
 }
 
-function QBPhoto({ qb, size = 58 }) {
+function QBPhoto({
+  qb,
+  size = 58,
+}) {
   const [error, setError] = useState(false);
 
   const src = getQbHeadshot(qb);
@@ -185,6 +184,16 @@ function ratingColor(rating) {
    ========================================================= */
 
 function getPickResult(game, pick) {
+  /*
+   * IMPORTANT :
+   *
+   * Cette fonction regarde SEULEMENT
+   * les scores officiels Supabase.
+   *
+   * Un score ESPN temporaire, même FINAL,
+   * ne donne donc jamais de couleur/points
+   * avant la mise à jour Admin.
+   */
   if (
     game.home_score == null ||
     game.away_score == null
@@ -196,7 +205,10 @@ function getPickResult(game, pick) {
     };
   }
 
-  if (game.home_score === game.away_score) {
+  if (
+    Number(game.home_score) ===
+    Number(game.away_score)
+  ) {
     return {
       badge: "⚪",
       points: null,
@@ -205,7 +217,8 @@ function getPickResult(game, pick) {
   }
 
   const winner =
-    game.home_score > game.away_score
+    Number(game.home_score) >
+    Number(game.away_score)
       ? game.home_team
       : game.away_team;
 
@@ -272,7 +285,9 @@ function formatGameDate(dateString) {
   return `${day} · ${time}`;
 }
 
-function GameTimeBar({ gameDate }) {
+function GameTimeBar({
+  gameDate,
+}) {
   return (
     <div
       style={{
@@ -286,13 +301,16 @@ function GameTimeBar({ gameDate }) {
       }}
     >
       <span>🗓️</span>
-      <span>{formatGameDate(gameDate)}</span>
+
+      <span>
+        {formatGameDate(gameDate)}
+      </span>
     </div>
   );
 }
 
 /* =========================================================
-   HELPERS LIVE
+   HELPERS ESPN LIVE / POST
    ========================================================= */
 
 function getLiveGameStatus(summary) {
@@ -380,119 +398,142 @@ function getLivePassers(summary) {
   const boxscoreTeams =
     summary?.boxscore?.players || [];
 
-  boxscoreTeams.forEach((teamBox) => {
-    const team =
-      teamBox?.team || {};
+  boxscoreTeams.forEach(
+    (teamBox) => {
+      const team =
+        teamBox?.team || {};
 
-    const teamNames = [
-      team.abbreviation,
-      team.shortDisplayName,
-      team.displayName,
-      team.name,
-    ]
-      .filter(Boolean)
-      .map((value) =>
-        String(value)
-          .toLowerCase()
-          .trim()
-      );
-
-    const passingCategory =
-      teamBox.statistics?.find(
-        (category) =>
-          category.name === "passing" ||
-          category.displayName === "Passing"
-      );
-
-    if (!passingCategory) {
-      return;
-    }
-
-    const labels =
-      passingCategory.labels || [];
-
-    const ratingIndex =
-      labels.findIndex(
-        (label) =>
-          ["RTG", "RAT", "RATE"].includes(
-            String(label).toUpperCase()
-          )
-      );
-
-    if (ratingIndex === -1) {
-      return;
-    }
-
-    (
-      passingCategory.athletes || []
-    ).forEach((row) => {
-      const rating =
-        Number(
-          row.stats?.[
-            ratingIndex
-          ]
+      const teamNames = [
+        team.abbreviation,
+        team.shortDisplayName,
+        team.displayName,
+        team.name,
+      ]
+        .filter(Boolean)
+        .map((value) =>
+          String(value)
+            .toLowerCase()
+            .trim()
         );
 
-      if (Number.isNaN(rating)) {
+      const passingCategory =
+        teamBox.statistics?.find(
+          (category) =>
+            category.name ===
+              "passing" ||
+            category.displayName ===
+              "Passing"
+        );
+
+      if (!passingCategory) {
         return;
       }
 
-      passers.push({
-        athleteId:
-          row.athlete?.id
-            ? String(
-                row.athlete.id
-              )
-            : null,
+      const labels =
+        passingCategory.labels || [];
 
-        name:
-          row.athlete
-            ?.displayName ||
-          row.athlete
-            ?.shortName ||
-          "",
+      const ratingIndex =
+        labels.findIndex(
+          (label) =>
+            [
+              "RTG",
+              "RAT",
+              "RATE",
+            ].includes(
+              String(label).toUpperCase()
+            )
+        );
 
-        rating,
+      if (ratingIndex === -1) {
+        return;
+      }
 
-        teamNames,
+      (
+        passingCategory.athletes || []
+      ).forEach((row) => {
+        const rating =
+          Number(
+            row.stats?.[
+              ratingIndex
+            ]
+          );
+
+        if (
+          Number.isNaN(rating)
+        ) {
+          return;
+        }
+
+        passers.push({
+          athleteId:
+            row.athlete?.id
+              ? String(
+                  row.athlete.id
+                )
+              : null,
+
+          name:
+            row.athlete
+              ?.displayName ||
+            row.athlete
+              ?.shortName ||
+            "",
+
+          rating,
+
+          teamNames,
+        });
       });
-    });
-  });
+    }
+  );
 
   return passers;
+}
+
+/* =========================================================
+   MATCHING ÉQUIPE
+   ========================================================= */
+
+function normalizeTeam(value) {
+  return String(value || "")
+    .toLowerCase()
+    .trim();
 }
 
 function teamMatches(
   qbTeam,
   teamNames
 ) {
-  const normalized =
-    String(qbTeam || "")
-      .toLowerCase()
-      .trim();
+  const normalizedQbTeam =
+    normalizeTeam(qbTeam);
 
-  if (!normalized) {
+  if (!normalizedQbTeam) {
     return false;
   }
 
   return (
     teamNames || []
-  ).some(
-    (name) =>
-      name === normalized ||
-      name.includes(normalized) ||
-      normalized.includes(name)
-  );
+  ).some((name) => {
+    const normalizedName =
+      normalizeTeam(name);
+
+    return (
+      normalizedName ===
+        normalizedQbTeam ||
+      normalizedName.includes(
+        normalizedQbTeam
+      ) ||
+      normalizedQbTeam.includes(
+        normalizedName
+      )
+    );
+  });
 }
 
-/*
- * Trouve le match ESPN correspondant
- * au QB choisi.
- *
- * includePost = true :
- * permet de continuer à lire le rating
- * après la fin du match.
- */
+/* =========================================================
+   TROUVER MATCH + PASSEUR DU QB
+   ========================================================= */
+
 function findQbGameData(
   qbPick,
   liveGames,
@@ -505,16 +546,16 @@ function findQbGameData(
     return null;
   }
 
-  const game =
+  const matchingGame =
     Object.values(
       liveGames || {}
-    ).find((item) => {
-      if (!item) {
+    ).find((game) => {
+      if (!game) {
         return false;
       }
 
       const state =
-        item.status?.state;
+        game.status?.state;
 
       const validState =
         state === "in" ||
@@ -529,25 +570,26 @@ function findQbGameData(
 
       return teamMatches(
         qb.team,
-        item.teamNames
+        game.teamNames
       );
     });
 
-  if (!game) {
+  if (!matchingGame) {
     return null;
   }
 
   const passers =
-    game.passers || [];
+    matchingGame.passers || [];
 
   let passer = null;
 
   /*
-   * Priorité absolue :
-   * le QB sélectionné, s'il a joué.
+   * PRIORITÉ 1 :
+   * QB sélectionné lui-même.
    *
-   * Donc un QB qui se blesse en cours
-   * de match conserve SON rating.
+   * S'il commence le match puis
+   * se blesse, SON rating demeure
+   * celui du pool.
    */
   if (qb.espn_athlete_id) {
     passer =
@@ -562,6 +604,10 @@ function findQbGameData(
       ) || null;
   }
 
+  /*
+   * PRIORITÉ 2 :
+   * recherche par nom.
+   */
   if (!passer) {
     const qbName =
       String(qb.name || "")
@@ -581,9 +627,11 @@ function findQbGameData(
   }
 
   /*
-   * Si le QB choisi n'a PAS joué,
-   * on prend le passeur réel de
-   * la même équipe.
+   * PRIORITÉ 3 :
+   * le QB choisi n'a pas joué.
+   *
+   * On prend alors le passeur réel
+   * de sa même équipe.
    */
   if (!passer) {
     passer =
@@ -597,7 +645,7 @@ function findQbGameData(
   }
 
   return {
-    game,
+    game: matchingGame,
     passer,
   };
 }
@@ -731,26 +779,14 @@ function WeekNavigator({
 }
 
 /* =========================================================
-   CARTE QB RÉUTILISABLE
+   DONNÉES D'AFFICHAGE QB
    ========================================================= */
 
-function QbPickCard({
+function getDisplayedQbData(
   qbPick,
   qbRatings,
-  players,
-  qbSeasonAverages,
-  getTeamLogo,
-  isMobile,
-  liveGames,
-  inGame = false,
-}) {
-  const player =
-    players.find(
-      (p) =>
-        p.id ===
-        qbPick.user_id
-    );
-
+  liveGames
+) {
   const officialRating =
     qbRatings.find(
       (row) =>
@@ -758,13 +794,7 @@ function QbPickCard({
         qbPick.qb_id
     );
 
-  /*
-   * On récupère aussi les données POST.
-   *
-   * Elles servent seulement si
-   * Supabase n'a pas encore le rating.
-   */
-  const espnQb =
+  const espnData =
     findQbGameData(
       qbPick,
       liveGames,
@@ -772,25 +802,13 @@ function QbPickCard({
     );
 
   const espnPasser =
-    espnQb?.passer;
+    espnData?.passer;
 
-  const isLive =
-    espnQb?.game?.status
-      ?.state === "in";
-
-  /*
-   * Si le rating officiel existe,
-   * Supabase gagne toujours.
-   *
-   * Sinon ESPN peut continuer à
-   * fournir le résultat LIVE/POST.
-   */
-  const useOfficial =
-    officialRating?.passer_rating !=
-    null;
+  const hasOfficialRating =
+    officialRating?.passer_rating != null;
 
   const displayedRating =
-    useOfficial
+    hasOfficialRating
       ? Number(
           officialRating.passer_rating
         )
@@ -801,7 +819,7 @@ function QbPickCard({
       : null;
 
   const actualAthleteId =
-    useOfficial
+    hasOfficialRating
       ? officialRating
           ?.actual_espn_athlete_id ||
         qbPick.qbs
@@ -811,19 +829,13 @@ function QbPickCard({
           ?.espn_athlete_id;
 
   const actualName =
-    useOfficial
+    hasOfficialRating
       ? officialRating
           ?.actual_qb_name ||
         qbPick.qbs?.name
       : espnPasser?.name ||
-        qbPick.qbs?.name;
-
-  const displayedQb = {
-    name: actualName,
-    team: qbPick.qbs?.team,
-    espn_athlete_id:
-      actualAthleteId,
-  };
+        qbPick.qbs?.name ||
+        "QB";
 
   const replaced =
     actualAthleteId &&
@@ -835,6 +847,56 @@ function QbPickCard({
           .espn_athlete_id
       );
 
+  return {
+    officialRating,
+    espnData,
+    espnPasser,
+    displayedRating,
+    actualAthleteId,
+    actualName,
+    replaced,
+    displayedQb: {
+      name: actualName,
+      team:
+        qbPick.qbs?.team,
+      espn_athlete_id:
+        actualAthleteId,
+    },
+  };
+}
+
+/* =========================================================
+   CARTE QB DU BLOC DU HAUT
+   ========================================================= */
+
+function QbPickCard({
+  qbPick,
+  qbRatings,
+  players,
+  qbSeasonAverages,
+  getTeamLogo,
+  isMobile,
+  liveGames,
+}) {
+  const player =
+    players.find(
+      (p) =>
+        p.id ===
+        qbPick.user_id
+    );
+
+  const {
+    displayedRating,
+    actualAthleteId,
+    displayedQb,
+    replaced,
+  } =
+    getDisplayedQbData(
+      qbPick,
+      qbRatings,
+      liveGames
+    );
+
   const average =
     qbSeasonAverages[
       String(
@@ -842,33 +904,28 @@ function QbPickCard({
       )
     ];
 
+  /*
+   * VERSION COMPACTE :
+   *
+   * joueur en haut,
+   * photo à gauche,
+   * QB + équipe + stats à droite.
+   *
+   * 4 colonnes desktop plutôt que 5.
+   */
   return (
     <div
       style={{
         minWidth: 0,
-
-        /*
-         * Cartes beaucoup plus compactes.
-         */
-        padding: inGame
-          ? isMobile
-            ? 10
-            : 11
-          : isMobile
-          ? 9
-          : 10,
-
+        padding:
+          isMobile
+            ? "9px"
+            : "10px 11px",
         borderRadius: 14,
-
         background:
-          inGame
-            ? "rgba(15,23,42,0.62)"
-            : "rgba(15,23,42,0.72)",
-
+          "rgba(15,23,42,0.72)",
         border:
-          isLive
-            ? "1px solid rgba(239,68,68,0.38)"
-            : "1px solid rgba(148,163,184,0.13)",
+          "1px solid rgba(148,163,184,0.13)",
       }}
     >
       <PlayerIdentity
@@ -878,26 +935,28 @@ function QbPickCard({
 
       <div
         style={{
-          marginTop: 7,
-          display: "flex",
-          alignItems: "center",
+          display: "grid",
+          gridTemplateColumns:
+            isMobile
+              ? "44px minmax(0,1fr)"
+              : "50px minmax(0,1fr)",
           gap: 8,
-          minWidth: 0,
+          alignItems: "center",
+          marginTop: 7,
         }}
       >
         <QBPhoto
           qb={displayedQb}
           size={
             isMobile
-              ? 46
-              : 52
+              ? 44
+              : 50
           }
         />
 
         <div
           style={{
             minWidth: 0,
-            flex: 1,
           }}
         >
           <div
@@ -926,10 +985,7 @@ function QbPickCard({
                     ? 11
                     : 12,
                 lineHeight: 1.15,
-                overflow: "hidden",
-                textOverflow:
-                  "ellipsis",
-                whiteSpace: "nowrap",
+                overflowWrap: "anywhere",
               }}
             >
               {displayedQb?.name ||
@@ -958,38 +1014,29 @@ function QbPickCard({
               lineHeight: 1.2,
             }}
           >
-            {displayedRating != null ? (
-              <>
-                Rating{" "}
-                <strong
-                  style={{
-                    color:
-                      ratingColor(
+            Rating{" "}
+            <strong
+              style={{
+                color:
+                  displayedRating !=
+                  null
+                    ? ratingColor(
                         displayedRating
-                      ),
-                  }}
-                >
-                  {displayedRating.toFixed(
+                      )
+                    : "#64748b",
+              }}
+            >
+              {displayedRating != null
+                ? displayedRating.toFixed(
                     1
-                  )}
-                </strong>
-              </>
-            ) : (
-              <>
-                Rating{" "}
-                <strong
-                  style={{
-                    color: "#64748b",
-                  }}
-                >
-                  --
-                </strong>
-              </>
-            )}
+                  )
+                : "--"}
+            </strong>
 
             {average != null && (
               <>
                 <span> · </span>
+
                 Moy.{" "}
                 <strong
                   style={{
@@ -1006,22 +1053,6 @@ function QbPickCard({
           </div>
         </div>
       </div>
-
-      {isLive && (
-        <div
-          style={{
-            marginTop: 6,
-            textAlign: "center",
-            color: "#f87171",
-            fontSize: 9,
-            fontWeight: 900,
-            letterSpacing:
-              "0.5px",
-          }}
-        >
-          ● EN DIRECT
-        </div>
-      )}
     </div>
   );
 }
@@ -1040,17 +1071,17 @@ function QbWeekSection({
   liveGames,
 }) {
   /*
-   * Pendant un match LIVE :
-   * les QB concernés disparaissent
-   * temporairement de cette section.
+   * Dès qu'un match est EN DIRECT,
+   * le QB concerné disparaît du bloc
+   * du haut.
    *
-   * Ils seront affichés dans la carte
-   * du match correspondant.
+   * Dès que le match passe à POST,
+   * il revient ici automatiquement.
    */
   const visibleQbPicks =
     qbPicks.filter(
       (qbPick) => {
-        const liveData =
+        const data =
           findQbGameData(
             qbPick,
             liveGames,
@@ -1058,7 +1089,7 @@ function QbWeekSection({
           );
 
         return (
-          liveData?.game?.status
+          data?.game?.status
             ?.state !== "in"
         );
       }
@@ -1075,9 +1106,10 @@ function QbWeekSection({
           style={{
             margin: 0,
             color: "#22c55e",
-            fontSize: isMobile
-              ? 20
-              : 24,
+            fontSize:
+              isMobile
+                ? 20
+                : 24,
           }}
         >
           🏈 QB de la semaine
@@ -1099,22 +1131,6 @@ function QbWeekSection({
             ? "s"
             : ""}
         </p>
-
-        {visibleQbPicks.length <
-          qbPicks.length && (
-          <p
-            style={{
-              margin: "4px 0 0",
-              color: "#f87171",
-              fontSize: 10,
-              fontWeight: 800,
-            }}
-          >
-            Les QB actuellement en
-            match sont affichés dans
-            leur carte de match.
-          </p>
-        )}
       </div>
 
       {visibleQbPicks.length ===
@@ -1125,17 +1141,21 @@ function QbWeekSection({
             color: "#64748b",
           }}
         >
-          Tous les QB concernés jouent
+          Les QB sélectionnés jouent
           actuellement.
         </p>
       ) : (
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: isMobile
-              ? "repeat(2, minmax(0, 1fr))"
-              : "repeat(5, minmax(0, 1fr))",
-            gap: isMobile ? 7 : 9,
+            gridTemplateColumns:
+              isMobile
+                ? "repeat(2, minmax(0, 1fr))"
+                : "repeat(4, minmax(0, 1fr))",
+            gap:
+              isMobile
+                ? 7
+                : 9,
           }}
         >
           {visibleQbPicks.map(
@@ -1171,6 +1191,187 @@ function QbWeekSection({
 }
 
 /* =========================================================
+   QB AFFICHÉ SOUS SON ÉQUIPE PENDANT LE LIVE
+   ========================================================= */
+
+function LiveTeamQbs({
+  qbPicks,
+  players,
+  qbRatings,
+  liveGames,
+  isMobile,
+}) {
+  if (!qbPicks?.length) {
+    return null;
+  }
+
+  return (
+    <div
+      style={{
+        marginTop: 11,
+        display: "grid",
+        gap: 7,
+      }}
+    >
+      {qbPicks.map(
+        (qbPick) => {
+          const player =
+            players.find(
+              (p) =>
+                p.id ===
+                qbPick.user_id
+            );
+
+          const {
+            displayedRating,
+            displayedQb,
+            replaced,
+          } =
+            getDisplayedQbData(
+              qbPick,
+              qbRatings,
+              liveGames
+            );
+
+          return (
+            <div
+              key={qbPick.id}
+              style={{
+                padding:
+                  isMobile
+                    ? "8px 5px"
+                    : "9px 8px",
+                borderRadius: 11,
+                background:
+                  "rgba(239,68,68,0.055)",
+                border:
+                  "1px solid rgba(239,68,68,0.18)",
+                textAlign: "center",
+                minWidth: 0,
+              }}
+            >
+              {/* PHOTO DU QB */}
+
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent:
+                    "center",
+                }}
+              >
+                <QBPhoto
+                  qb={displayedQb}
+                  size={
+                    isMobile
+                      ? 42
+                      : 48
+                  }
+                />
+              </div>
+
+              {/* NOM DU QB */}
+
+              <strong
+                style={{
+                  display: "block",
+                  marginTop: 4,
+                  color: "#f8fafc",
+                  fontSize:
+                    isMobile
+                      ? 10
+                      : 12,
+                  fontWeight: 900,
+                  lineHeight: 1.15,
+                  overflowWrap:
+                    "anywhere",
+                }}
+              >
+                {displayedQb?.name ||
+                  "QB"}
+              </strong>
+
+              {/* JOUEUR DU POOL */}
+
+              <div
+                style={{
+                  marginTop: 6,
+                }}
+              >
+                <PlayerIdentity
+                  player={player}
+                  compact={true}
+                  align="center"
+                />
+              </div>
+
+              {/* REMPLACEMENT */}
+
+              {replaced && (
+                <div
+                  style={{
+                    marginTop: 4,
+                    color: "#facc15",
+                    fontSize: 8,
+                    fontWeight: 900,
+                  }}
+                >
+                  🔄 Remplacement
+                </div>
+              )}
+
+              {/* LIVE */}
+
+              <div
+                style={{
+                  marginTop: 5,
+                  color: "#f87171",
+                  fontSize: 8,
+                  fontWeight: 900,
+                  letterSpacing:
+                    "0.4px",
+                }}
+              >
+                ● EN DIRECT
+              </div>
+
+              {/* PASSER RATING */}
+
+              <div
+                style={{
+                  marginTop: 3,
+                  color: "#94a3b8",
+                  fontSize: 10,
+                }}
+              >
+                Rating{" "}
+                <strong
+                  style={{
+                    color:
+                      displayedRating !=
+                      null
+                        ? ratingColor(
+                            displayedRating
+                          )
+                        : "#64748b",
+                  }}
+                >
+                  {displayedRating !=
+                  null
+                    ? displayedRating.toFixed(
+                        1
+                      )
+                    : "--"}
+                </strong>
+              </div>
+            </div>
+          );
+        }
+      )}
+    </div>
+  );
+}
+
+/* =========================================================
    UNE LIGNE DE PICK
    ========================================================= */
 
@@ -1185,11 +1386,15 @@ function PickRow({
   const player =
     players.find(
       (p) =>
-        p.id === pick.user_id
+        p.id ===
+        pick.user_id
     );
 
   const result =
-    getPickResult(game, pick);
+    getPickResult(
+      game,
+      pick
+    );
 
   return (
     <div
@@ -1199,9 +1404,10 @@ function PickRow({
           "minmax(0,1fr) auto",
         gap: 8,
         alignItems: "center",
-        padding: isMobile
-          ? "11px 0"
-          : "11px 4px",
+        padding:
+          isMobile
+            ? "11px 0"
+            : "11px 4px",
         borderBottom:
           showBottomBorder
             ? "1px solid rgba(148,163,184,0.08)"
@@ -1227,16 +1433,19 @@ function PickRow({
           logo={getTeamLogo(
             pick.picked_team
           )}
-          name={pick.picked_team}
+          name={
+            pick.picked_team
+          }
           size={26}
         />
 
         <strong
           style={{
             color: "#f8fafc",
-            fontSize: isMobile
-              ? 12
-              : 13,
+            fontSize:
+              isMobile
+                ? 12
+                : 13,
             whiteSpace: "nowrap",
           }}
         >
@@ -1271,56 +1480,50 @@ function GamePicksCard({
   liveGame,
   qbPicks,
   qbRatings,
-  qbSeasonAverages,
   liveGames,
 }) {
   /*
-   * Données OFFICIELLES Supabase.
+   * SCORE OFFICIEL SUPABASE
    */
   const hasOfficialScore =
     game.home_score != null &&
     game.away_score != null;
 
   /*
-   * Données ESPN temporaires.
-   *
-   * Elles peuvent être :
-   * - in   = match en cours
-   * - post = match terminé
+   * DONNÉES ESPN TEMPORAIRES
    */
   const espnScore =
     liveGame?.score || null;
 
   const isLive =
-    liveGame?.status?.state ===
-    "in";
-
-  const isPost =
-    liveGame?.status?.state ===
-      "post" ||
     liveGame?.status
-      ?.completed === true;
+      ?.state === "in";
 
   /*
-   * Priorité :
+   * PRIORITÉ :
    *
-   * 1. Supabase officiel
-   * 2. ESPN temporaire
+   * 1. Supabase
+   * 2. ESPN in/post
    * 3. aucun score
    */
   const displayedScore =
     hasOfficialScore
       ? {
           awayScore:
-            game.away_score,
+            Number(
+              game.away_score
+            ),
           homeScore:
-            game.home_score,
-          official: true,
+            Number(
+              game.home_score
+            ),
         }
       : espnScore
       ? {
-          ...espnScore,
-          official: false,
+          awayScore:
+            espnScore.awayScore,
+          homeScore:
+            espnScore.homeScore,
         }
       : null;
 
@@ -1367,11 +1570,10 @@ function GamePicksCard({
     );
 
   /*
-   * QB impliqués dans CE match,
-   * mais seulement pendant le LIVE.
+   * QB DU POOL CONCERNÉS
+   * PAR CE MATCH.
    *
-   * Ils sont retirés de la liste du haut
-   * au même moment.
+   * Seulement pendant LIVE.
    */
   const liveQbPicks =
     isLive
@@ -1385,12 +1587,39 @@ function GamePicksCard({
               );
 
             return (
-              data?.game?.gameId ===
+              data?.game
+                ?.gameId ===
               game.id
             );
           }
         )
       : [];
+
+  /*
+   * On les sépare entre
+   * équipe visiteuse / locale.
+   */
+  const awayLiveQbs =
+    liveQbPicks.filter(
+      (qbPick) =>
+        teamMatches(
+          qbPick.qbs?.team,
+          [
+            game.away_team,
+          ]
+        )
+    );
+
+  const homeLiveQbs =
+    liveQbPicks.filter(
+      (qbPick) =>
+        teamMatches(
+          qbPick.qbs?.team,
+          [
+            game.home_team,
+          ]
+        )
+    );
 
   return (
     <section
@@ -1400,22 +1629,29 @@ function GamePicksCard({
       }}
     >
       <GameTimeBar
-        gameDate={game.game_date}
+        gameDate={
+          game.game_date
+        }
       />
 
-      {/* SCOREBOARD */}
+      {/* =====================================================
+          SCOREBOARD
+          ===================================================== */}
 
       <div
         style={{
           display: "grid",
           gridTemplateColumns:
             "minmax(0,1fr) auto minmax(0,1fr)",
-          gap: isMobile ? 8 : 20,
-          alignItems: "center",
+          gap:
+            isMobile
+              ? 8
+              : 20,
+          alignItems: "start",
           marginTop: 18,
         }}
       >
-        {/* VISITEUR */}
+        {/* ÉQUIPE VISITEUSE */}
 
         <div
           style={{
@@ -1434,9 +1670,13 @@ function GamePicksCard({
               logo={getTeamLogo(
                 game.away_team
               )}
-              name={game.away_team}
+              name={
+                game.away_team
+              }
               size={
-                isMobile ? 62 : 86
+                isMobile
+                  ? 62
+                  : 86
               }
             />
           </div>
@@ -1447,12 +1687,34 @@ function GamePicksCard({
               marginTop: 6,
               color: "#f8fafc",
               fontSize:
-                isMobile ? 14 : 19,
+                isMobile
+                  ? 14
+                  : 19,
               fontWeight: 900,
             }}
           >
             {game.away_team}
           </strong>
+
+          {/* QB LIVE SOUS SON ÉQUIPE */}
+
+          <LiveTeamQbs
+            qbPicks={
+              awayLiveQbs
+            }
+            players={
+              players
+            }
+            qbRatings={
+              qbRatings
+            }
+            liveGames={
+              liveGames
+            }
+            isMobile={
+              isMobile
+            }
+          />
         </div>
 
         {/* SCORE */}
@@ -1461,7 +1723,10 @@ function GamePicksCard({
           style={{
             textAlign: "center",
             minWidth:
-              isMobile ? 72 : 125,
+              isMobile
+                ? 72
+                : 125,
+            paddingTop: 18,
           }}
         >
           {displayedScore ? (
@@ -1471,9 +1736,12 @@ function GamePicksCard({
                   display: "block",
                   color: "#f8fafc",
                   fontSize:
-                    isMobile ? 23 : 34,
+                    isMobile
+                      ? 23
+                      : 34,
                   fontWeight: 900,
-                  whiteSpace: "nowrap",
+                  whiteSpace:
+                    "nowrap",
                 }}
               >
                 {
@@ -1490,14 +1758,17 @@ function GamePicksCard({
                 <>
                   <span
                     style={{
-                      display: "block",
+                      display:
+                        "block",
                       marginTop: 4,
-                      color: "#f87171",
+                      color:
+                        "#f87171",
                       fontSize: 10,
                       fontWeight: 900,
                       letterSpacing:
                         "0.55px",
-                      whiteSpace: "nowrap",
+                      whiteSpace:
+                        "nowrap",
                     }}
                   >
                     ● EN DIRECT
@@ -1505,20 +1776,25 @@ function GamePicksCard({
 
                   <span
                     style={{
-                      display: "block",
+                      display:
+                        "block",
                       marginTop: 3,
-                      color: "#cbd5e1",
+                      color:
+                        "#cbd5e1",
                       fontSize: 10,
                       fontWeight: 800,
-                      whiteSpace: "nowrap",
+                      whiteSpace:
+                        "nowrap",
                     }}
                   >
                     {getQuarterLabel(
-                      liveGame.status
+                      liveGame
+                        ?.status
                         ?.period
                     )}
 
-                    {liveGame.status
+                    {liveGame
+                      ?.status
                       ?.clock
                       ? ` · ${liveGame.status.clock}`
                       : ""}
@@ -1527,9 +1803,11 @@ function GamePicksCard({
               ) : (
                 <span
                   style={{
-                    display: "block",
+                    display:
+                      "block",
                     marginTop: 4,
-                    color: "#94a3b8",
+                    color:
+                      "#94a3b8",
                     fontSize: 10,
                     fontWeight: 900,
                     letterSpacing:
@@ -1545,7 +1823,9 @@ function GamePicksCard({
               style={{
                 color: "#64748b",
                 fontSize:
-                  isMobile ? 20 : 28,
+                  isMobile
+                    ? 20
+                    : 28,
               }}
             >
               @
@@ -1553,7 +1833,7 @@ function GamePicksCard({
           )}
         </div>
 
-        {/* DOMICILE */}
+        {/* ÉQUIPE DOMICILE */}
 
         <div
           style={{
@@ -1572,9 +1852,13 @@ function GamePicksCard({
               logo={getTeamLogo(
                 game.home_team
               )}
-              name={game.home_team}
+              name={
+                game.home_team
+              }
               size={
-                isMobile ? 62 : 86
+                isMobile
+                  ? 62
+                  : 86
               }
             />
           </div>
@@ -1585,29 +1869,55 @@ function GamePicksCard({
               marginTop: 6,
               color: "#f8fafc",
               fontSize:
-                isMobile ? 14 : 19,
+                isMobile
+                  ? 14
+                  : 19,
               fontWeight: 900,
             }}
           >
             {game.home_team}
           </strong>
+
+          {/* QB LIVE SOUS SON ÉQUIPE */}
+
+          <LiveTeamQbs
+            qbPicks={
+              homeLiveQbs
+            }
+            players={
+              players
+            }
+            qbRatings={
+              qbRatings
+            }
+            liveGames={
+              liveGames
+            }
+            isMobile={
+              isMobile
+            }
+          />
         </div>
       </div>
 
-      {/* CONSENSUS */}
+      {/* =====================================================
+          CONSENSUS
+          ===================================================== */}
 
       {sortedPicks.length > 0 && (
         <div
           style={{
             marginTop: 17,
-            padding: "8px 12px",
+            padding:
+              "8px 12px",
             borderRadius: 10,
             background:
               "rgba(30,41,59,0.76)",
             border:
               "1px solid rgba(148,163,184,0.08)",
             display: "flex",
-            alignItems: "center",
+            alignItems:
+              "center",
             justifyContent:
               "center",
             gap: 8,
@@ -1652,106 +1962,15 @@ function GamePicksCard({
         </div>
       )}
 
-      {/* QB DU MATCH EN DIRECT */}
-
-      {liveQbPicks.length > 0 && (
-        <div
-          style={{
-            marginTop: 14,
-            padding:
-              isMobile
-                ? "11px"
-                : "13px",
-            borderRadius: 14,
-            background:
-              "rgba(239,68,68,0.06)",
-            border:
-              "1px solid rgba(239,68,68,0.18)",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent:
-                "space-between",
-              gap: 10,
-              marginBottom: 9,
-            }}
-          >
-            <strong
-              style={{
-                color: "#f87171",
-                fontSize:
-                  isMobile
-                    ? 12
-                    : 14,
-              }}
-            >
-              🏈 QB du pool dans ce match
-            </strong>
-
-            <span
-              style={{
-                color: "#f87171",
-                fontSize: 9,
-                fontWeight: 900,
-                letterSpacing:
-                  "0.5px",
-                whiteSpace: "nowrap",
-              }}
-            >
-              ● EN DIRECT
-            </span>
-          </div>
-
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns:
-                liveQbPicks.length === 1
-                  ? "1fr"
-                  : "repeat(2, minmax(0,1fr))",
-              gap: 7,
-            }}
-          >
-            {liveQbPicks.map(
-              (qbPick) => (
-                <QbPickCard
-                  key={qbPick.id}
-                  qbPick={qbPick}
-                  qbRatings={
-                    qbRatings
-                  }
-                  players={
-                    players
-                  }
-                  qbSeasonAverages={
-                    qbSeasonAverages
-                  }
-                  getTeamLogo={
-                    getTeamLogo
-                  }
-                  isMobile={
-                    isMobile
-                  }
-                  liveGames={
-                    liveGames
-                  }
-                  inGame={true}
-                />
-              )
-            )}
-          </div>
-        </div>
-      )}
-
-      {sortedPicks.length === 0 && (
+      {sortedPicks.length ===
+        0 && (
         <div
           style={{
             marginTop: 16,
-            padding: "14px 0 2px",
-            textAlign: "center",
+            padding:
+              "14px 0 2px",
+            textAlign:
+              "center",
             color: "#64748b",
             fontSize: 13,
           }}
@@ -1760,7 +1979,9 @@ function GamePicksCard({
         </div>
       )}
 
-      {/* PICKS MOBILE */}
+      {/* =====================================================
+          PICKS MOBILE
+          ===================================================== */}
 
       {sortedPicks.length > 0 &&
         isMobile && (
@@ -1775,11 +1996,15 @@ function GamePicksCard({
                   key={pick.id}
                   pick={pick}
                   game={game}
-                  players={players}
+                  players={
+                    players
+                  }
                   getTeamLogo={
                     getTeamLogo
                   }
-                  isMobile={true}
+                  isMobile={
+                    true
+                  }
                   showBottomBorder={
                     index <
                     sortedPicks.length -
@@ -1791,7 +2016,9 @@ function GamePicksCard({
           </div>
         )}
 
-      {/* PICKS DESKTOP */}
+      {/* =====================================================
+          PICKS DESKTOP
+          ===================================================== */}
 
       {sortedPicks.length > 0 &&
         !isMobile && (
@@ -1814,11 +2041,15 @@ function GamePicksCard({
                     key={pick.id}
                     pick={pick}
                     game={game}
-                    players={players}
+                    players={
+                      players
+                    }
                     getTeamLogo={
                       getTeamLogo
                     }
-                    isMobile={false}
+                    isMobile={
+                      false
+                    }
                     showBottomBorder={
                       index <
                       leftPicks.length -
@@ -1842,11 +2073,15 @@ function GamePicksCard({
                     key={pick.id}
                     pick={pick}
                     game={game}
-                    players={players}
+                    players={
+                      players
+                    }
                     getTeamLogo={
                       getTeamLogo
                     }
-                    isMobile={false}
+                    isMobile={
+                      false
+                    }
                     showBottomBorder={
                       index <
                       rightPicks.length -
@@ -1867,23 +2102,35 @@ function GamePicksCard({
    ========================================================= */
 
 export default function TousLesChoix() {
-  const [players, setPlayers] =
-    useState([]);
+  const [
+    players,
+    setPlayers,
+  ] = useState([]);
 
-  const [picks, setPicks] =
-    useState([]);
+  const [
+    picks,
+    setPicks,
+  ] = useState([]);
 
-  const [qbPicks, setQbPicks] =
-    useState([]);
+  const [
+    qbPicks,
+    setQbPicks,
+  ] = useState([]);
 
-  const [qbRatings, setQbRatings] =
-    useState([]);
+  const [
+    qbRatings,
+    setQbRatings,
+  ] = useState([]);
 
-  const [teams, setTeams] =
-    useState([]);
+  const [
+    teams,
+    setTeams,
+  ] = useState([]);
 
-  const [weekGames, setWeekGames] =
-    useState([]);
+  const [
+    weekGames,
+    setWeekGames,
+  ] = useState([]);
 
   const [
     currentWeek,
@@ -1921,11 +2168,10 @@ export default function TousLesChoix() {
   ] = useState(false);
 
   /*
-   * Données ESPN temporaires.
+   * ESPN temporaire.
    *
-   * Important :
-   * elles ne sont JAMAIS écrites
-   * dans Supabase ici.
+   * Rien de ce state n'est écrit
+   * dans Supabase.
    */
   const [
     liveGames,
@@ -1939,7 +2185,8 @@ export default function TousLesChoix() {
   useEffect(() => {
     const updateMobile = () => {
       setIsMobile(
-        window.innerWidth < 700
+        window.innerWidth <
+          700
       );
     };
 
@@ -1975,11 +2222,17 @@ export default function TousLesChoix() {
 
       const activeWeek =
         Number(
-          settingsData?.current_week
+          settingsData
+            ?.current_week
         ) || 1;
 
-      setCurrentWeek(activeWeek);
-      setViewedWeek(activeWeek);
+      setCurrentWeek(
+        activeWeek
+      );
+
+      setViewedWeek(
+        activeWeek
+      );
 
       const {
         data: teamsData,
@@ -2019,9 +2272,13 @@ export default function TousLesChoix() {
       const weeks =
         Array.from(
           new Set(
-            (weeksData || [])
+            (
+              weeksData || []
+            )
               .map((game) =>
-                Number(game.week)
+                Number(
+                  game.week
+                )
               )
               .filter(
                 (week) =>
@@ -2033,7 +2290,8 @@ export default function TousLesChoix() {
               )
           )
         ).sort(
-          (a, b) => a - b
+          (a, b) =>
+            a - b
         );
 
       setAvailableWeeks(
@@ -2049,7 +2307,7 @@ export default function TousLesChoix() {
   }, []);
 
   /* =========================================================
-     SEMAINE
+     DONNÉES DE LA SEMAINE
      ========================================================= */
 
   useEffect(() => {
@@ -2063,7 +2321,15 @@ export default function TousLesChoix() {
     async function loadWeekData() {
       setLoading(true);
       setMessage("");
+
+      /*
+       * Quand on change de semaine,
+       * on vide les données ESPN
+       * de l'ancienne semaine.
+       */
       setLiveGames({});
+
+      /* MATCHS */
 
       const {
         data: gamesData,
@@ -2101,6 +2367,7 @@ export default function TousLesChoix() {
           "Erreur matchs : " +
             gamesError.message
         );
+
         setLoading(false);
         return;
       }
@@ -2108,16 +2375,23 @@ export default function TousLesChoix() {
       const games =
         gamesData || [];
 
-      setWeekGames(games);
+      setWeekGames(
+        games
+      );
+
+      /* PICKS */
 
       const gameIds =
         games.map(
-          (game) => game.id
+          (game) =>
+            game.id
         );
 
       let weekPicks = [];
 
-      if (gameIds.length > 0) {
+      if (
+        gameIds.length > 0
+      ) {
         const {
           data: picksData,
           error: picksError,
@@ -2141,6 +2415,7 @@ export default function TousLesChoix() {
             "Erreur choix : " +
               picksError.message
           );
+
           setLoading(false);
           return;
         }
@@ -2149,7 +2424,11 @@ export default function TousLesChoix() {
           picksData || [];
       }
 
-      setPicks(weekPicks);
+      setPicks(
+        weekPicks
+      );
+
+      /* QB PICKS */
 
       const {
         data: qbData,
@@ -2186,6 +2465,7 @@ export default function TousLesChoix() {
           "Erreur QB : " +
             qbError.message
         );
+
         setLoading(false);
         return;
       }
@@ -2193,6 +2473,8 @@ export default function TousLesChoix() {
       setQbPicks(
         qbData || []
       );
+
+      /* RATINGS OFFICIELS */
 
       const {
         data: ratingsData,
@@ -2210,6 +2492,7 @@ export default function TousLesChoix() {
           "Erreur ratings : " +
             ratingsError.message
         );
+
         setLoading(false);
         return;
       }
@@ -2217,6 +2500,8 @@ export default function TousLesChoix() {
       setQbRatings(
         ratingsData || []
       );
+
+      /* MOYENNES QB */
 
       const {
         data: allRatings,
@@ -2240,56 +2525,68 @@ export default function TousLesChoix() {
 
       (
         allRatings || []
-      ).forEach((row) => {
-        if (
-          row.passer_rating ==
-          null
-        ) {
-          return;
+      ).forEach(
+        (row) => {
+          if (
+            row.passer_rating ==
+            null
+          ) {
+            return;
+          }
+
+          const athleteId =
+            row.actual_espn_athlete_id ||
+            row.qbs
+              ?.espn_athlete_id;
+
+          if (!athleteId) {
+            return;
+          }
+
+          const key =
+            String(
+              athleteId
+            );
+
+          if (
+            !averages[key]
+          ) {
+            averages[key] = {
+              total: 0,
+              count: 0,
+            };
+          }
+
+          averages[
+            key
+          ].total +=
+            Number(
+              row.passer_rating
+            );
+
+          averages[
+            key
+          ].count += 1;
         }
-
-        const athleteId =
-          row.actual_espn_athlete_id ||
-          row.qbs
-            ?.espn_athlete_id;
-
-        if (!athleteId) {
-          return;
-        }
-
-        const key =
-          String(athleteId);
-
-        if (!averages[key]) {
-          averages[key] = {
-            total: 0,
-            count: 0,
-          };
-        }
-
-        averages[key].total +=
-          Number(
-            row.passer_rating
-          );
-
-        averages[key].count += 1;
-      });
+      );
 
       const formatted = {};
 
       Object.keys(
         averages
-      ).forEach((athleteId) => {
-        formatted[
-          athleteId
-        ] =
-          averages[
+      ).forEach(
+        (athleteId) => {
+          formatted[
             athleteId
-          ].total /
-          averages[
-            athleteId
-          ].count;
-      });
+          ] =
+            averages[
+              athleteId
+            ].total /
+            averages[
+              athleteId
+            ].count;
+        }
+      );
 
       setQbSeasonAverages(
         formatted
@@ -2305,14 +2602,18 @@ export default function TousLesChoix() {
   ]);
 
   /* =========================================================
-     LIVE + POST-MATCH
+     ESPN LIVE + POST-MATCH
      ========================================================= */
 
   useEffect(() => {
+    /*
+     * Seulement la semaine active.
+     */
     if (
       viewedWeek == null ||
       currentWeek == null ||
-      viewedWeek !== currentWeek ||
+      viewedWeek !==
+        currentWeek ||
       weekGames.length === 0
     ) {
       setLiveGames({});
@@ -2331,7 +2632,8 @@ export default function TousLesChoix() {
         );
 
       if (
-        eligibleGames.length === 0
+        eligibleGames.length ===
+        0
       ) {
         return;
       }
@@ -2366,18 +2668,21 @@ export default function TousLesChoix() {
               /*
                * IMPORTANT :
                *
-               * On conserve maintenant :
+               * AVANT :
+               * on gardait uniquement "in".
                *
-               * - "in"   = match LIVE
-               * - "post" = match terminé
+               * MAINTENANT :
+               * on garde "in" ET "post".
                *
-               * C'est ce qui empêche
-               * score et rating de disparaître
-               * après le coup de sifflet final.
+               * Ainsi, le score et le
+               * passer rating ne disparaissent
+               * plus à la fin du match.
                */
               if (
-                status.state !== "in" &&
-                status.state !== "post"
+                status.state !==
+                  "in" &&
+                status.state !==
+                  "post"
               ) {
                 return;
               }
@@ -2393,11 +2698,13 @@ export default function TousLesChoix() {
 
               const competition =
                 summary?.header
-                  ?.competitions?.[0];
+                  ?.competitions
+                  ?.[0];
 
               const competitors =
                 competition
-                  ?.competitors || [];
+                  ?.competitors ||
+                [];
 
               const teamNames =
                 competitors
@@ -2439,7 +2746,7 @@ export default function TousLesChoix() {
               };
             } catch (error) {
               console.error(
-                `Erreur live match ${game.external_game_id}:`,
+                `Erreur ESPN match ${game.external_game_id}:`,
                 error
               );
             }
@@ -2447,15 +2754,38 @@ export default function TousLesChoix() {
         )
       );
 
+      /*
+       * IMPORTANT :
+       *
+       * On ne remplace plus tout le state
+       * par "results".
+       *
+       * On fusionne les nouvelles données
+       * avec les dernières données connues.
+       *
+       * Donc si ESPN rate une lecture
+       * temporairement, le score/rating
+       * ne disparaît pas immédiatement.
+       */
       if (!cancelled) {
         setLiveGames(
-          results
+          (previous) => ({
+            ...previous,
+            ...results,
+          })
         );
       }
     }
 
+    /*
+     * Lecture immédiate.
+     */
     refreshLive();
 
+    /*
+     * Rafraîchissement toutes
+     * les 30 secondes.
+     */
     const interval =
       window.setInterval(
         refreshLive,
@@ -2610,8 +2940,12 @@ export default function TousLesChoix() {
 
                 return (
                   <GamePicksCard
-                    key={game.id}
-                    game={game}
+                    key={
+                      game.id
+                    }
+                    game={
+                      game
+                    }
                     gamePicks={
                       gamePicks
                     }
@@ -2635,9 +2969,6 @@ export default function TousLesChoix() {
                     }
                     qbRatings={
                       qbRatings
-                    }
-                    qbSeasonAverages={
-                      qbSeasonAverages
                     }
                     liveGames={
                       liveGames
