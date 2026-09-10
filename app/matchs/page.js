@@ -1228,11 +1228,13 @@ export default function Matchs() {
 
       {/* ================= ORDRE QB ================= */}
 
-      <SelectionOrderBar
-        players={selectionOrder}
-        currentUserId={user?.id}
-        currentWeek={currentWeek}
-      />
+      {selectionOrder.length > 0 && (
+  <SelectionOrderBar
+    selectionOrder={selectionOrder}
+    currentUserId={user?.id}
+    week={week}
+  />
+)}
 
       {/* ================= QB ================= */}
 
