@@ -3101,225 +3101,284 @@ export default function Matchs() {
       {/* ================= QB ================= */}
 
       <section className="card">
-        {existingQbPick ? (
-          <>
-            <h2
+       {existingQbPick ? (
+  <>
+    <h2
+      style={{
+        color: "#22c55e",
+        marginTop: 0,
+        marginBottom: 24,
+      }}
+    >
+      QB soumis ✅
+    </h2>
+
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: isMobile
+          ? "1fr"
+          : "minmax(0, 1fr) minmax(320px, 0.9fr)",
+        gap: isMobile ? 22 : 32,
+        alignItems: "center",
+      }}
+    >
+      {/* =====================================================
+          GAUCHE — QB
+          ===================================================== */}
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: isMobile
+            ? "105px minmax(0, 1fr)"
+            : "150px minmax(0, 1fr)",
+          gap: isMobile ? 12 : 18,
+          alignItems: "center",
+          minWidth: 0,
+        }}
+      >
+        <QBPhoto
+          qb={displayedQb}
+          mobile={isMobile}
+        />
+
+        <div
+          style={{
+            minWidth: 0,
+          }}
+        >
+          <h2
+            style={{
+              margin: 0,
+              color: "#f8fafc",
+              fontSize: isMobile ? 21 : 30,
+              lineHeight: 1.1,
+            }}
+          >
+            {displayedQb?.name}
+          </h2>
+
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              marginTop: 10,
+              marginBottom: 8,
+            }}
+          >
+            <TeamLogo
+              logo={getTeamLogo(
+                displayedQb?.team
+              )}
+              name={displayedQb?.team}
+              size={isMobile ? 30 : 38}
+              plain={true}
+            />
+
+            <strong
               style={{
-                color: "#22c55e",
+                color: "#94a3b8",
+                fontSize: isMobile ? 14 : 18,
               }}
             >
-              QB soumis ✅
-            </h2>
+              {displayedQb?.team}
+            </strong>
+          </div>
 
-            <div
+          {qbWasReplaced && (
+            <p
               style={{
-                display: "grid",
-                gridTemplateColumns: isMobile
-                  ? "105px minmax(0, 1fr)"
-                  : "150px minmax(0, 1fr)",
-                gap: isMobile ? 12 : 18,
-                alignItems: "center",
+                margin: "6px 0",
+                color: "#facc15",
+                fontSize: 13,
+                fontWeight: 800,
               }}
             >
-              <QBPhoto
-                qb={displayedQb}
-                mobile={isMobile}
-              />
+              🔄 QB utilisé automatiquement
+            </p>
+          )}
 
-              <div
+          {displayedQbRating != null ? (
+            <p
+              style={{
+                marginTop: 16,
+                marginBottom: 0,
+                fontSize: isMobile ? 15 : 19,
+                lineHeight: 1.5,
+                color: "#94a3b8",
+              }}
+            >
+              Passer Rating :{" "}
+              <strong
                 style={{
-                  minWidth: 0,
+                  color: ratingColor(
+                    displayedQbRating
+                  ),
                 }}
               >
-                <h2
-                  style={{
-                    margin: 0,
-                    fontSize: isMobile
-                      ? 21
-                      : undefined,
-                  }}
-                >
-                  {displayedQb?.name}
-                </h2>
+                {Number(
+                  displayedQbRating
+                ).toFixed(1)}
+              </strong>
 
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    marginTop: 6,
-                    marginBottom: 6,
-                  }}
-                >
-                  <TeamLogo
-                    logo={getTeamLogo(
-                      displayedQb?.team
-                    )}
-                    name={displayedQb?.team}
-                    size={isMobile ? 30 : 38}
-                    plain={true}
-                  />
+              {!isMobile && " — "}
 
-                  <strong
-                    style={{
-                      color: "#94a3b8",
-                      fontSize: isMobile
-                        ? 14
-                        : 16,
-                    }}
-                  >
-                    {displayedQb?.team}
-                  </strong>
-                </div>
-                {qbNextGame && qbOpponent && (
-                  <div
-                    style={{
-                      marginTop: 14,
-                      marginBottom: 14,
-                      padding: "12px 14px",
-                      borderRadius: 14,
-                      background:
-                        "rgba(30,41,59,0.72)",
-                      border:
-                        "1px solid rgba(148,163,184,0.13)",
-                    }}
-                  >
-                    <div
-                      style={{
-                        color: "#94a3b8",
-                        fontSize: 11,
-                        fontWeight: 900,
-                        textTransform: "uppercase",
-                        letterSpacing: "0.5px",
-                        marginBottom: 8,
-                      }}
-                    >
-                      Prochain match
-                    </div>
+              {isMobile && <br />}
 
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 9,
-                      }}
-                    >
-                      <img
-                        src={getTeamLogo(qbOpponent)}
-                        alt={qbOpponent}
-                        style={{
-                          width: isMobile ? 28 : 34,
-                          height: isMobile ? 28 : 34,
-                          objectFit: "contain",
-                        }}
-                      />
+              Moyenne saison :{" "}
+              <strong
+                style={{
+                  color: "#cbd5e1",
+                }}
+              >
+                {displayedQbAverage != null
+                  ? displayedQbAverage.toFixed(1)
+                  : "--"}
+              </strong>
+            </p>
+          ) : (
+            <p
+              style={{
+                marginTop: 16,
+                marginBottom: 0,
+                color: "#94a3b8",
+                fontSize: isMobile ? 14 : 18,
+              }}
+            >
+              Moyenne saison :{" "}
+              <strong
+                style={{
+                  color: "#cbd5e1",
+                }}
+              >
+                {displayedQbAverage != null
+                  ? displayedQbAverage.toFixed(1)
+                  : "--"}
+              </strong>
+            </p>
+          )}
+        </div>
+      </div>
 
-                      <strong
-                        style={{
-                          color: "#f8fafc",
-                          fontSize: isMobile
-                            ? 14
-                            : 16,
-                        }}
-                      >
-                        {qbIsHome ? "vs" : "@"}{" "}
-                        {qbOpponent}
-                      </strong>
-                    </div>
+      {/* =====================================================
+          DROITE — PROCHAIN MATCH
+          ===================================================== */}
 
-                    <div
-                      style={{
-                        marginTop: 7,
-                        color: "#4ade80",
-                        fontSize: 12,
-                        fontWeight: 800,
-                      }}
-                    >
-                      {formatGameDate(
-                        qbNextGame.game_date
-                      )}
-                    </div>
-                  </div>
-                )}
-                {qbWasReplaced && (
-                  <p
-                    style={{
-                      margin: "4px 0",
-                      color: "#facc15",
-                      fontSize: 13,
-                      fontWeight: 800,
-                    }}
-                  >
-                    🔄 QB utilisé automatiquement
-                  </p>
-                )}
+      {qbNextGame && qbOpponent ? (
+        <div
+          style={{
+            width: "100%",
+            padding: isMobile
+              ? "16px 18px"
+              : "20px 24px",
+            borderRadius: 18,
+            background:
+              "rgba(30,41,59,0.72)",
+            border:
+              "1px solid rgba(148,163,184,0.18)",
+            boxSizing: "border-box",
+          }}
+        >
+          <div
+            style={{
+              color: "#94a3b8",
+              fontSize: isMobile ? 11 : 13,
+              fontWeight: 900,
+              textTransform: "uppercase",
+              letterSpacing: "0.6px",
+              marginBottom: 14,
+            }}
+          >
+            Prochain match
+          </div>
 
-                {displayedQbRating != null ? (
-                  <p
-                    style={{
-                      fontSize: isMobile
-                        ? 15
-                        : 22,
-                      lineHeight: 1.5,
-                    }}
-                  >
-                    Passer Rating :{" "}
-                    <strong
-                      style={{
-                        color: ratingColor(
-                          displayedQbRating
-                        ),
-                      }}
-                    >
-                      {Number(
-                        displayedQbRating
-                      ).toFixed(1)}
-                    </strong>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 14,
+            }}
+          >
+            <img
+              src={getTeamLogo(
+                qbOpponent
+              )}
+              alt={qbOpponent}
+              style={{
+                width: isMobile ? 42 : 54,
+                height: isMobile ? 42 : 54,
+                objectFit: "contain",
+                flexShrink: 0,
+              }}
+            />
 
-                    {!isMobile && " — "}
+            <strong
+              style={{
+                color: "#f8fafc",
+                fontSize: isMobile ? 18 : 22,
+                lineHeight: 1.2,
+              }}
+            >
+              {qbIsHome ? "vs" : "@"}{" "}
+              {qbOpponent}
+            </strong>
+          </div>
 
-                    {isMobile && <br />}
+          <div
+            style={{
+              marginTop: 14,
+              color: "#4ade80",
+              fontSize: isMobile ? 13 : 15,
+              fontWeight: 900,
+            }}
+          >
+            {formatGameDate(
+              qbNextGame.game_date
+            )}
+          </div>
+        </div>
+      ) : (
+        <div
+          style={{
+            width: "100%",
+            padding: isMobile
+              ? "16px 18px"
+              : "20px 24px",
+            borderRadius: 18,
+            background:
+              "rgba(30,41,59,0.45)",
+            border:
+              "1px solid rgba(148,163,184,0.12)",
+            color: "#64748b",
+            boxSizing: "border-box",
+          }}
+        >
+          <div
+            style={{
+              fontSize: isMobile ? 11 : 13,
+              fontWeight: 900,
+              textTransform: "uppercase",
+              letterSpacing: "0.6px",
+            }}
+          >
+            Prochain match
+          </div>
 
-                    Moyenne saison :{" "}
-                    <strong
-                      style={{
-                        color: "#cbd5e1",
-                      }}
-                    >
-                      {displayedQbAverage != null
-                        ? displayedQbAverage.toFixed(
-                            1
-                          )
-                        : "--"}
-                    </strong>
-                  </p>
-                ) : (
-                  <p
-                    style={{
-                      color: "#94a3b8",
-                      fontSize: isMobile
-                        ? 14
-                        : 18,
-                    }}
-                  >
-                    Moyenne saison :{" "}
-                    <strong
-                      style={{
-                        color: "#cbd5e1",
-                      }}
-                    >
-                      {displayedQbAverage != null
-                        ? displayedQbAverage.toFixed(
-                            1
-                          )
-                        : "--"}
-                    </strong>
-                  </p>
-                )}
-              </div>
-            </div>
-          </>
-        ) : (
+          <div
+            style={{
+              marginTop: 10,
+              fontSize: 14,
+            }}
+          >
+            Aucun match cette semaine
+          </div>
+        </div>
+      )}
+    </div>
+  </>
+) : (
           <>
             <h2
               style={{
