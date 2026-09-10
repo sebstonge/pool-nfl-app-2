@@ -2890,49 +2890,6 @@ export default function Matchs() {
           game.id
         ]
     );
-
-  /* =========================================================
-     RENDER
-     ========================================================= */
-
-  return (
-    <main className="page">
-      <section className="header-card">
-        <h1>
-          Mes choix ✅
-        </h1>
-
-        <p>
-          Semaine{" "}
-          {currentWeek ||
-            "..."}
-        </p>
-      </section>
-
-      {message && (
-        <section className="card">
-          <p>
-            {message}
-          </p>
-        </section>
-      )}
-
-      {/* ================= ORDRE QB ================= */}
-
-      {selectionOrder.length >
-        0 && (
-        <SelectionOrderBar
-          players={
-            selectionOrder
-          }
-          currentUserId={
-            user?.id
-          }
-          currentWeek={
-            currentWeek
-          }
-        />
-      )}
   /* =========================================================
      RENDER
      ========================================================= */
