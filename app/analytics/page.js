@@ -31,12 +31,7 @@ function PlayerIdentity({
   compact = false,
 }) {
   return (
-    <div
-      style={{
-        textAlign: align,
-        minWidth: 0,
-      }}
-    >
+    <div style={{ textAlign: align, minWidth: 0 }}>
       <strong
         style={{
           display: "block",
@@ -84,12 +79,7 @@ function StatCard({
         border: "1px solid rgba(148,163,184,0.16)",
       }}
     >
-      <div
-        style={{
-          fontSize: 30,
-          marginBottom: 10,
-        }}
-      >
+      <div style={{ fontSize: 30, marginBottom: 10 }}>
         {icon}
       </div>
 
@@ -113,12 +103,7 @@ function StatCard({
         {value}
       </h2>
 
-      <div
-        style={{
-          margin: 0,
-          color: "#94a3b8",
-        }}
-      >
+      <div style={{ color: "#94a3b8" }}>
         {subtitle}
       </div>
     </div>
@@ -126,39 +111,62 @@ function StatCard({
 }
 
 function PersonalStatCard({
-  label,
+  icon,
+  title,
   value,
-  color = "#f8fafc",
+  subtitle,
+  color = "#22c55e",
 }) {
   return (
     <div
       style={{
-        padding: 14,
-        borderRadius: 16,
+        padding: 16,
+        borderRadius: 18,
         background: "rgba(15,23,42,0.72)",
-        border: "1px solid rgba(148,163,184,0.12)",
+        border: "1px solid rgba(148,163,184,0.13)",
       }}
     >
+      <div
+        style={{
+          fontSize: 22,
+          marginBottom: 8,
+        }}
+      >
+        {icon}
+      </div>
+
       <div
         style={{
           color: "#94a3b8",
           fontSize: 12,
           fontWeight: 800,
-          marginBottom: 6,
         }}
       >
-        {label}
+        {title}
       </div>
 
-      <strong
+      <div
         style={{
+          marginTop: 5,
           color,
-          fontSize: 20,
-          lineHeight: 1.2,
+          fontSize: 25,
+          fontWeight: 900,
         }}
       >
         {value}
-      </strong>
+      </div>
+
+      {subtitle && (
+        <div
+          style={{
+            marginTop: 4,
+            color: "#64748b",
+            fontSize: 11,
+          }}
+        >
+          {subtitle}
+        </div>
+      )}
     </div>
   );
 }
@@ -190,12 +198,7 @@ function QBRecordCard({
         border: "1px solid rgba(148,163,184,0.16)",
       }}
     >
-      <div
-        style={{
-          fontSize: 30,
-          marginBottom: 10,
-        }}
-      >
+      <div style={{ fontSize: 30, marginBottom: 10 }}>
         {icon}
       </div>
 
@@ -276,11 +279,7 @@ function QBRecordCard({
                 Semaine {qb.week}
               </p>
 
-              <div
-                style={{
-                  marginTop: 6,
-                }}
-              >
+              <div style={{ marginTop: 6 }}>
                 <span
                   style={{
                     display: "block",
@@ -306,11 +305,7 @@ function QBRecordCard({
   );
 }
 
-function MiniRanking({
-  title,
-  rows,
-  valueLabel,
-}) {
+function MiniRanking({ title, rows, valueLabel }) {
   return (
     <section className="card">
       <h2 style={{ marginTop: 0 }}>
@@ -322,543 +317,412 @@ function MiniRanking({
           Aucune donnée.
         </p>
       ) : (
-        rows
-          .slice(0, 5)
-          .map((row, index) => (
-            <div
-              key={row.userId || index}
+        rows.slice(0, 5).map((row, index) => (
+          <div
+            key={row.userId || index}
+            style={{
+              display: "grid",
+              gridTemplateColumns: "42px 1fr auto",
+              gap: 12,
+              alignItems: "center",
+              padding: "12px 0",
+              borderBottom:
+                "1px solid rgba(148,163,184,0.12)",
+            }}
+          >
+            <strong
               style={{
-                display: "grid",
-                gridTemplateColumns:
-                  "42px 1fr auto",
-                gap: 12,
-                alignItems: "center",
-                padding: "12px 0",
-                borderBottom:
-                  "1px solid rgba(148,163,184,0.12)",
+                color:
+                  index < 3
+                    ? "#22c55e"
+                    : "#94a3b8",
               }}
             >
-              <strong
+              #{index + 1}
+            </strong>
+
+            <div>
+              <PlayerIdentity
+                name={row.name}
+                realName={row.realName}
+              />
+
+              <p
                 style={{
-                  color:
-                    index < 3
-                      ? "#22c55e"
-                      : "#94a3b8",
+                  margin: "4px 0 0 0",
+                  color: "#94a3b8",
+                  fontSize: 13,
                 }}
               >
-                #{index + 1}
-              </strong>
-
-              <div>
-                <PlayerIdentity
-                  name={row.name}
-                  realName={row.realName}
-                />
-
-                <p
-                  style={{
-                    margin: "4px 0 0 0",
-                    color: "#94a3b8",
-                    fontSize: 13,
-                  }}
-                >
-                  {row.detail}
-                </p>
-              </div>
-
-              <strong
-                style={{
-                  color: "#22c55e",
-                  fontSize: 22,
-                }}
-              >
-                {row.value}
-                {valueLabel}
-              </strong>
+                {row.detail}
+              </p>
             </div>
-          ))
+
+            <strong
+              style={{
+                color: "#22c55e",
+                fontSize: 22,
+              }}
+            >
+              {row.value}
+              {valueLabel}
+            </strong>
+          </div>
+        ))
       )}
     </section>
   );
 }
 
 function ConsensusCard({ consensus }) {
+  const total =
+    consensus.wins + consensus.losses;
+
+  const percentage =
+    total > 0
+      ? (consensus.wins / total) * 100
+      : 0;
+
   return (
     <section className="card">
-      <div
+      <h2 style={{ marginTop: 0 }}>
+        🧠 Consensus du pool
+      </h2>
+
+      <p
         style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 12,
-          flexWrap: "wrap",
+          color: "#94a3b8",
+          marginTop: -4,
         }}
       >
-        <div>
-          <h2
-            style={{
-              margin: 0,
-            }}
-          >
-            Consensus du pool 🎯
-          </h2>
+        Performance du choix majoritaire du pool.
+      </p>
 
-          <p
-            style={{
-              margin: "5px 0 0",
-              color: "#94a3b8",
-              fontSize: 13,
-            }}
-          >
-            Performance du choix majoritaire
-          </p>
-        </div>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns:
+            typeof window !== "undefined" &&
+            window.innerWidth < 800
+              ? "1fr 1fr"
+              : "repeat(4, 1fr)",
+          gap: 12,
+          marginTop: 18,
+        }}
+      >
+        <PersonalStatCard
+          icon="🏈"
+          title="Fiche"
+          value={`${consensus.wins}–${consensus.losses}`}
+          subtitle={`${total} matchs`}
+        />
 
-        {consensus.total > 0 && (
-          <div
-            style={{
-              padding: "6px 11px",
-              borderRadius: 999,
-              background:
-                "rgba(34,197,94,0.12)",
-              border:
-                "1px solid rgba(34,197,94,0.25)",
-              color: "#22c55e",
-              fontWeight: 900,
-              fontSize: 13,
-            }}
-          >
-            Saison
-          </div>
-        )}
+        <PersonalStatCard
+          icon="📊"
+          title="Réussite"
+          value={
+            total > 0
+              ? `${percentage.toFixed(1)} %`
+              : "--"
+          }
+          color="#38bdf8"
+        />
+
+        <PersonalStatCard
+          icon="🔥"
+          title="Meilleure semaine"
+          value={
+            consensus.bestWeek
+              ? `${consensus.bestWeek.wins}–${consensus.bestWeek.losses}`
+              : "--"
+          }
+          subtitle={
+            consensus.bestWeek
+              ? `Semaine ${consensus.bestWeek.week}`
+              : ""
+          }
+          color="#facc15"
+        />
+
+        <PersonalStatCard
+          icon="📉"
+          title="Pire semaine"
+          value={
+            consensus.worstWeek
+              ? `${consensus.worstWeek.wins}–${consensus.worstWeek.losses}`
+              : "--"
+          }
+          subtitle={
+            consensus.worstWeek
+              ? `Semaine ${consensus.worstWeek.week}`
+              : ""
+          }
+          color="#ef4444"
+        />
       </div>
-
-      {consensus.total === 0 ? (
-        <p
-          style={{
-            color: "#94a3b8",
-            marginBottom: 0,
-          }}
-        >
-          Aucun match officiel complété.
-        </p>
-      ) : (
-        <>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "baseline",
-              gap: 16,
-              marginTop: 18,
-              flexWrap: "wrap",
-            }}
-          >
-            <strong
-              style={{
-                fontSize: 34,
-                color: "#f8fafc",
-                lineHeight: 1,
-              }}
-            >
-              {consensus.wins}–
-              {consensus.losses}
-            </strong>
-
-            <strong
-              style={{
-                fontSize: 22,
-                color: "#22c55e",
-              }}
-            >
-              {consensus.percentage.toFixed(
-                1
-              )}
-              %
-            </strong>
-          </div>
-
-          <p
-            style={{
-              margin: "12px 0 0",
-              color: "#cbd5e1",
-              lineHeight: 1.5,
-            }}
-          >
-            Le choix majoritaire du pool a
-            remporté{" "}
-            <strong
-              style={{
-                color: "#f8fafc",
-              }}
-            >
-              {consensus.wins}
-            </strong>{" "}
-            des{" "}
-            <strong
-              style={{
-                color: "#f8fafc",
-              }}
-            >
-              {consensus.total}
-            </strong>{" "}
-            matchs terminés.
-          </p>
-        </>
-      )}
     </section>
   );
 }
 
 function PersonalHistory({
-  personal,
+  history,
+  qbHistory,
   teams,
 }) {
-  function getTeamLogo(teamName) {
-    const team = teams.find(
-      (t) =>
-        t.name?.toLowerCase().trim() ===
-        teamName?.toLowerCase().trim()
-    );
-
-    if (team?.espn_abbr) {
-      return `https://a.espncdn.com/i/teamlogos/nfl/500/${team.espn_abbr.toLowerCase()}.png`;
-    }
-
-    return team?.logo || null;
-  }
-
   return (
     <>
       <section className="card">
-        <div
-          style={{
-            display: "flex",
-            alignItems: "flex-start",
-            justifyContent: "space-between",
-            gap: 12,
-            marginBottom: 16,
-          }}
-        >
-          <div>
-            <h2
-              style={{
-                margin: 0,
-              }}
-            >
-              Mon historique 👤
-            </h2>
-
-            <p
-              style={{
-                margin: "5px 0 0",
-                color: "#94a3b8",
-                fontSize: 13,
-              }}
-            >
-              Mes performances cette saison
-            </p>
-          </div>
-        </div>
+        <h2 style={{ marginTop: 0 }}>
+          👤 Mon historique
+        </h2>
 
         <div
           style={{
             display: "grid",
             gridTemplateColumns:
-              "repeat(2, minmax(0, 1fr))",
-            gap: 10,
+              typeof window !== "undefined" &&
+              window.innerWidth < 800
+                ? "1fr 1fr"
+                : "repeat(4, 1fr)",
+            gap: 12,
           }}
         >
           <PersonalStatCard
-            label="Score saison"
-            value={personal.totalScore.toFixed(
-              3
-            )}
-            color="#22c55e"
+            icon="🏆"
+            title="Score total"
+            value={history.total.toFixed(3)}
           />
 
           <PersonalStatCard
-            label="Moyenne / semaine"
+            icon="📊"
+            title="Moyenne / semaine"
             value={
-              personal.weeklyScores.length >
-              0
-                ? personal.averageScore.toFixed(
-                    3
-                  )
+              history.count > 0
+                ? history.average.toFixed(3)
                 : "--"
             }
+            color="#38bdf8"
           />
 
           <PersonalStatCard
-            label="Meilleure semaine"
+            icon="🔥"
+            title="Meilleure semaine"
             value={
-              personal.bestWeek
-                ? `S${personal.bestWeek.week} · ${personal.bestWeek.score.toFixed(
-                    3
-                  )}`
+              history.best
+                ? history.best.score.toFixed(3)
                 : "--"
+            }
+            subtitle={
+              history.best
+                ? `Semaine ${history.best.week}`
+                : ""
             }
             color="#facc15"
           />
 
           <PersonalStatCard
-            label="QB utilisés"
+            icon="📉"
+            title="Pire semaine"
             value={
-              personal.usedQbs.length
+              history.worst
+                ? history.worst.score.toFixed(3)
+                : "--"
             }
+            subtitle={
+              history.worst
+                ? `Semaine ${history.worst.week}`
+                : ""
+            }
+            color="#ef4444"
           />
         </div>
       </section>
 
       <section className="card">
-        <h2
-          style={{
-            marginTop: 0,
-          }}
-        >
-          Mes semaines 📅
+        <h2 style={{ marginTop: 0 }}>
+          📅 Mes semaines
         </h2>
 
-        {personal.weeklyScores.length ===
-        0 ? (
-          <p
-            style={{
-              color: "#94a3b8",
-            }}
-          >
+        {history.weeks.length === 0 ? (
+          <p style={{ color: "#94a3b8" }}>
             Aucune semaine calculée.
           </p>
         ) : (
-          personal.weeklyScores.map(
-            (row, index) => (
-              <div
-                key={row.week}
-                style={{
-                  display: "grid",
-                  gridTemplateColumns:
-                    "1fr auto",
-                  gap: 12,
-                  alignItems: "center",
-                  padding: "12px 0",
-                  borderBottom:
-                    index ===
-                    personal.weeklyScores
-                      .length -
-                      1
-                      ? "none"
-                      : "1px solid rgba(148,163,184,0.12)",
-                }}
-              >
-                <div>
-                  <strong
-                    style={{
-                      display: "block",
-                      color: "#f8fafc",
-                    }}
-                  >
-                    Semaine {row.week}
-                  </strong>
-
-                  <span
-                    style={{
-                      display: "block",
-                      marginTop: 3,
-                      color: "#94a3b8",
-                      fontSize: 12,
-                    }}
-                  >
-                    Points de base :{" "}
-                    {Number(
-                      row.base_points || 0
-                    ).toFixed(0)}
-                    {" · "}
-                    Multiplicateur :{" "}
-                    {Number(
-                      row.multiplier || 0
-                    ).toFixed(3)}
-                  </span>
-                </div>
-
+          history.weeks.map((row, index) => (
+            <div
+              key={row.week}
+              style={{
+                display: "grid",
+                gridTemplateColumns:
+                  "minmax(90px, 1fr) auto",
+                gap: 12,
+                alignItems: "center",
+                padding: "13px 0",
+                borderBottom:
+                  index <
+                  history.weeks.length - 1
+                    ? "1px solid rgba(148,163,184,0.12)"
+                    : "none",
+              }}
+            >
+              <div>
                 <strong
                   style={{
-                    color: "#22c55e",
-                    fontSize: 20,
+                    color: "#f8fafc",
+                    fontSize: 15,
                   }}
                 >
-                  {row.score.toFixed(3)}
+                  Semaine {row.week}
                 </strong>
+
+                {row.basePoints != null && (
+                  <div
+                    style={{
+                      color: "#64748b",
+                      fontSize: 11,
+                      marginTop: 3,
+                    }}
+                  >
+                    {row.basePoints} pts ×{" "}
+                    {row.multiplier != null
+                      ? Number(
+                          row.multiplier
+                        ).toFixed(3)
+                      : "--"}
+                  </div>
+                )}
               </div>
-            )
-          )
+
+              <strong
+                style={{
+                  color: "#22c55e",
+                  fontSize: 20,
+                }}
+              >
+                {row.score.toFixed(3)}
+              </strong>
+            </div>
+          ))
         )}
       </section>
 
       <section className="card">
-        <h2
-          style={{
-            marginTop: 0,
-          }}
-        >
-          Mes QB utilisés 🏈
+        <h2 style={{ marginTop: 0 }}>
+          🏈 Mes QB utilisés
         </h2>
 
         <p
           style={{
-            marginTop: -4,
             color: "#94a3b8",
-            fontSize: 13,
+            marginTop: -4,
           }}
         >
-          Les QB que j'ai déjà sélectionnés
-          cette saison.
+          Tes choix de QB depuis le début de la saison.
         </p>
 
-        {personal.usedQbs.length === 0 ? (
-          <p
-            style={{
-              color: "#94a3b8",
-            }}
-          >
+        {qbHistory.length === 0 ? (
+          <p style={{ color: "#94a3b8" }}>
             Aucun QB utilisé.
           </p>
         ) : (
-          personal.usedQbs.map(
-            (qb, index) => {
-              const logo = getTeamLogo(
-                qb.team
-              );
+          qbHistory.map((row, index) => {
+            const team = teams.find(
+              (t) =>
+                t.name
+                  ?.toLowerCase()
+                  .trim() ===
+                row.team
+                  ?.toLowerCase()
+                  .trim()
+            );
 
-              return (
+            const logo = team?.espn_abbr
+              ? `https://a.espncdn.com/i/teamlogos/nfl/500/${team.espn_abbr.toLowerCase()}.png`
+              : team?.logo || null;
+
+            return (
+              <div
+                key={`${row.week}-${row.qbId}`}
+                style={{
+                  display: "grid",
+                  gridTemplateColumns:
+                    "55px minmax(0, 1fr) auto",
+                  gap: 12,
+                  alignItems: "center",
+                  padding: "13px 0",
+                  borderBottom:
+                    index < qbHistory.length - 1
+                      ? "1px solid rgba(148,163,184,0.12)"
+                      : "none",
+                }}
+              >
                 <div
-                  key={`${qb.week}-${qb.qbId}`}
                   style={{
-                    display: "grid",
-                    gridTemplateColumns:
-                      "44px 1fr auto",
-                    gap: 12,
+                    width: 48,
+                    height: 48,
+                    display: "flex",
                     alignItems: "center",
-                    padding: "12px 0",
-                    borderBottom:
-                      index ===
-                      personal.usedQbs
-                        .length -
-                        1
-                        ? "none"
-                        : "1px solid rgba(148,163,184,0.12)",
+                    justifyContent: "center",
                   }}
                 >
-                  <div
-                    style={{
-                      width: 44,
-                      height: 44,
-                      borderRadius: 999,
-                      background:
-                        "rgba(15,23,42,0.9)",
-                      border:
-                        "1px solid rgba(148,163,184,0.16)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent:
-                        "center",
-                    }}
-                  >
-                    {logo ? (
-                      <img
-                        src={logo}
-                        alt={qb.team}
-                        style={{
-                          width: 34,
-                          height: 34,
-                          objectFit:
-                            "contain",
-                        }}
-                      />
-                    ) : (
-                      <span>🏈</span>
-                    )}
-                  </div>
-
-                  <div
-                    style={{
-                      minWidth: 0,
-                    }}
-                  >
-                    <strong
+                  {logo ? (
+                    <img
+                      src={logo}
+                      alt={row.team}
                       style={{
-                        display: "block",
-                        color: "#f8fafc",
-                        overflow:
-                          "hidden",
-                        textOverflow:
-                          "ellipsis",
+                        width: 44,
+                        height: 44,
+                        objectFit: "contain",
                       }}
-                    >
-                      {qb.name}
-                    </strong>
+                    />
+                  ) : (
+                    <span>🏈</span>
+                  )}
+                </div>
 
-                    <span
-                      style={{
-                        display: "block",
-                        marginTop: 3,
-                        color: "#94a3b8",
-                        fontSize: 12,
-                      }}
-                    >
-                      Semaine {qb.week}
-                      {qb.team
-                        ? ` · ${qb.team}`
-                        : ""}
-                    </span>
-                  </div>
+                <div style={{ minWidth: 0 }}>
+                  <strong
+                    style={{
+                      display: "block",
+                      color: "#f8fafc",
+                      fontSize: 15,
+                    }}
+                  >
+                    {row.selectedName}
+                  </strong>
 
                   <div
                     style={{
-                      textAlign: "right",
+                      color: "#94a3b8",
+                      fontSize: 12,
+                      marginTop: 3,
                     }}
                   >
-                    {qb.rating != null ? (
-                      <>
-                        <strong
-                          style={{
-                            display:
-                              "block",
-                            color:
-                              "#f8fafc",
-                            fontSize: 17,
-                          }}
-                        >
-                          {qb.rating.toFixed(
-                            1
-                          )}
-                        </strong>
-
-                        <span
-                          style={{
-                            display:
-                              "block",
-                            marginTop: 2,
-                            color:
-                              "#94a3b8",
-                            fontSize: 11,
-                          }}
-                        >
-                          Rating
-                        </span>
-                      </>
-                    ) : (
-                      <span
-                        style={{
-                          color:
-                            "#64748b",
-                        }}
-                      >
-                        —
-                      </span>
-                    )}
+                    Semaine {row.week}
+                    {row.actualName &&
+                    row.actualName !==
+                      row.selectedName
+                      ? ` · QB utilisé : ${row.actualName}`
+                      : ""}
                   </div>
                 </div>
-              );
-            }
-          )
+
+                <strong
+                  style={{
+                    color:
+                      row.rating != null
+                        ? "#22c55e"
+                        : "#64748b",
+                    fontSize: 18,
+                  }}
+                >
+                  {row.rating != null
+                    ? row.rating.toFixed(1)
+                    : "--"}
+                </strong>
+              </div>
+            );
+          })
         )}
       </section>
     </>
@@ -878,6 +742,12 @@ export default function AnalyticsPage() {
   const [teams, setTeams] =
     useState([]);
 
+  const [personalHistory, setPersonalHistory] =
+    useState(null);
+
+  const [personalQbs, setPersonalQbs] =
+    useState([]);
+
   useEffect(() => {
     async function loadData() {
       setLoading(true);
@@ -885,11 +755,10 @@ export default function AnalyticsPage() {
 
       const {
         data: authData,
-      } =
-        await supabase.auth.getUser();
+      } = await supabase.auth.getUser();
 
-      const currentUserId =
-        authData?.user?.id || null;
+      const currentUser =
+        authData?.user || null;
 
       const { data: teamsData } =
         await supabase
@@ -912,18 +781,18 @@ export default function AnalyticsPage() {
         .from("picks")
         .select(`
           id,
-          game_id,
           user_id,
+          game_id,
           picked_team,
           predicted_spread,
           games (
             id,
             week,
+            is_pool_eligible,
             away_team,
             home_team,
             away_score,
-            home_score,
-            is_pool_eligible
+            home_score
           )
         `);
 
@@ -932,53 +801,58 @@ export default function AnalyticsPage() {
           "Erreur picks : " +
             picksError.message
         );
-
         setLoading(false);
         return;
       }
 
-      const { data: weeklyScores } =
-        await supabase
-          .from("weekly_scores")
-          .select("*");
+      const {
+        data: weeklyScores,
+      } = await supabase
+        .from("weekly_scores")
+        .select("*");
 
-      const { data: qbRatings } =
-        await supabase
-          .from("qb_ratings")
-          .select("*");
+      const {
+        data: qbRatings,
+      } = await supabase
+        .from("qb_ratings")
+        .select("*");
 
-      const { data: qbPicks } =
-        await supabase
-          .from("qb_picks")
-          .select("*");
+      const {
+        data: qbPicks,
+      } = await supabase
+        .from("qb_picks")
+        .select("*");
 
-      const { data: qbs } =
-        await supabase
-          .from("qbs")
-          .select("*");
+      const {
+        data: qbs,
+      } = await supabase
+        .from("qbs")
+        .select("*");
 
-      const users =
-        usersData || [];
+      const users = usersData || [];
 
-      const picks =
-        (picksData || []).filter(
-          (p) =>
-            p.games?.is_pool_eligible ===
-              true &&
-            p.games?.home_score != null &&
-            p.games?.away_score != null
-        );
+      /*
+       * Seulement les matchs officiels,
+       * terminés et admissibles au pool.
+       */
+      const picks = (picksData || []).filter(
+        (p) =>
+          p.games?.is_pool_eligible === true &&
+          p.games?.home_score != null &&
+          p.games?.away_score != null
+      );
+
+      /* =====================================================
+         STATS GÉNÉRALES
+         ===================================================== */
 
       const byUser = {};
 
       users.forEach((user) => {
         byUser[user.id] = {
           userId: user.id,
-
           name: displayName(user),
-
           realName: realName(user),
-
           totalPicks: 0,
           correctWinners: 0,
           exactMargins: 0,
@@ -989,32 +863,33 @@ export default function AnalyticsPage() {
       picks.forEach((pick) => {
         const game = pick.games;
 
+        if (
+          Number(game.home_score) ===
+          Number(game.away_score)
+        ) {
+          return;
+        }
+
         const winner =
           Number(game.home_score) >
           Number(game.away_score)
             ? game.home_team
             : game.away_team;
 
-        const realSpread =
-          Math.abs(
-            Number(game.home_score) -
-              Number(game.away_score)
-          );
+        const realSpread = Math.abs(
+          Number(game.home_score) -
+            Number(game.away_score)
+        );
 
         if (!byUser[pick.user_id]) {
           const user = users.find(
-            (u) =>
-              u.id === pick.user_id
+            (u) => u.id === pick.user_id
           );
 
           byUser[pick.user_id] = {
             userId: pick.user_id,
-
             name: displayName(user),
-
-            realName:
-              realName(user),
-
+            realName: realName(user),
             totalPicks: 0,
             correctWinners: 0,
             exactMargins: 0,
@@ -1022,9 +897,7 @@ export default function AnalyticsPage() {
           };
         }
 
-        byUser[
-          pick.user_id
-        ].totalPicks += 1;
+        byUser[pick.user_id].totalPicks += 1;
 
         if (
           pick.picked_team === winner
@@ -1043,9 +916,7 @@ export default function AnalyticsPage() {
             ].exactMargins += 1;
           }
         } else {
-          byUser[
-            pick.user_id
-          ].wrong += 1;
+          byUser[pick.user_id].wrong += 1;
         }
       });
 
@@ -1063,10 +934,7 @@ export default function AnalyticsPage() {
           )
           .map((u) => ({
             ...u,
-
-            value:
-              u.exactMargins,
-
+            value: u.exactMargins,
             detail:
               `${u.exactMargins} / ${u.totalPicks} choix`,
           }));
@@ -1080,10 +948,7 @@ export default function AnalyticsPage() {
           )
           .map((u) => ({
             ...u,
-
-            value:
-              u.correctWinners,
-
+            value: u.correctWinners,
             detail:
               `${Math.round(
                 (u.correctWinners /
@@ -1097,21 +962,14 @@ export default function AnalyticsPage() {
           (row) => {
             const user = users.find(
               (u) =>
-                u.id ===
-                row.user_id
+                u.id === row.user_id
             );
 
             return {
               ...row,
-
-              name:
-                displayName(user),
-
-              realName:
-                realName(user),
-
-              score:
-                statValue(row),
+              name: displayName(user),
+              realName: realName(user),
+              score: statValue(row),
             };
           }
         );
@@ -1131,63 +989,203 @@ export default function AnalyticsPage() {
       const totalPicks =
         userRows.reduce(
           (sum, u) =>
-            sum +
-            u.totalPicks,
+            sum + u.totalPicks,
           0
         );
 
       const totalCorrect =
         userRows.reduce(
           (sum, u) =>
-            sum +
-            u.correctWinners,
+            sum + u.correctWinners,
           0
         );
 
       const totalExact =
         userRows.reduce(
           (sum, u) =>
-            sum +
-            u.exactMargins,
+            sum + u.exactMargins,
           0
         );
 
-      const bestQb =
-        [...(qbRatings || [])]
-          .filter(
-            (r) =>
-              r.passer_rating != null
-          )
-          .sort(
-            (a, b) =>
+      /* =====================================================
+         CONSENSUS DU POOL
+         ===================================================== */
+
+      const gamesById = {};
+
+      picks.forEach((pick) => {
+        if (!gamesById[pick.game_id]) {
+          gamesById[pick.game_id] = {
+            game: pick.games,
+            picks: [],
+          };
+        }
+
+        gamesById[
+          pick.game_id
+        ].picks.push(pick);
+      });
+
+      const consensusByWeek = {};
+
+      let consensusWins = 0;
+      let consensusLosses = 0;
+
+      Object.values(
+        gamesById
+      ).forEach(({ game, picks: gamePicks }) => {
+        if (
+          !game ||
+          gamePicks.length === 0 ||
+          Number(game.home_score) ===
+            Number(game.away_score)
+        ) {
+          return;
+        }
+
+        const homeCount =
+          gamePicks.filter(
+            (p) =>
+              p.picked_team ===
+              game.home_team
+          ).length;
+
+        const awayCount =
+          gamePicks.filter(
+            (p) =>
+              p.picked_team ===
+              game.away_team
+          ).length;
+
+        /*
+         * Historique incomplet avec égalité :
+         * on ignore le match.
+         */
+        if (homeCount === awayCount) {
+          return;
+        }
+
+        const consensusTeam =
+          homeCount > awayCount
+            ? game.home_team
+            : game.away_team;
+
+        const winner =
+          Number(game.home_score) >
+          Number(game.away_score)
+            ? game.home_team
+            : game.away_team;
+
+        const week =
+          Number(game.week);
+
+        if (!consensusByWeek[week]) {
+          consensusByWeek[week] = {
+            week,
+            wins: 0,
+            losses: 0,
+          };
+        }
+
+        if (
+          consensusTeam === winner
+        ) {
+          consensusWins++;
+          consensusByWeek[
+            week
+          ].wins++;
+        } else {
+          consensusLosses++;
+          consensusByWeek[
+            week
+          ].losses++;
+        }
+      });
+
+      const consensusWeeks =
+        Object.values(
+          consensusByWeek
+        ).filter(
+          (row) =>
+            row.wins +
+              row.losses >
+            0
+        );
+
+      const sortedConsensusWeeks =
+        [...consensusWeeks].sort(
+          (a, b) => {
+            const pctA =
+              a.wins /
+              (a.wins +
+                a.losses);
+
+            const pctB =
+              b.wins /
+              (b.wins +
+                b.losses);
+
+            if (pctB !== pctA) {
+              return pctB - pctA;
+            }
+
+            return (
+              b.wins - a.wins
+            );
+          }
+        );
+
+      const consensusBestWeek =
+        sortedConsensusWeeks[0] ||
+        null;
+
+      const consensusWorstWeek =
+        sortedConsensusWeeks.length > 0
+          ? sortedConsensusWeeks[
+              sortedConsensusWeeks.length -
+                1
+            ]
+          : null;
+
+      /* =====================================================
+         RECORDS QB
+         ===================================================== */
+
+      const validRatings =
+        (qbRatings || []).filter(
+          (row) =>
+            row.passer_rating != null &&
+            Number.isFinite(
               Number(
-                b.passer_rating || 0
-              ) -
-              Number(
-                a.passer_rating || 0
+                row.passer_rating
               )
-          )[0];
+            )
+        );
+
+      const bestQb =
+        [...validRatings].sort(
+          (a, b) =>
+            Number(
+              b.passer_rating
+            ) -
+            Number(
+              a.passer_rating
+            )
+        )[0];
 
       const worstQb =
-        [...(qbRatings || [])]
-          .filter(
-            (r) =>
-              r.passer_rating != null
-          )
-          .sort(
-            (a, b) =>
-              Number(
-                a.passer_rating
-              ) -
-              Number(
-                b.passer_rating
-              )
-          )[0];
+        [...validRatings].sort(
+          (a, b) =>
+            Number(
+              a.passer_rating
+            ) -
+            Number(
+              b.passer_rating
+            )
+        )[0];
 
       function qbLabel(rating) {
-        if (!rating) {
-          return null;
-        }
+        if (!rating) return null;
 
         const selectedQb =
           (qbs || []).find(
@@ -1220,33 +1218,31 @@ export default function AnalyticsPage() {
             (p) =>
               p.qb_id ===
                 rating.qb_id &&
-              p.week ===
-                rating.week
+              Number(p.week) ===
+                Number(
+                  rating.week
+                )
           );
 
-        const user = users.find(
-          (u) =>
-            u.id ===
-            pick?.user_id
-        );
+        const user =
+          users.find(
+            (u) =>
+              u.id ===
+              pick?.user_id
+          );
 
         return {
           name: qbName,
-
           team:
             actualQb?.team ||
             selectedQb?.team ||
             "",
-
           rating: Number(
             rating.passer_rating
           ),
-
           week: rating.week,
-
           selectedBy:
             displayName(user),
-
           selectedByRealName:
             realName(user),
         };
@@ -1254,15 +1250,8 @@ export default function AnalyticsPage() {
 
       const qbAverageRows =
         Object.values(
-          (qbRatings || []).reduce(
+          validRatings.reduce(
             (acc, rating) => {
-              if (
-                rating.passer_rating ==
-                null
-              ) {
-                return acc;
-              }
-
               const selectedQb =
                 (qbs || []).find(
                   (q) =>
@@ -1272,15 +1261,15 @@ export default function AnalyticsPage() {
 
               const athleteId =
                 rating.actual_espn_athlete_id ||
-                selectedQb?.espn_athlete_id;
+                selectedQb
+                  ?.espn_athlete_id;
 
               if (!athleteId) {
                 return acc;
               }
 
-              const key = String(
-                athleteId
-              );
+              const key =
+                String(athleteId);
 
               if (!acc[key]) {
                 const actualQb =
@@ -1289,26 +1278,19 @@ export default function AnalyticsPage() {
                       String(
                         q.espn_athlete_id
                       ) ===
-                      String(
-                        athleteId
-                      )
+                      key
                   );
 
                 acc[key] = {
-                  espn_athlete_id:
-                    key,
-
                   name:
                     rating.actual_qb_name ||
                     actualQb?.name ||
                     selectedQb?.name ||
                     "QB",
-
                   team:
                     actualQb?.team ||
                     selectedQb?.team ||
                     "",
-
                   total: 0,
                   count: 0,
                 };
@@ -1316,11 +1298,11 @@ export default function AnalyticsPage() {
 
               acc[key].total +=
                 Number(
-                  rating.passer_rating ||
-                    0
+                  rating.passer_rating
                 );
 
-              acc[key].count += 1;
+              acc[key].count +=
+                1;
 
               return acc;
             },
@@ -1329,13 +1311,10 @@ export default function AnalyticsPage() {
         )
           .map((row) => ({
             name: row.name,
-
             team: row.team,
-
             rating:
               row.total /
               row.count,
-
             detail:
               `${row.count} utilisation${
                 row.count > 1
@@ -1349,301 +1328,187 @@ export default function AnalyticsPage() {
               a.rating
           );
 
-      /*
-       * CONSENSUS DU POOL
-       *
-       * On regroupe les choix par match.
-       * Le consensus = équipe choisie
-       * par la majorité des joueurs.
-       *
-       * Seuls les matchs officiels
-       * terminés et is_pool_eligible
-       * sont déjà présents dans "picks".
-       */
+      /* =====================================================
+         HISTORIQUE PERSONNEL
+         ===================================================== */
 
-      const picksByGame = {};
-
-      picks.forEach((pick) => {
-        const gameId =
-          pick.game_id ||
-          pick.games?.id;
-
-        if (!gameId) return;
-
-        if (!picksByGame[gameId]) {
-          picksByGame[gameId] = {
-            game: pick.games,
-            picks: [],
-          };
-        }
-
-        picksByGame[
-          gameId
-        ].picks.push(pick);
-      });
-
-      let consensusWins = 0;
-      let consensusLosses = 0;
-
-      Object.values(
-        picksByGame
-      ).forEach(
-        ({ game, picks: gamePicks }) => {
-          if (
-            !game ||
-            game.home_score == null ||
-            game.away_score == null
-          ) {
-            return;
-          }
-
-          const homeCount =
-            gamePicks.filter(
-              (pick) =>
-                pick.picked_team ===
-                game.home_team
-            ).length;
-
-          const awayCount =
-            gamePicks.filter(
-              (pick) =>
-                pick.picked_team ===
-                game.away_team
-            ).length;
-
-          /*
-           * Avec 13 joueurs ayant tous
-           * soumis, il ne devrait pas
-           * y avoir d'égalité.
-           *
-           * Si un historique incomplet
-           * produit quand même une
-           * égalité, on ignore le match.
-           */
-
-          if (
-            homeCount === awayCount
-          ) {
-            return;
-          }
-
-          const consensusTeam =
-            homeCount > awayCount
-              ? game.home_team
-              : game.away_team;
-
-          const actualWinner =
-            Number(
-              game.home_score
-            ) >
-            Number(
-              game.away_score
+      if (currentUser) {
+        const myWeeks =
+          weeklyRows
+            .filter(
+              (row) =>
+                row.user_id ===
+                currentUser.id
             )
-              ? game.home_team
-              : game.away_team;
+            .map((row) => ({
+              week: Number(
+                row.week
+              ),
+              score:
+                Number(row.score),
+              basePoints:
+                row.base_points !=
+                null
+                  ? Number(
+                      row.base_points
+                    )
+                  : null,
+              multiplier:
+                row.multiplier !=
+                null
+                  ? Number(
+                      row.multiplier
+                    )
+                  : null,
+            }))
+            .sort(
+              (a, b) =>
+                a.week - b.week
+            );
 
-          if (
-            consensusTeam ===
-            actualWinner
-          ) {
-            consensusWins += 1;
-          } else {
-            consensusLosses += 1;
-          }
-        }
-      );
+        const myTotal =
+          myWeeks.reduce(
+            (sum, row) =>
+              sum + row.score,
+            0
+          );
 
-      const consensusTotal =
-        consensusWins +
-        consensusLosses;
+        const myAverage =
+          myWeeks.length > 0
+            ? myTotal /
+              myWeeks.length
+            : 0;
 
-      const consensus = {
-        wins: consensusWins,
-        losses:
-          consensusLosses,
-        total: consensusTotal,
-        percentage:
-          consensusTotal > 0
-            ? (consensusWins /
-                consensusTotal) *
-              100
-            : 0,
-      };
-
-      /*
-       * HISTORIQUE PERSONNEL
-       */
-
-      const personalWeeklyScores =
-        currentUserId
-          ? weeklyRows
-              .filter(
-                (row) =>
-                  row.user_id ===
-                  currentUserId
-              )
-              .sort(
-                (a, b) =>
-                  Number(a.week) -
-                  Number(b.week)
-              )
-          : [];
-
-      const personalTotalScore =
-        personalWeeklyScores.reduce(
-          (sum, row) =>
-            sum + row.score,
-          0
-        );
-
-      const personalAverageScore =
-        personalWeeklyScores.length >
-        0
-          ? personalTotalScore /
-            personalWeeklyScores.length
-          : 0;
-
-      const personalBestWeek =
-        personalWeeklyScores.length >
-        0
-          ? [...personalWeeklyScores]
-              .sort(
+        const myBest =
+          myWeeks.length > 0
+            ? [...myWeeks].sort(
                 (a, b) =>
                   b.score -
                   a.score
               )[0]
-          : null;
+            : null;
 
-      const personalQbPicks =
-        currentUserId
-          ? (qbPicks || [])
-              .filter(
-                (pick) =>
-                  pick.user_id ===
-                  currentUserId
-              )
-              .sort(
+        const myWorst =
+          myWeeks.length > 0
+            ? [...myWeeks].sort(
                 (a, b) =>
-                  Number(a.week) -
-                  Number(b.week)
-              )
-          : [];
+                  a.score -
+                  b.score
+              )[0]
+            : null;
 
-      const usedQbs =
-        personalQbPicks.map(
-          (pick) => {
-            const selectedQb =
-              (qbs || []).find(
-                (qb) =>
-                  qb.id ===
-                  pick.qb_id
-              );
+        setPersonalHistory({
+          weeks: myWeeks,
+          total: myTotal,
+          average: myAverage,
+          count:
+            myWeeks.length,
+          best: myBest,
+          worst: myWorst,
+        });
 
-            const rating =
-              (qbRatings || []).find(
-                (row) =>
-                  row.qb_id ===
-                    pick.qb_id &&
-                  Number(
-                    row.week
-                  ) ===
-                    Number(
-                      pick.week
-                    )
-              );
+        /*
+         * Historique des QB :
+         * le nom principal demeure le QB SÉLECTIONNÉ.
+         * Si un remplaçant a réellement joué,
+         * il est indiqué séparément.
+         */
+        const myQbPicks =
+          (qbPicks || [])
+            .filter(
+              (pick) =>
+                pick.user_id ===
+                currentUser.id
+            )
+            .sort(
+              (a, b) =>
+                Number(a.week) -
+                Number(b.week)
+            );
 
-            let actualQb = null;
-
-            if (
-              rating?.actual_espn_athlete_id
-            ) {
-              actualQb =
+        const myQbRows =
+          myQbPicks.map(
+            (pick) => {
+              const selectedQb =
                 (qbs || []).find(
-                  (qb) =>
-                    String(
-                      qb.espn_athlete_id
-                    ) ===
-                    String(
-                      rating.actual_espn_athlete_id
-                    )
+                  (q) =>
+                    q.id ===
+                    pick.qb_id
                 );
+
+              const rating =
+                validRatings.find(
+                  (r) =>
+                    r.qb_id ===
+                      pick.qb_id &&
+                    Number(
+                      r.week
+                    ) ===
+                      Number(
+                        pick.week
+                      )
+                );
+
+              return {
+                week:
+                  Number(
+                    pick.week
+                  ),
+                qbId:
+                  pick.qb_id,
+                selectedName:
+                  selectedQb?.name ||
+                  "QB",
+                actualName:
+                  rating?.actual_qb_name ||
+                  selectedQb?.name ||
+                  "QB",
+                team:
+                  selectedQb?.team ||
+                  "",
+                rating:
+                  rating?.passer_rating !=
+                  null
+                    ? Number(
+                        rating.passer_rating
+                      )
+                    : null,
+              };
             }
+          );
 
-            return {
-              week:
-                pick.week,
-
-              qbId:
-                pick.qb_id,
-
-              /*
-               * Pour l'historique des
-               * QB "utilisés", on garde
-               * le QB réellement utilisé
-               * si ton système a enregistré
-               * un remplacement.
-               */
-
-              name:
-                rating?.actual_qb_name ||
-                actualQb?.name ||
-                selectedQb?.name ||
-                "QB",
-
-              team:
-                actualQb?.team ||
-                selectedQb?.team ||
-                "",
-
-              rating:
-                rating?.passer_rating !=
-                null
-                  ? Number(
-                      rating.passer_rating
-                    )
-                  : null,
-            };
-          }
+        setPersonalQbs(
+          myQbRows
         );
-
-      const personal = {
-        weeklyScores:
-          personalWeeklyScores,
-
-        totalScore:
-          personalTotalScore,
-
-        averageScore:
-          personalAverageScore,
-
-        bestWeek:
-          personalBestWeek,
-
-        usedQbs,
-      };
+      } else {
+        setPersonalHistory(null);
+        setPersonalQbs([]);
+      }
 
       setStats({
         bestWeek,
         worstWeek,
-
         totalPicks,
         totalCorrect,
         totalExact,
-
         topExact,
         topCorrect,
-
         bestQb:
           qbLabel(bestQb),
-
         worstQb:
           qbLabel(worstQb),
-
         qbAverageRows,
 
-        consensus,
-
-        personal,
+        consensus: {
+          wins:
+            consensusWins,
+          losses:
+            consensusLosses,
+          bestWeek:
+            consensusBestWeek,
+          worstWeek:
+            consensusWorstWeek,
+        },
       });
 
       setLoading(false);
@@ -1685,27 +1550,21 @@ export default function AnalyticsPage() {
 
       {!loading && stats && (
         <>
+          {/* RECORDS SAISON */}
+
           <section className="card">
-            <h2
-              style={{
-                marginTop: 0,
-              }}
-            >
+            <h2 style={{ marginTop: 0 }}>
               Records de saison
             </h2>
 
             <div
               style={{
                 display: "grid",
-
                 gridTemplateColumns:
-                  typeof window !==
-                    "undefined" &&
-                  window.innerWidth <
-                    800
+                  typeof window !== "undefined" &&
+                  window.innerWidth < 800
                     ? "1fr"
                     : "repeat(4, 1fr)",
-
                 gap: 12,
               }}
             >
@@ -1724,12 +1583,10 @@ export default function AnalyticsPage() {
                     <>
                       <PlayerIdentity
                         name={
-                          stats.bestWeek
-                            .name
+                          stats.bestWeek.name
                         }
                         realName={
-                          stats.bestWeek
-                            .realName
+                          stats.bestWeek.realName
                         }
                         compact={true}
                       />
@@ -1741,8 +1598,7 @@ export default function AnalyticsPage() {
                       >
                         Semaine{" "}
                         {
-                          stats.bestWeek
-                            .week
+                          stats.bestWeek.week
                         }
                       </div>
                     </>
@@ -1787,12 +1643,10 @@ export default function AnalyticsPage() {
                     <>
                       <PlayerIdentity
                         name={
-                          stats.worstWeek
-                            .name
+                          stats.worstWeek.name
                         }
                         realName={
-                          stats.worstWeek
-                            .realName
+                          stats.worstWeek.realName
                         }
                         compact={true}
                       />
@@ -1804,8 +1658,7 @@ export default function AnalyticsPage() {
                       >
                         Semaine{" "}
                         {
-                          stats.worstWeek
-                            .week
+                          stats.worstWeek.week
                         }
                       </div>
                     </>
@@ -1818,24 +1671,24 @@ export default function AnalyticsPage() {
             </div>
           </section>
 
+          {/* CONSENSUS */}
+
           <ConsensusCard
             consensus={
               stats.consensus
             }
           />
 
+          {/* RANKINGS */}
+
           <div
             style={{
               display: "grid",
-
               gridTemplateColumns:
-                typeof window !==
-                  "undefined" &&
-                window.innerWidth <
-                  900
+                typeof window !== "undefined" &&
+                window.innerWidth < 900
                   ? "1fr"
                   : "1fr 1fr",
-
               gap: 16,
             }}
           >
@@ -1856,27 +1709,21 @@ export default function AnalyticsPage() {
             />
           </div>
 
+          {/* RECORDS QB */}
+
           <section className="card">
-            <h2
-              style={{
-                marginTop: 0,
-              }}
-            >
+            <h2 style={{ marginTop: 0 }}>
               Records QB 🔥
             </h2>
 
             <div
               style={{
                 display: "grid",
-
                 gridTemplateColumns:
-                  typeof window !==
-                    "undefined" &&
-                  window.innerWidth <
-                    900
+                  typeof window !== "undefined" &&
+                  window.innerWidth < 900
                     ? "1fr"
                     : "1fr 1fr 1fr",
-
                 gap: 12,
               }}
             >
@@ -1886,9 +1733,7 @@ export default function AnalyticsPage() {
                 qb={
                   stats.bestQb
                 }
-                teams={
-                  teams
-                }
+                teams={teams}
               />
 
               <QBRecordCard
@@ -1897,9 +1742,7 @@ export default function AnalyticsPage() {
                 qb={
                   stats.worstQb
                 }
-                teams={
-                  teams
-                }
+                teams={teams}
                 color="#ef4444"
               />
 
@@ -1907,26 +1750,30 @@ export default function AnalyticsPage() {
                 icon="📊"
                 title="Meilleure moyenne QB"
                 qb={
-                  stats
-                    .qbAverageRows[
+                  stats.qbAverageRows[
                     0
                   ] || null
                 }
-                teams={
-                  teams
-                }
+                teams={teams}
                 color="#38bdf8"
                 isAverage={true}
               />
             </div>
           </section>
 
-          <PersonalHistory
-            personal={
-              stats.personal
-            }
-            teams={teams}
-          />
+          {/* HISTORIQUE PERSONNEL */}
+
+          {personalHistory && (
+            <PersonalHistory
+              history={
+                personalHistory
+              }
+              qbHistory={
+                personalQbs
+              }
+              teams={teams}
+            />
+          )}
 
           <section className="card">
             <p
