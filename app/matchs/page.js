@@ -1389,66 +1389,71 @@ function SubmittedGameCard({
             </div>
           )}
 
-          {/* OFFICIEL SUPABASE */}
+           {/* OFFICIEL SUPABASE */}
 
-{hasOfficialScore && resultText && (
-  <div
-    style={{
-      marginTop: 8,
-      paddingTop: 8,
-      borderTop:
-        "1px solid rgba(148,163,184,0.10)",
-      color: "#94a3b8",
-      fontSize: 11,
-      lineHeight: 1.4,
-    }}
-  >
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 8,
-        flexWrap: "nowrap",
-      }}
-    >
-      <span
-        style={{
-          whiteSpace: "nowrap",
-        }}
-      >
-        Résultat :{" "}
-        <strong
-          style={{
-            color: "#cbd5e1",
-          }}
-        >
-          {resultText}
-        </strong>
-      </span>
+          {hasOfficialScore && resultText && (
+            <div
+              style={{
+                marginTop: 8,
+                paddingTop: 8,
+                borderTop:
+                  "1px solid rgba(148,163,184,0.10)",
+                color: "#94a3b8",
+                fontSize: 11,
+                lineHeight: 1.4,
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  flexWrap: "nowrap",
+                }}
+              >
+                <span
+                  style={{
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  Résultat :{" "}
+                  <strong
+                    style={{
+                      color: "#cbd5e1",
+                    }}
+                  >
+                    {resultText}
+                  </strong>
+                </span>
 
-      {pointsText && (
-        <span
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            padding: "4px 8px",
-            borderRadius: 999,
-            background:
-              "rgba(148,163,184,0.10)",
-            color: "#f8fafc",
-            fontSize: 10,
-            fontWeight: 900,
-            whiteSpace: "nowrap",
-            flexShrink: 0,
-          }}
-        >
-          {pointsText}
-        </span>
-      )}
+                {pointsText && (
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      padding: "4px 8px",
+                      borderRadius: 999,
+                      background:
+                        "rgba(148,163,184,0.10)",
+                      color: "#f8fafc",
+                      fontSize: 10,
+                      fontWeight: 900,
+                      whiteSpace: "nowrap",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {pointsText}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
-  </div>
-)}
+  );
 }
+
 /* =========================================================
    PAGE
    ========================================================= */
