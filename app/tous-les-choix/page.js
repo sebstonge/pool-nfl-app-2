@@ -287,7 +287,59 @@ function formatGameDate(dateString) {
 
 function GameTimeBar({
   gameDate,
+  isLive,
+  isEspnFinal,
+  hasOfficialScore,
 }) {
+  const fullDate =
+    formatGameDate(gameDate);
+
+  const dayOnly =
+    fullDate.split(" · ")[0];
+
+  let content;
+
+  // Match officiellement mis à jour dans Supabase
+  if (hasOfficialScore) {
+    content = (
+      <>
+        <span>🗓️</span>
+        <span>{dayOnly}</span>
+      </>
+    );
+  }
+
+  // Match terminé chez ESPN,
+  // mais pas encore mis à jour officiellement
+  else if (isEspnFinal) {
+    content = (
+      <span>TERMINÉ</span>
+    );
+  }
+
+  // Match actuellement en cours
+  else if (isLive) {
+    content = (
+      <span
+        style={{
+          color: "#f87171",
+        }}
+      >
+        ● EN DIRECT
+      </span>
+    );
+  }
+
+  // Match à venir
+  else {
+    content = (
+      <>
+        <span>🗓️</span>
+        <span>{fullDate}</span>
+      </>
+    );
+  }
+
   return (
     <div
       style={{
@@ -300,11 +352,7 @@ function GameTimeBar({
         letterSpacing: "0.25px",
       }}
     >
-      <span>🗓️</span>
-
-      <span>
-        {formatGameDate(gameDate)}
-      </span>
+      {content}
     </div>
   );
 }
@@ -1629,10 +1677,13 @@ function GamePicksCard({
       }}
     >
       <GameTimeBar
-        gameDate={
-          game.game_date
-        }
-      />
+  gameDate={game.game_date}
+  isLive={isLive}
+  isEspnFinal={
+    liveGame?.status?.state === "post"
+  }
+  hasOfficialScore={hasOfficialScore}
+/>
 
       {/* =====================================================
           SCOREBOARD
@@ -1753,70 +1804,39 @@ function GamePicksCard({
                 }
               </strong>
 
-              {isLive &&
-              !hasOfficialScore ? (
-                <>
-                  <span
-                    style={{
-                      display:
-                        "block",
-                      marginTop: 4,
-                      color:
-                        "#f87171",
-                      fontSize: 10,
-                      fontWeight: 900,
-                      letterSpacing:
-                        "0.55px",
-                      whiteSpace:
-                        "nowrap",
-                    }}
-                  >
-                    ● EN DIRECT
-                  </span>
+              {isLive && !hasOfficialScore ? (
+  <span
+    style={{
+      display: "block",
+      marginTop: 4,
+      color: "#cbd5e1",
+      fontSize: 10,
+      fontWeight: 800,
+      whiteSpace: "nowrap",
+    }}
+  >
+    {getQuarterLabel(
+      liveGame?.status?.period
+    )}
 
-                  <span
-                    style={{
-                      display:
-                        "block",
-                      marginTop: 3,
-                      color:
-                        "#cbd5e1",
-                      fontSize: 10,
-                      fontWeight: 800,
-                      whiteSpace:
-                        "nowrap",
-                    }}
-                  >
-                    {getQuarterLabel(
-                      liveGame
-                        ?.status
-                        ?.period
-                    )}
-
-                    {liveGame
-                      ?.status
-                      ?.clock
-                      ? ` · ${liveGame.status.clock}`
-                      : ""}
-                  </span>
-                </>
-              ) : (
-                <span
-                  style={{
-                    display:
-                      "block",
-                    marginTop: 4,
-                    color:
-                      "#94a3b8",
-                    fontSize: 10,
-                    fontWeight: 900,
-                    letterSpacing:
-                      "0.7px",
-                  }}
-                >
-                  FINAL
-                </span>
-              )}
+    {liveGame?.status?.clock
+      ? ` · ${liveGame.status.clock}`
+      : ""}
+  </span>
+) : (
+  <span
+    style={{
+      display: "block",
+      marginTop: 4,
+      color: "#94a3b8",
+      fontSize: 10,
+      fontWeight: 900,
+      letterSpacing: "0.7px",
+    }}
+  >
+    FINAL
+  </span>
+)}
             </>
           ) : (
             <strong
