@@ -1524,6 +1524,7 @@ function GamePicksCard({
   gamePicks,
   players,
   getTeamLogo,
+  formatTeamRecord,
   isMobile,
   liveGame,
   qbPicks,
@@ -1746,6 +1747,24 @@ function GamePicksCard({
           >
             {game.away_team}
           </strong>
+<span
+  style={{
+    display: "block",
+    marginTop: 4,
+    color: "#94a3b8",
+    fontSize:
+      isMobile
+        ? 10
+        : 12,
+    fontWeight: 700,
+    lineHeight: 1.2,
+    whiteSpace: "nowrap",
+  }}
+>
+  {formatTeamRecord(
+    game.away_team
+  )}
+</span>
 
           {/* QB LIVE SOUS SON ÉQUIPE */}
 
@@ -1897,7 +1916,24 @@ function GamePicksCard({
           >
             {game.home_team}
           </strong>
-
+<span
+  style={{
+    display: "block",
+    marginTop: 4,
+    color: "#94a3b8",
+    fontSize:
+      isMobile
+        ? 10
+        : 12,
+    fontWeight: 700,
+    lineHeight: 1.2,
+    whiteSpace: "nowrap",
+  }}
+>
+  {formatTeamRecord(
+    game.home_team
+  )}
+</span>
           {/* QB LIVE SOUS SON ÉQUIPE */}
 
           <LiveTeamQbs
@@ -2847,6 +2883,138 @@ export default function TousLesChoix() {
         : team?.logo ||
             null;
     };
+     const getTeamInfo = (
+    teamName
+  ) => {
+    return teams.find(
+      (t) =>
+        t.name
+          ?.toLowerCase()
+          .trim() ===
+        teamName
+          ?.toLowerCase()
+          .trim()
+    );
+  };
+
+  const translateDivision = (
+    division
+  ) => {
+    if (!division) {
+      return "";
+    }
+
+    const value =
+      String(division)
+        .trim()
+        .toUpperCase();
+
+    const map = {
+      "AFC EAST": "AFC Est",
+      "AFC NORTH": "AFC Nord",
+      "AFC SOUTH": "AFC Sud",
+      "AFC WEST": "AFC Ouest",
+
+      "NFC EAST": "NFC Est",
+      "NFC NORTH": "NFC Nord",
+      "NFC SOUTH": "NFC Sud",
+      "NFC WEST": "NFC Ouest",
+    };
+
+    return (
+      map[value] ||
+      division
+    );
+  };
+
+  const formatDivisionRank = (
+    rank
+  ) => {
+    const value =
+      Number(rank);
+
+    if (!value) {
+      return "";
+    }
+
+    return value === 1
+      ? "1er"
+      : `${value}e`;
+  };
+
+  const formatTeamRecord = (
+    teamName
+  ) => {
+    const team =
+      getTeamInfo(
+        teamName
+      );
+
+    if (!team) {
+      return "";
+    }
+
+    const wins =
+      Number(
+        team.wins || 0
+      );
+
+    const losses =
+      Number(
+        team.losses || 0
+      );
+
+    const ties =
+      Number(
+        team.ties || 0
+      );
+
+    const record =
+      ties > 0
+        ? `${wins}-${losses}-${ties}`
+        : `${wins}-${losses}`;
+
+    const division =
+      translateDivision(
+        team.division_name
+      );
+
+    const gamesPlayed =
+      wins +
+      losses +
+      ties;
+
+    /*
+     * Avant le premier match :
+     * 0-0 • NFC Ouest
+     *
+     * Après le début de la saison :
+     * 1-0 • 1er NFC Ouest
+     */
+    if (gamesPlayed === 0) {
+      return division
+        ? `${record} • ${division}`
+        : record;
+    }
+
+    const rank =
+      formatDivisionRank(
+        team.division_rank
+      );
+
+    if (
+      rank &&
+      division
+    ) {
+      return `${record} • ${rank} ${division}`;
+    }
+
+    if (division) {
+      return `${record} • ${division}`;
+    }
+
+    return record;
+  };
 
   /* =========================================================
      RENDER
@@ -2959,41 +3127,24 @@ export default function TousLesChoix() {
                   );
 
                 return (
-                  <GamePicksCard
-                    key={
-                      game.id
-                    }
-                    game={
-                      game
-                    }
-                    gamePicks={
-                      gamePicks
-                    }
-                    players={
-                      players
-                    }
-                    getTeamLogo={
-                      getTeamLogo
-                    }
-                    isMobile={
-                      isMobile
-                    }
-                    liveGame={
-                      liveGames[
-                        game.id
-                      ] ||
-                      null
-                    }
-                    qbPicks={
-                      qbPicks
-                    }
-                    qbRatings={
-                      qbRatings
-                    }
-                    liveGames={
-                      liveGames
-                    }
-                  />
+                 <GamePicksCard
+  key={game.id}
+  game={game}
+  gamePicks={gamePicks}
+  players={players}
+  getTeamLogo={getTeamLogo}
+  formatTeamRecord={
+    formatTeamRecord
+  }
+  isMobile={isMobile}
+  liveGame={
+    liveGames[game.id] ||
+    null
+  }
+  qbPicks={qbPicks}
+  qbRatings={qbRatings}
+  liveGames={liveGames}
+/>
                 );
               }
             )
