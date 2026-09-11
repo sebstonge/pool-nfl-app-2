@@ -687,7 +687,45 @@ export default function HomePage() {
          * =====================================================
          */
 
-        <section className="card">
+              <section className="card">
+          {/* =====================================================
+              IDENTIFICATION DU SITE
+              ===================================================== */}
+
+          <div
+            style={{
+              marginBottom: 20,
+              padding: "14px 16px",
+              borderRadius: 14,
+              background: "rgba(59,130,246,0.08)",
+              border:
+                "1px solid rgba(59,130,246,0.18)",
+            }}
+          >
+            <strong
+              style={{
+                display: "block",
+                color: "#f8fafc",
+                fontSize: 16,
+                marginBottom: 5,
+              }}
+            >
+              🏈 Pool NFL privé
+            </strong>
+
+            <p
+              style={{
+                margin: 0,
+                color: "#94a3b8",
+                fontSize: 13,
+                lineHeight: 1.5,
+              }}
+            >
+              Application privée destinée aux participants de
+              notre pool NFL. La connexion sert uniquement à
+              accéder à tes choix, statistiques et classements.
+            </p>
+          </div>
           {/* MODES CONNEXION / INSCRIPTION */}
 
           <div
