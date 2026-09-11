@@ -934,16 +934,21 @@ function QbPickCard({
     );
 
   const {
-    displayedRating,
-    actualAthleteId,
-    displayedQb,
-    replaced,
-  } =
-    getDisplayedQbData(
-      qbPick,
-      qbRatings,
-      liveGames
-    );
+  displayedRating,
+  actualAthleteId,
+  displayedQb,
+  replaced,
+  espnData,
+} =
+  getDisplayedQbData(
+    qbPick,
+    qbRatings,
+    liveGames
+  );
+
+const qbIsLive =
+  espnData?.game?.status
+    ?.state === "in";
 
   const average =
     qbSeasonAverages[
@@ -1053,7 +1058,19 @@ function QbPickCard({
               🔄 Remplacement
             </div>
           )}
-
+{qbIsLive && (
+  <div
+    style={{
+      marginTop: 4,
+      color: "#f87171",
+      fontSize: 9,
+      fontWeight: 900,
+      letterSpacing: "0.4px",
+    }}
+  >
+    ● EN DIRECT
+  </div>
+)}
           <div
             style={{
               marginTop: 4,
@@ -1301,20 +1318,14 @@ function LiveTeamQbs({
 
           const {
   displayedRating,
-  actualAthleteId,
   displayedQb,
   replaced,
-  espnData,
 } =
   getDisplayedQbData(
     qbPick,
     qbRatings,
     liveGames
   );
-
-const qbIsLive =
-  espnData?.game?.status
-    ?.state === "in";
 
           return (
             <div
@@ -1401,19 +1412,6 @@ const qbIsLive =
                   🔄 Remplacement
                 </div>
               )}
-{qbIsLive && (
-  <div
-    style={{
-      marginTop: 4,
-      color: "#f87171",
-      fontSize: 9,
-      fontWeight: 900,
-      letterSpacing: "0.4px",
-    }}
-  >
-    ● EN DIRECT
-  </div>
-)}
               {/* LIVE */}
 
               <div
