@@ -966,19 +966,32 @@ const qbIsLive =
    *
    * 4 colonnes desktop plutôt que 5.
    */
-  return (
+    return (
     <div
       style={{
         minWidth: 0,
-     padding:
-  isMobile
-    ? "10px"
-    : "14px",
+
+        padding:
+          isMobile
+            ? "10px"
+            : "14px",
+
         borderRadius: 14,
+
         background:
-          "rgba(15,23,42,0.72)",
+          qbIsLive
+            ? "rgba(239,68,68,0.055)"
+            : "rgba(15,23,42,0.72)",
+
         border:
-          "1px solid rgba(148,163,184,0.13)",
+          qbIsLive
+            ? "1px solid rgba(239,68,68,0.55)"
+            : "1px solid rgba(148,163,184,0.13)",
+
+        boxShadow:
+          qbIsLive
+            ? "0 0 0 1px rgba(239,68,68,0.08)"
+            : "none",
       }}
     >
       <PlayerIdentity
