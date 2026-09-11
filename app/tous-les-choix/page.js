@@ -1127,21 +1127,50 @@ function QbWeekSection({
    * il revient ici automatiquement.
    */
   const visibleQbPicks =
-    qbPicks.filter(
-      (qbPick) => {
-        const data =
-          findQbGameData(
-            qbPick,
-            liveGames,
-            false
-          );
-
-        return (
-          data?.game?.status
-            ?.state !== "in"
+  qbPicks.filter(
+    (qbPick) => {
+      const data =
+        findQbGameData(
+          qbPick,
+          liveGames,
+          false
         );
+
+      /*
+       * Pas de match live :
+       * le QB reste en haut.
+       */
+      if (
+        data?.game?.status
+          ?.state !== "in"
+      ) {
+        return true;
       }
-    );
+
+      /*
+       * Match LIVE admissible :
+       * le QB disparaît du haut,
+       * puisqu'il sera affiché
+       * directement dans la carte
+       * de ce match.
+       */
+      if (
+        data?.game
+          ?.isPoolEligible ===
+        true
+      ) {
+        return false;
+      }
+
+      /*
+       * Match LIVE NON admissible :
+       *
+       * le QB reste dans le bloc
+       * général du haut.
+       */
+      return true;
+    }
+  );
 
   return (
     <section className="card">
@@ -1271,15 +1300,21 @@ function LiveTeamQbs({
             );
 
           const {
-            displayedRating,
-            displayedQb,
-            replaced,
-          } =
-            getDisplayedQbData(
-              qbPick,
-              qbRatings,
-              liveGames
-            );
+  displayedRating,
+  actualAthleteId,
+  displayedQb,
+  replaced,
+  espnData,
+} =
+  getDisplayedQbData(
+    qbPick,
+    qbRatings,
+    liveGames
+  );
+
+const qbIsLive =
+  espnData?.game?.status
+    ?.state === "in";
 
           return (
             <div
@@ -1366,7 +1401,19 @@ function LiveTeamQbs({
                   🔄 Remplacement
                 </div>
               )}
-
+{qbIsLive && (
+  <div
+    style={{
+      marginTop: 4,
+      color: "#f87171",
+      fontSize: 9,
+      fontWeight: 900,
+      letterSpacing: "0.4px",
+    }}
+  >
+    ● EN DIRECT
+  </div>
+)}
               {/* LIVE */}
 
               <div
@@ -2187,7 +2234,10 @@ export default function TousLesChoix() {
     weekGames,
     setWeekGames,
   ] = useState([]);
-
+const [
+  allWeekGames,
+  setAllWeekGames,
+] = useState([]);
   const [
     currentWeek,
     setCurrentWeek,
@@ -2385,10 +2435,12 @@ export default function TousLesChoix() {
        */
       setLiveGames({});
 
-      /* MATCHS */
+       /* =====================================================
+         TOUS LES MATCHS NFL DE LA SEMAINE
+         ===================================================== */
 
       const {
-        data: gamesData,
+        data: allGamesData,
         error: gamesError,
       } = await supabase
         .from("games")
@@ -2407,10 +2459,6 @@ export default function TousLesChoix() {
           "week",
           viewedWeek
         )
-        .eq(
-          "is_pool_eligible",
-          true
-        )
         .order(
           "game_date",
           {
@@ -2428,8 +2476,27 @@ export default function TousLesChoix() {
         return;
       }
 
+      /*
+       * Tous les matchs NFL servent
+       * au suivi ESPN des QB.
+       */
+      const allGames =
+        allGamesData || [];
+
+      setAllWeekGames(
+        allGames
+      );
+
+      /*
+       * Seuls les matchs admissibles
+       * sont affichés dans Tous les choix.
+       */
       const games =
-        gamesData || [];
+        allGames.filter(
+          (game) =>
+            game.is_pool_eligible ===
+            true
+        );
 
       setWeekGames(
         games
@@ -2665,13 +2732,13 @@ export default function TousLesChoix() {
     /*
      * Seulement la semaine active.
      */
-    if (
-      viewedWeek == null ||
-      currentWeek == null ||
-      viewedWeek !==
-        currentWeek ||
-      weekGames.length === 0
-    ) {
+   if (
+  viewedWeek == null ||
+  currentWeek == null ||
+  viewedWeek !==
+    currentWeek ||
+  allWeekGames.length === 0
+) {
       setLiveGames({});
       return;
     }
@@ -2679,25 +2746,22 @@ export default function TousLesChoix() {
     let cancelled = false;
 
     async function refreshLive() {
-      const eligibleGames =
-        weekGames.filter(
-          (game) =>
-            game.is_pool_eligible ===
-              true &&
-            game.external_game_id
-        );
+      const gamesToMonitor =
+  allWeekGames.filter(
+    (game) =>
+      game.external_game_id
+  );
 
-      if (
-        eligibleGames.length ===
-        0
-      ) {
-        return;
-      }
+     if (
+  gamesToMonitor.length === 0
+) {
+  return;
+}
 
       const results = {};
 
-      await Promise.all(
-        eligibleGames.map(
+    await Promise.all(
+  gamesToMonitor.map(
           async (game) => {
             try {
               const response =
@@ -2784,22 +2848,26 @@ export default function TousLesChoix() {
                   );
 
               results[
-                game.id
-              ] = {
-                gameId:
-                  game.id,
+  game.id
+] = {
+  gameId:
+    game.id,
 
-                status,
+  isPoolEligible:
+    game.is_pool_eligible ===
+    true,
 
-                score,
+  status,
 
-                teamNames,
+  score,
 
-                passers:
-                  getLivePassers(
-                    summary
-                  ),
-              };
+  teamNames,
+
+  passers:
+    getLivePassers(
+      summary
+    ),
+};
             } catch (error) {
               console.error(
                 `Erreur ESPN match ${game.external_game_id}:`,
@@ -2855,11 +2923,11 @@ export default function TousLesChoix() {
         interval
       );
     };
-  }, [
-    weekGames,
-    viewedWeek,
-    currentWeek,
-  ]);
+}, [
+  allWeekGames,
+  viewedWeek,
+  currentWeek,
+]);
 
   /* =========================================================
      LOGO ÉQUIPE
