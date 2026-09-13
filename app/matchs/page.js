@@ -4361,7 +4361,7 @@ export default function Matchs() {
                         </div>
                       )}
 
-                      {availableQbs.map(
+                                            {availableQbs.map(
                         (qb) => {
                           const average =
                             qbSeasonAverages[
@@ -4369,6 +4369,60 @@ export default function Matchs() {
                                 qb.espn_athlete_id
                               )
                             ];
+
+                          /*
+                           * Match NFL du QB.
+                           *
+                           * allWeekGames contient
+                           * tous les matchs de la
+                           * semaine, même ceux qui
+                           * ne sont pas admissibles
+                           * au pool.
+                           */
+                          const qbGame =
+                            allWeekGames.find(
+                              (game) =>
+                                normalizeName(
+                                  game.home_team
+                                ) ===
+                                  normalizeName(
+                                    qb.team
+                                  ) ||
+                                normalizeName(
+                                  game.away_team
+                                ) ===
+                                  normalizeName(
+                                    qb.team
+                                  )
+                            );
+
+                          /*
+                           * Adversaire du QB.
+                           */
+                          const opponent =
+                            qbGame
+                              ? normalizeName(
+                                  qbGame.home_team
+                                ) ===
+                                normalizeName(
+                                  qb.team
+                                )
+                                ? qbGame.away_team
+                                : qbGame.home_team
+                              : null;
+
+                          /*
+                           * Domicile = "vs"
+                           * Visiteur = "@"
+                           */
+                          const isHome =
+                            qbGame &&
+                            normalizeName(
+                              qbGame.home_team
+                            ) ===
+                              normalizeName(
+                                qb.team
+                              );
 
                           return (
                             <button
@@ -4431,6 +4485,10 @@ export default function Matchs() {
                                   "left",
                               }}
                             >
+                              {/* =================================
+                                  QB + ÉQUIPE + ADVERSAIRE
+                                  ================================= */}
+
                               <div
                                 style={{
                                   display:
@@ -4505,7 +4563,41 @@ export default function Matchs() {
                                       0,
                                   }}
                                 />
+
+                                {opponent && (
+                                  <span
+                                    style={{
+                                      color:
+                                        "#94a3b8",
+
+                                      fontSize:
+                                        isMobile
+                                          ? 11
+                                          : 13,
+
+                                      fontWeight:
+                                        700,
+
+                                      whiteSpace:
+                                        "nowrap",
+
+                                      flexShrink:
+                                        0,
+                                    }}
+                                  >
+                                    {isHome
+                                      ? "vs"
+                                      : "@"}{" "}
+                                    {
+                                      opponent
+                                    }
+                                  </span>
+                                )}
                               </div>
+
+                              {/* =================================
+                                  MOYENNE SAISON
+                                  ================================= */}
 
                               <span
                                 style={{
