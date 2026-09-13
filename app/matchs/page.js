@@ -390,13 +390,23 @@ function getLiveGameStatus(summary) {
   const competition =
     summary?.header?.competitions?.[0];
 
-  const status = competition?.status || null;
+  const status =
+    competition?.status || null;
 
   return {
-    state: status?.type?.state || "",
-    completed: status?.type?.completed === true,
-    period: Number(status?.period || 0),
-    clock: status?.displayClock || "",
+    state:
+      status?.type?.state || "",
+
+    completed:
+      status?.type?.completed === true,
+
+    period:
+      Number(
+        status?.period || 0
+      ),
+
+    clock:
+      status?.displayClock || "",
   };
 }
 
@@ -407,22 +417,42 @@ function getLiveScore(summary) {
   const competitors =
     competition?.competitors || [];
 
-  const away = competitors.find(
-    (team) => team.homeAway === "away"
-  );
+  const away =
+    competitors.find(
+      (team) =>
+        team.homeAway === "away"
+    );
 
-  const home = competitors.find(
-    (team) => team.homeAway === "home"
-  );
-
-  if (!away || !home) return null;
-
-  const awayScore = Number(away.score);
-  const homeScore = Number(home.score);
+  const home =
+    competitors.find(
+      (team) =>
+        team.homeAway === "home"
+    );
 
   if (
-    Number.isNaN(awayScore) ||
-    Number.isNaN(homeScore)
+    !away ||
+    !home
+  ) {
+    return null;
+  }
+
+  const awayScore =
+    Number(
+      away.score
+    );
+
+  const homeScore =
+    Number(
+      home.score
+    );
+
+  if (
+    Number.isNaN(
+      awayScore
+    ) ||
+    Number.isNaN(
+      homeScore
+    )
   ) {
     return null;
   }
@@ -434,11 +464,25 @@ function getLiveScore(summary) {
 }
 
 function getQuarterLabel(period) {
-  if (period === 1) return "1er";
-  if (period === 2) return "2e";
-  if (period === 3) return "3e";
-  if (period === 4) return "4e";
-  if (period > 4) return "PROL.";
+  if (period === 1) {
+    return "1er";
+  }
+
+  if (period === 2) {
+    return "2e";
+  }
+
+  if (period === 3) {
+    return "3e";
+  }
+
+  if (period === 4) {
+    return "4e";
+  }
+
+  if (period > 4) {
+    return "PROL.";
+  }
 
   return "";
 }
@@ -449,172 +493,354 @@ function getLivePassers(summary) {
   const boxscoreTeams =
     summary?.boxscore?.players || [];
 
-  boxscoreTeams.forEach((teamBox) => {
-    const team = teamBox?.team || {};
+  boxscoreTeams.forEach(
+    (teamBox) => {
+      const team =
+        teamBox?.team || {};
 
-    const teamNames = [
-      team.abbreviation,
-      team.shortDisplayName,
-      team.displayName,
-      team.name,
-    ]
-      .filter(Boolean)
-      .map((value) =>
-        String(value).toLowerCase().trim()
-      );
-
-    const passingCategory =
-      teamBox.statistics?.find(
-        (category) =>
-          category.name === "passing" ||
-          category.displayName === "Passing"
-      );
-
-    if (!passingCategory) return;
-
-    const labels = passingCategory.labels || [];
-
-    const ratingIndex = labels.findIndex((label) =>
-      ["RTG", "RAT", "RATE"].includes(
-        String(label).toUpperCase()
-      )
-    );
-
-    if (ratingIndex === -1) return;
-
-    (passingCategory.athletes || []).forEach(
-      (row) => {
-        const rating = Number(
-          row.stats?.[ratingIndex]
+      const teamNames = [
+        team.abbreviation,
+        team.shortDisplayName,
+        team.displayName,
+        team.name,
+      ]
+        .filter(Boolean)
+        .map(
+          (value) =>
+            String(
+              value
+            )
+              .toLowerCase()
+              .trim()
         );
 
-        if (Number.isNaN(rating)) return;
+      const passingCategory =
+        teamBox.statistics?.find(
+          (category) =>
+            category.name ===
+              "passing" ||
+            category.displayName ===
+              "Passing"
+        );
 
-        passers.push({
-          athleteId: row.athlete?.id
-            ? String(row.athlete.id)
-            : null,
-
-          name:
-            row.athlete?.displayName ||
-            row.athlete?.shortName ||
-            "",
-
-          rating,
-          teamNames,
-        });
+      if (
+        !passingCategory
+      ) {
+        return;
       }
-    );
-  });
+
+      const labels =
+        passingCategory.labels || [];
+
+      const ratingIndex =
+        labels.findIndex(
+          (label) =>
+            [
+              "RTG",
+              "RAT",
+              "RATE",
+            ].includes(
+              String(
+                label
+              ).toUpperCase()
+            )
+        );
+
+      if (
+        ratingIndex === -1
+      ) {
+        return;
+      }
+
+      (
+        passingCategory
+          .athletes || []
+      ).forEach(
+        (row) => {
+          const rating =
+            Number(
+              row.stats?.[
+                ratingIndex
+              ]
+            );
+
+          if (
+            Number.isNaN(
+              rating
+            )
+          ) {
+            return;
+          }
+
+          passers.push({
+            athleteId:
+              row.athlete?.id
+                ? String(
+                    row.athlete.id
+                  )
+                : null,
+
+            name:
+              row.athlete
+                ?.displayName ||
+              row.athlete
+                ?.shortName ||
+              "",
+
+            rating,
+
+            teamNames,
+          });
+        }
+      );
+    }
+  );
 
   return passers;
 }
 
 function normalizeTeam(value) {
-  return String(value || "")
+  return String(
+    value || ""
+  )
     .toLowerCase()
     .trim();
 }
 
-function teamMatches(qbTeam, teamNames) {
+function teamMatches(
+  qbTeam,
+  teamNames
+) {
   const normalizedQbTeam =
-    normalizeTeam(qbTeam);
-
-  if (!normalizedQbTeam) return false;
-
-  return (teamNames || []).some((name) => {
-    const normalizedName =
-      normalizeTeam(name);
-
-    return (
-      normalizedName === normalizedQbTeam ||
-      normalizedName.includes(
-        normalizedQbTeam
-      ) ||
-      normalizedQbTeam.includes(
-        normalizedName
-      )
+    normalizeTeam(
+      qbTeam
     );
-  });
+
+  if (
+    !normalizedQbTeam
+  ) {
+    return false;
+  }
+
+  return (
+    teamNames || []
+  ).some(
+    (name) => {
+      const normalizedName =
+        normalizeTeam(
+          name
+        );
+
+      return (
+        normalizedName ===
+          normalizedQbTeam ||
+        normalizedName.includes(
+          normalizedQbTeam
+        ) ||
+        normalizedQbTeam.includes(
+          normalizedName
+        )
+      );
+    }
+  );
 }
+
+/* =========================================================
+   TROUVE LES DONNÉES ESPN DU MATCH EXACT DU QB
+   ========================================================= */
 
 function findQbGameData(
   qbPick,
   liveGames,
+  allWeekGames,
   includePost = true
 ) {
-  const qb = qbPick?.qbs;
+  const qb =
+    qbPick?.qbs;
 
-  if (!qb?.team) return null;
-
-  const matchingGame = Object.values(
-    liveGames || {}
-  ).find((game) => {
-    if (!game) return false;
-
-    const state = game.status?.state;
-
-    const validState =
-      state === "in" ||
-      (includePost && state === "post");
-
-    if (!validState) return false;
-
-    return teamMatches(
-      qb.team,
-      game.teamNames
-    );
-  });
-
-  if (!matchingGame) return null;
-
-  const passers = matchingGame.passers || [];
-
-  let passer = null;
-
-  if (qb.espn_athlete_id) {
-    passer =
-      passers.find(
-        (row) =>
-          String(row.athleteId) ===
-          String(qb.espn_athlete_id)
-      ) || null;
+  if (
+    !qb?.team
+  ) {
+    return null;
   }
 
-  if (!passer) {
-    const qbName = String(qb.name || "")
-      .toLowerCase()
-      .trim();
+  /*
+   * 1. On trouve d'abord le match EXACT
+   *    de l'équipe du QB dans l'horaire
+   *    officiel de la semaine.
+   *
+   * On ne cherche JAMAIS directement
+   * dans tous les liveGames.
+   */
+  const scheduledGame =
+    (
+      allWeekGames || []
+    ).find(
+      (game) =>
+        normalizeName(
+          game.home_team
+        ) ===
+          normalizeName(
+            qb.team
+          ) ||
+        normalizeName(
+          game.away_team
+        ) ===
+          normalizeName(
+            qb.team
+          )
+    );
 
+  if (
+    !scheduledGame
+  ) {
+    return null;
+  }
+
+  /*
+   * 2. On récupère ensuite uniquement
+   *    les données ESPN correspondant
+   *    à CE match précis.
+   */
+  const matchingGame =
+    liveGames?.[
+      scheduledGame.id
+    ] || null;
+
+  if (
+    !matchingGame
+  ) {
+    return null;
+  }
+
+  const state =
+    matchingGame
+      ?.status
+      ?.state;
+
+  const validState =
+    state === "in" ||
+    (
+      includePost &&
+      state === "post"
+    );
+
+  if (
+    !validState
+  ) {
+    return null;
+  }
+
+  const passers =
+    matchingGame.passers || [];
+
+  let passer =
+    null;
+
+  /*
+   * 3. Priorité absolue :
+   *    retrouver le QB sélectionné
+   *    par son ESPN athlete ID.
+   */
+  if (
+    qb.espn_athlete_id
+  ) {
     passer =
       passers.find(
         (row) =>
-          String(row.name || "")
-            .toLowerCase()
-            .trim() === qbName
+          String(
+            row.athleteId
+          ) ===
+          String(
+            qb.espn_athlete_id
+          )
       ) || null;
   }
 
   /*
-   * Si le QB choisi n'a PAS joué,
-   * on utilise le QB réel de l'équipe.
-   *
-   * Si le QB choisi a commencé puis
-   * s'est blessé, il existe déjà dans
-   * passers et son propre rating demeure.
+   * 4. Deuxième tentative :
+   *    retrouver le QB sélectionné
+   *    par son nom.
    */
-  if (!passer) {
+  if (
+    !passer
+  ) {
+    const qbName =
+      String(
+        qb.name || ""
+      )
+        .toLowerCase()
+        .trim();
+
     passer =
-      passers.find((row) =>
-        teamMatches(
-          qb.team,
-          row.teamNames
-        )
+      passers.find(
+        (row) =>
+          String(
+            row.name || ""
+          )
+            .toLowerCase()
+            .trim() ===
+          qbName
+      ) || null;
+  }
+
+  /*
+   * 5. IMPORTANT :
+   *
+   * Pendant un match LIVE, si le QB
+   * choisi n'a pas encore de stats,
+   * on NE LE REMPLACE PAS.
+   *
+   * Exemple :
+   * Mahomes est actif mais n'a pas
+   * encore lancé de passe.
+   *
+   * Résultat :
+   * Mahomes demeure affiché,
+   * Rating --.
+   */
+  if (
+    !passer &&
+    state === "in"
+  ) {
+    return {
+      game:
+        matchingGame,
+
+      passer:
+        null,
+    };
+  }
+
+  /*
+   * 6. REMPLACEMENT AUTOMATIQUE
+   *
+   * Seulement une fois le match
+   * terminé.
+   *
+   * Si le QB sélectionné n'apparaît
+   * toujours pas parmi les passers,
+   * on prend alors le QB réel ayant
+   * lancé pour cette équipe.
+   */
+  if (
+    !passer &&
+    state === "post"
+  ) {
+    passer =
+      passers.find(
+        (row) =>
+          teamMatches(
+            qb.team,
+            row.teamNames
+          )
       ) || null;
   }
 
   return {
-    game: matchingGame,
+    game:
+      matchingGame,
+
     passer,
   };
 }
@@ -2711,14 +2937,15 @@ export default function Matchs() {
    * liveGames contient maintenant
    * TOUS les matchs NFL de la semaine.
    */
-  const liveQbData =
-    existingQbPick
-      ? findQbGameData(
-          existingQbPick,
-          liveGames,
-          true
-        )
-      : null;
+const liveQbData =
+  existingQbPick
+    ? findQbGameData(
+        existingQbPick,
+        liveGames,
+        allWeekGames,
+        true
+      )
+    : null;
 
   const livePasser =
     liveQbData?.passer ||
