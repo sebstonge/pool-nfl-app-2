@@ -924,44 +924,145 @@ function getDisplayedQbData(
   const espnPasser =
     espnData?.passer;
 
+  const espnState =
+    espnData?.game
+      ?.status
+      ?.state;
+
+  const isEspnLive =
+    espnState === "in";
+
+  const isEspnPost =
+    espnState === "post";
+
   const hasOfficialRating =
     officialRating?.passer_rating != null;
 
-  const displayedRating =
-    hasOfficialRating
-      ? Number(
-          officialRating.passer_rating
-        )
-      : espnPasser?.rating != null
-      ? Number(
-          espnPasser.rating
-        )
-      : null;
+  const hasEspnRating =
+    espnPasser?.rating != null;
 
-  const actualAthleteId =
-    hasOfficialRating
-      ? officialRating
-          ?.actual_espn_athlete_id ||
-        qbPick.qbs
-          ?.espn_athlete_id
-      : espnPasser?.athleteId ||
-        qbPick.qbs
-          ?.espn_athlete_id;
+  /*
+   * PRIORITÉ DU RATING
+   *
+   * MATCH EN DIRECT :
+   * ESPN est prioritaire.
+   *
+   * MATCH TERMINÉ ESPN :
+   * Supabase officiel est prioritaire
+   * s'il existe.
+   * Sinon on conserve le rating ESPN.
+   *
+   * PAS DE MATCH ESPN :
+   * Supabase seulement.
+   */
+  let displayedRating = null;
 
-  const actualName =
+  if (
+    isEspnLive &&
+    hasEspnRating
+  ) {
+    displayedRating =
+      Number(
+        espnPasser.rating
+      );
+  } else if (
     hasOfficialRating
-      ? officialRating
-          ?.actual_qb_name ||
-        qbPick.qbs?.name
-      : espnPasser?.name ||
-        qbPick.qbs?.name ||
-        "QB";
+  ) {
+    displayedRating =
+      Number(
+        officialRating.passer_rating
+      );
+  } else if (
+    (
+      isEspnLive ||
+      isEspnPost
+    ) &&
+    hasEspnRating
+  ) {
+    displayedRating =
+      Number(
+        espnPasser.rating
+      );
+  }
+
+  /*
+   * IDENTITÉ DU QB AFFICHÉ
+   *
+   * Pendant le LIVE :
+   * on garde le QB sélectionné
+   * sauf si ESPN l'identifie
+   * explicitement lui-même.
+   *
+   * Un remplacement automatique
+   * n'est permis qu'après le match,
+   * selon findQbGameData().
+   */
+  let actualAthleteId =
+    qbPick.qbs
+      ?.espn_athlete_id;
+
+  let actualName =
+    qbPick.qbs?.name ||
+    "QB";
+
+  if (
+    isEspnLive &&
+    espnPasser
+  ) {
+    actualAthleteId =
+      espnPasser.athleteId ||
+      actualAthleteId;
+
+    actualName =
+      espnPasser.name ||
+      actualName;
+  } else if (
+    isEspnPost &&
+    espnPasser
+  ) {
+    /*
+     * Après le match, ESPN peut
+     * identifier le véritable QB
+     * ayant joué.
+     */
+    actualAthleteId =
+      espnPasser.athleteId ||
+      actualAthleteId;
+
+    actualName =
+      espnPasser.name ||
+      actualName;
+  }
+
+  /*
+   * Une fois les données officielles
+   * Supabase disponibles APRÈS le match,
+   * elles deviennent la référence.
+   */
+  if (
+    !isEspnLive &&
+    hasOfficialRating
+  ) {
+    actualAthleteId =
+      officialRating
+        ?.actual_espn_athlete_id ||
+      qbPick.qbs
+        ?.espn_athlete_id;
+
+    actualName =
+      officialRating
+        ?.actual_qb_name ||
+      qbPick.qbs?.name ||
+      "QB";
+  }
 
   const replaced =
     actualAthleteId &&
     qbPick.qbs
       ?.espn_athlete_id &&
-    String(actualAthleteId) !==
+    String(
+      actualAthleteId
+    ) !==
       String(
         qbPick.qbs
           .espn_athlete_id
@@ -975,20 +1076,22 @@ function getDisplayedQbData(
     actualAthleteId,
     actualName,
     replaced,
+
     displayedQb: {
-      name: actualName,
+      name:
+        actualName,
+
       team:
         qbPick.qbs?.team,
+
       espn_athlete_id:
         actualAthleteId,
     },
   };
 }
-
 /* =========================================================
    CARTE QB DU BLOC DU HAUT
    ========================================================= */
-
 function QbPickCard({
   qbPick,
   qbRatings,
