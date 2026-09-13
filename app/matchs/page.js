@@ -3535,7 +3535,7 @@ export default function Matchs() {
                 </div>
               </div>
 
-              {/* =================================================
+                           {/* =================================================
                   DROITE — MATCH DU QB
                   ================================================= */}
 
@@ -3609,9 +3609,37 @@ export default function Matchs() {
                             alignItems:
                               "center",
 
-                            gap: 14,
+                            gap:
+                              isMobile
+                                ? 9
+                                : 12,
                           }}
                         >
+                          <strong
+                            style={{
+                              color:
+                                "#f8fafc",
+
+                              fontSize:
+                                isMobile
+                                  ? 18
+                                  : 22,
+
+                              lineHeight:
+                                1.2,
+
+                              whiteSpace:
+                                "nowrap",
+                            }}
+                          >
+                            {qbIsHome
+                              ? "vs"
+                              : "@"}{" "}
+                            {
+                              qbOpponent
+                            }
+                          </strong>
+
                           <img
                             src={getTeamLogo(
                               qbOpponent
@@ -3637,28 +3665,6 @@ export default function Matchs() {
                                 0,
                             }}
                           />
-
-                          <strong
-                            style={{
-                              color:
-                                "#f8fafc",
-
-                              fontSize:
-                                isMobile
-                                  ? 18
-                                  : 22,
-
-                              lineHeight:
-                                1.2,
-                            }}
-                          >
-                            {qbIsHome
-                              ? "vs"
-                              : "@"}{" "}
-                            {
-                              qbOpponent
-                            }
-                          </strong>
                         </div>
 
                         <div
@@ -4038,7 +4044,6 @@ export default function Matchs() {
             {/* =================================================
                 QB PAS ENCORE SOUMIS
                 ================================================= */}
-
             <h2
               style={{
                 color:
