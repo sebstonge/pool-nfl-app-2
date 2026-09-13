@@ -594,6 +594,16 @@ function findQbGameData(
     return null;
   }
 
+  /*
+   * IMPORTANT :
+   *
+   * On identifie maintenant le match
+   * grâce aux noms EXACTS provenant
+   * de Supabase.
+   *
+   * On ne tente plus de deviner le
+   * match avec les noms ESPN.
+   */
   const matchingGame =
     Object.values(
       liveGames || {}
@@ -616,12 +626,40 @@ function findQbGameData(
         return false;
       }
 
-      return teamMatches(
-        qb.team,
-        game.teamNames
+      const qbTeam =
+        normalizeTeam(
+          qb.team
+        );
+
+      const homeTeam =
+        normalizeTeam(
+          game.homeTeam
+        );
+
+      const awayTeam =
+        normalizeTeam(
+          game.awayTeam
+        );
+
+      return (
+        qbTeam === homeTeam ||
+        qbTeam === awayTeam
       );
     });
 
+  /*
+   * Si le match du QB n'est PAS
+   * actuellement live ou terminé,
+   * aucune donnée ESPN n'est associée
+   * à ce QB.
+   *
+   * Exemple :
+   * Mahomes joue lundi soir alors
+   * qu'on est dimanche après-midi.
+   *
+   * Résultat :
+   * null
+   */
   if (!matchingGame) {
     return null;
   }
@@ -634,12 +672,10 @@ function findQbGameData(
   /*
    * PRIORITÉ 1 :
    * QB sélectionné lui-même.
-   *
-   * S'il commence le match puis
-   * se blesse, SON rating demeure
-   * celui du pool.
    */
-  if (qb.espn_athlete_id) {
+  if (
+    qb.espn_athlete_id
+  ) {
     passer =
       passers.find(
         (row) =>
@@ -658,7 +694,9 @@ function findQbGameData(
    */
   if (!passer) {
     const qbName =
-      String(qb.name || "")
+      String(
+        qb.name || ""
+      )
         .toLowerCase()
         .trim();
 
@@ -675,13 +713,45 @@ function findQbGameData(
   }
 
   /*
-   * PRIORITÉ 3 :
-   * le QB choisi n'a pas joué.
+   * MATCH EN DIRECT
    *
-   * On prend alors le passeur réel
-   * de sa même équipe.
+   * Si le QB choisi n'a pas encore
+   * de statistique de passe, on NE
+   * déclenche PAS de remplacement.
+   *
+   * Il demeure le QB sélectionné
+   * avec Rating --.
    */
-  if (!passer) {
+  if (
+    !passer &&
+    matchingGame
+      ?.status
+      ?.state === "in"
+  ) {
+    return {
+      game:
+        matchingGame,
+
+      passer:
+        null,
+    };
+  }
+
+  /*
+   * MATCH TERMINÉ
+   *
+   * Seulement à ce moment, si le QB
+   * sélectionné n'apparaît toujours
+   * pas parmi les passeurs, on peut
+   * utiliser le véritable passeur de
+   * son équipe.
+   */
+  if (
+    !passer &&
+    matchingGame
+      ?.status
+      ?.state === "post"
+  ) {
     passer =
       passers.find(
         (row) =>
@@ -693,7 +763,9 @@ function findQbGameData(
   }
 
   return {
-    game: matchingGame,
+    game:
+      matchingGame,
+
     passer,
   };
 }
@@ -2867,6 +2939,19 @@ const [
   isPoolEligible:
     game.is_pool_eligible ===
     true,
+
+  /*
+   * Noms EXACTS du match provenant
+   * de notre base Supabase.
+   *
+   * Ils servent au matching fiable
+   * entre un QB et SON match.
+   */
+  homeTeam:
+    game.home_team,
+
+  awayTeam:
+    game.away_team,
 
   status,
 
