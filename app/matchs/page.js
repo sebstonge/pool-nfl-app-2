@@ -4144,126 +4144,202 @@ export default function Matchs() {
                           : undefined,
                     }}
                   >
-                    {selectedQb ? (
-                      <div
-                        style={{
-                          display:
-                            "flex",
+{selectedQb ? (
+  <div
+    style={{
+      display:
+        "flex",
 
-                          alignItems:
-                            "center",
+      alignItems:
+        "center",
 
-                          justifyContent:
-                            "space-between",
+      justifyContent:
+        "space-between",
 
-                          gap: 10,
+      gap: 10,
 
-                          minWidth:
-                            0,
+      minWidth:
+        0,
 
-                          flex: 1,
-                        }}
-                      >
-                        <div
-                          style={{
-                            display:
-                              "flex",
+      flex: 1,
+    }}
+  >
+    <div
+      style={{
+        display:
+          "flex",
 
-                            alignItems:
-                              "center",
+        alignItems:
+          "center",
 
-                            gap: 8,
+        gap: 8,
 
-                            minWidth:
-                              0,
+        minWidth:
+          0,
 
-                            overflow:
-                              "hidden",
-                          }}
-                        >
-                          <strong
-                            style={{
-                              fontSize:
-                                isMobile
-                                  ? 15
-                                  : 16,
+        overflow:
+          "hidden",
+      }}
+    >
+      <strong
+        style={{
+          fontSize:
+            isMobile
+              ? 15
+              : 16,
 
-                              overflow:
-                                "hidden",
+          overflow:
+            "hidden",
 
-                              textOverflow:
-                                "ellipsis",
+          textOverflow:
+            "ellipsis",
 
-                              whiteSpace:
-                                "nowrap",
-                            }}
-                          >
-                            {
-                              selectedQb.name
-                            }
-                          </strong>
+          whiteSpace:
+            "nowrap",
+        }}
+      >
+        {
+          selectedQb.name
+        }
+      </strong>
 
-                          <img
-                            src={getTeamLogo(
-                              selectedQb.team
-                            )}
-                            alt={
-                              selectedQb.team
-                            }
-                            style={{
-                              width:
-                                isMobile
-                                  ? 23
-                                  : 28,
+      <img
+        src={getTeamLogo(
+          selectedQb.team
+        )}
+        alt={
+          selectedQb.team
+        }
+        style={{
+          width:
+            isMobile
+              ? 23
+              : 28,
 
-                              height:
-                                isMobile
-                                  ? 23
-                                  : 28,
+          height:
+            isMobile
+              ? 23
+              : 28,
 
-                              objectFit:
-                                "contain",
+          objectFit:
+            "contain",
 
-                              flexShrink:
-                                0,
-                            }}
-                          />
-                        </div>
+          flexShrink:
+            0,
+        }}
+      />
 
-                        <span
-                          style={{
-                            color:
-                              "#94a3b8",
+      {/* =============================================
+          MATCHUP DU QB SÉLECTIONNÉ
+          ============================================= */}
 
-                            whiteSpace:
-                              "nowrap",
+      {(() => {
+        const selectedQbGame =
+          allWeekGames.find(
+            (game) =>
+              normalizeName(
+                game.home_team
+              ) ===
+                normalizeName(
+                  selectedQb.team
+                ) ||
+              normalizeName(
+                game.away_team
+              ) ===
+                normalizeName(
+                  selectedQb.team
+                )
+          );
 
-                            flexShrink:
-                              0,
+        if (
+          !selectedQbGame
+        ) {
+          return null;
+        }
 
-                            fontSize:
-                              isMobile
-                                ? 13
-                                : 14,
-                          }}
-                        >
-                          Moy.{" "}
-                          {qbSeasonAverages[
-                            String(
-                              selectedQb.espn_athlete_id
-                            )
-                          ] != null
-                            ? qbSeasonAverages[
-                                String(
-                                  selectedQb.espn_athlete_id
-                                )
-                              ].toFixed(
-                                1
-                              )
-                            : "--"}
-                        </span>
-                      </div>
-                    ) : (
+        const selectedQbIsHome =
+          normalizeName(
+            selectedQbGame.home_team
+          ) ===
+          normalizeName(
+            selectedQb.team
+          );
+
+        const selectedQbOpponent =
+          selectedQbIsHome
+            ? selectedQbGame.away_team
+            : selectedQbGame.home_team;
+
+        return (
+          <span
+            style={{
+              color:
+                "#94a3b8",
+
+              fontSize:
+                isMobile
+                  ? 11
+                  : 13,
+
+              fontWeight:
+                700,
+
+              whiteSpace:
+                "nowrap",
+
+              flexShrink:
+                0,
+            }}
+          >
+            {selectedQbIsHome
+              ? "vs"
+              : "@"}{" "}
+            {
+              selectedQbOpponent
+            }
+          </span>
+        );
+      })()}
+    </div>
+
+    {/* =============================================
+        MOYENNE SAISON
+        ============================================= */}
+
+    <span
+      style={{
+        color:
+          "#94a3b8",
+
+        whiteSpace:
+          "nowrap",
+
+        flexShrink:
+          0,
+
+        fontSize:
+          isMobile
+            ? 13
+            : 14,
+      }}
+    >
+      Moy.{" "}
+      {qbSeasonAverages[
+        String(
+          selectedQb.espn_athlete_id
+        )
+      ] != null
+        ? qbSeasonAverages[
+            String(
+              selectedQb.espn_athlete_id
+            )
+          ].toFixed(
+            1
+          )
+        : "--"}
+    </span>
+  </div>
+) : (
                       <span
                         style={{
                           minWidth:
