@@ -77,6 +77,17 @@ export default function HomePage() {
 
   /*
    * =========================================================
+   * AFFICHAGE MOBILE
+   * =========================================================
+   */
+
+  const [
+    isMobile,
+    setIsMobile,
+  ] = useState(false);
+
+  /*
+   * =========================================================
    * PROFIL
    * =========================================================
    */
@@ -191,6 +202,34 @@ export default function HomePage() {
 
     return () => {
       listener.subscription.unsubscribe();
+    };
+  }, []);
+
+  /*
+   * =========================================================
+   * RESPONSIVE
+   * =========================================================
+   */
+
+  useEffect(() => {
+    const updateMobile = () => {
+      setIsMobile(
+        window.innerWidth < 700
+      );
+    };
+
+    updateMobile();
+
+    window.addEventListener(
+      "resize",
+      updateMobile
+    );
+
+    return () => {
+      window.removeEventListener(
+        "resize",
+        updateMobile
+      );
     };
   }, []);
 
@@ -472,6 +511,7 @@ export default function HomePage() {
         "/";
     }, 200);
   }
+
   /*
    * =========================================================
    * NOTIFICATIONS PUSH
@@ -666,6 +706,7 @@ export default function HomePage() {
       false
     );
   }
+
   /*
    * =========================================================
    * AFFICHAGE
@@ -693,22 +734,31 @@ export default function HomePage() {
           <section className="card">
             <div
               style={{
-                display: "grid",
+                display:
+                  "grid",
 
                 gridTemplateColumns:
-                  "minmax(0, 1fr) auto",
+                  isMobile
+                    ? "1fr"
+                    : "minmax(0, 1fr) auto",
 
-                gap: 16,
+                gap:
+                  isMobile
+                    ? 14
+                    : 16,
 
                 alignItems:
                   "center",
               }}
             >
-              {/* IDENTITÉ */}
+              {/* =================================================
+                  IDENTITÉ UTILISATEUR
+                  ================================================= */}
 
               <div
                 style={{
-                  minWidth: 0,
+                  minWidth:
+                    0,
                 }}
               >
                 <span
@@ -741,7 +791,9 @@ export default function HomePage() {
                       "#f8fafc",
 
                     fontSize:
-                      20,
+                      isMobile
+                        ? 18
+                        : 20,
 
                     fontWeight:
                       900,
@@ -750,7 +802,7 @@ export default function HomePage() {
                       1.15,
 
                     overflowWrap:
-                      "anywhere",
+                      "break-word",
                   }}
                 >
                   {profile?.display_name ||
@@ -788,7 +840,9 @@ export default function HomePage() {
                 )}
               </div>
 
-              {/* ACTIONS UTILISATEUR */}
+              {/* =================================================
+                  ACTIONS UTILISATEUR
+                  ================================================= */}
 
               <div
                 style={{
@@ -803,6 +857,11 @@ export default function HomePage() {
 
                   alignItems:
                     "stretch",
+
+                  width:
+                    isMobile
+                      ? "100%"
+                      : "auto",
                 }}
               >
                 <button
@@ -816,10 +875,14 @@ export default function HomePage() {
                   }
                   style={{
                     width:
-                      "auto",
+                      isMobile
+                        ? "100%"
+                        : "auto",
 
                     minWidth:
-                      180,
+                      isMobile
+                        ? 0
+                        : 180,
 
                     whiteSpace:
                       "nowrap",
@@ -841,10 +904,14 @@ export default function HomePage() {
                   }
                   style={{
                     width:
-                      "auto",
+                      isMobile
+                        ? "100%"
+                        : "auto",
 
                     minWidth:
-                      140,
+                      isMobile
+                        ? 0
+                        : 140,
 
                     whiteSpace:
                       "nowrap",
@@ -855,7 +922,7 @@ export default function HomePage() {
                 >
                   Se déconnecter
                 </button>
-                            </div>
+              </div>
             </div>
 
             {notificationStatus && (
@@ -887,6 +954,7 @@ export default function HomePage() {
               </p>
             )}
           </section>
+
           {/* ================================
               NAVIGATION
               ================================ */}
@@ -962,27 +1030,42 @@ export default function HomePage() {
          * =====================================================
          */
 
-              <section className="card">
+        <section className="card">
           {/* =====================================================
               IDENTIFICATION DU SITE
               ===================================================== */}
 
           <div
             style={{
-              marginBottom: 20,
-              padding: "14px 16px",
-              borderRadius: 14,
-              background: "rgba(59,130,246,0.08)",
+              marginBottom:
+                20,
+
+              padding:
+                "14px 16px",
+
+              borderRadius:
+                14,
+
+              background:
+                "rgba(59,130,246,0.08)",
+
               border:
                 "1px solid rgba(59,130,246,0.18)",
             }}
           >
             <strong
               style={{
-                display: "block",
-                color: "#f8fafc",
-                fontSize: 16,
-                marginBottom: 5,
+                display:
+                  "block",
+
+                color:
+                  "#f8fafc",
+
+                fontSize:
+                  16,
+
+                marginBottom:
+                  5,
               }}
             >
               🏈 Pool NFL privé
@@ -990,10 +1073,17 @@ export default function HomePage() {
 
             <p
               style={{
-                margin: 0,
-                color: "#94a3b8",
-                fontSize: 13,
-                lineHeight: 1.5,
+                margin:
+                  0,
+
+                color:
+                  "#94a3b8",
+
+                fontSize:
+                  13,
+
+                lineHeight:
+                  1.5,
               }}
             >
               Application privée destinée aux participants de
@@ -1001,6 +1091,7 @@ export default function HomePage() {
               accéder à tes choix, statistiques et classements.
             </p>
           </div>
+
           {/* MODES CONNEXION / INSCRIPTION */}
 
           <div
