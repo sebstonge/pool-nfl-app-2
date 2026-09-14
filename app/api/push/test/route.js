@@ -35,23 +35,73 @@ const supabaseAdmin =
 
 export async function POST(request) {
   try {
-    const body =
-      await request.json();
+    /*
+     * =========================================================
+     * AUTHENTIFICATION
+     * =========================================================
+     */
 
-    const userId =
-      body?.user_id;
+    const authorization =
+      request.headers.get(
+        "authorization"
+      );
 
-    if (!userId) {
+    if (
+      !authorization ||
+      !authorization.startsWith(
+        "Bearer "
+      )
+    ) {
       return Response.json(
         {
           error:
-            "user_id manquant",
+            "Non autorisé",
         },
         {
-          status: 400,
+          status: 401,
         }
       );
     }
+
+    const accessToken =
+      authorization.replace(
+        "Bearer ",
+        ""
+      );
+
+    const {
+      data:
+        userData,
+      error:
+        userError,
+    } =
+      await supabaseAdmin.auth.getUser(
+        accessToken
+      );
+
+    if (
+      userError ||
+      !userData?.user
+    ) {
+      return Response.json(
+        {
+          error:
+            "Session invalide ou expirée",
+        },
+        {
+          status: 401,
+        }
+      );
+    }
+
+    const userId =
+      userData.user.id;
+
+    /*
+     * =========================================================
+     * ABONNEMENTS PUSH DE L'UTILISATEUR
+     * =========================================================
+     */
 
     const {
       data:
@@ -93,6 +143,12 @@ export async function POST(request) {
       );
     }
 
+    /*
+     * =========================================================
+     * NOTIFICATION TEST
+     * =========================================================
+     */
+
     const payload =
       JSON.stringify({
         title:
@@ -120,6 +176,7 @@ export async function POST(request) {
         results.push({
           id:
             item.id,
+
           success:
             true,
         });
@@ -128,6 +185,12 @@ export async function POST(request) {
           "Erreur push :",
           error
         );
+
+        /*
+         * =========================================================
+         * ABONNEMENT EXPIRÉ / SUPPRIMÉ PAR LE NAVIGATEUR
+         * =========================================================
+         */
 
         if (
           error?.statusCode ===
@@ -149,8 +212,10 @@ export async function POST(request) {
         results.push({
           id:
             item.id,
+
           success:
             false,
+
           statusCode:
             error?.statusCode ||
             null,
@@ -158,9 +223,25 @@ export async function POST(request) {
       }
     }
 
+    /*
+     * =========================================================
+     * RÉPONSE
+     * =========================================================
+     */
+
     return Response.json({
       success:
         true,
+
+      sent:
+        results.filter(
+          (result) =>
+            result.success
+        ).length,
+
+      total:
+        results.length,
+
       results,
     });
   } catch (error) {
