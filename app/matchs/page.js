@@ -3405,6 +3405,87 @@ const liveQbData =
         }
       }
 
+           /*
+       * =========================================================
+       * NOTIFIER LE PROCHAIN JOUEUR
+       * =========================================================
+       *
+       * La soumission est maintenant complète :
+       *
+       * - QB enregistré
+       * - historique QB enregistré
+       * - tous les choix de matchs enregistrés
+       *
+       * On peut donc demander au serveur
+       * d'identifier le prochain joueur
+       * et de lui envoyer sa notification.
+       *
+       * Une erreur de notification ne doit
+       * JAMAIS annuler une soumission réussie.
+       * =========================================================
+       */
+
+      try {
+        const {
+          data:
+            sessionData,
+        } =
+          await supabase.auth.getSession();
+
+        const accessToken =
+          sessionData
+            ?.session
+            ?.access_token;
+
+        if (
+          accessToken
+        ) {
+          const response =
+            await fetch(
+              "/api/push/next-player",
+              {
+                method:
+                  "POST",
+
+                headers: {
+                  Authorization:
+                    `Bearer ${accessToken}`,
+                },
+              }
+            );
+
+          const result =
+            await response.json();
+
+          if (
+            !response.ok
+          ) {
+            console.error(
+              "Erreur notification prochain joueur :",
+              result
+            );
+          } else {
+            console.log(
+              "Notification prochain joueur :",
+              result
+            );
+          }
+        }
+      } catch (
+        notificationError
+      ) {
+        console.error(
+          "Erreur notification prochain joueur :",
+          notificationError
+        );
+      }
+
+      /*
+       * =========================================================
+       * SOUMISSION TERMINÉE
+       * =========================================================
+       */
+
       setMessage(
         "Choix soumis ✅"
       );
