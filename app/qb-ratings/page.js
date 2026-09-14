@@ -139,7 +139,13 @@ function RatingMiniCard({
   type,
   rating,
 }) {
-  const isBest = type === "best";
+  const isBest =
+    type === "best";
+
+  const isMobile =
+    typeof window !==
+      "undefined" &&
+    window.innerWidth < 700;
 
   if (!rating) {
     return (
@@ -147,7 +153,8 @@ function RatingMiniCard({
         style={{
           padding: 14,
           borderRadius: 18,
-          background: "rgba(148,163,184,0.08)",
+          background:
+            "rgba(148,163,184,0.08)",
           border:
             "1px solid rgba(148,163,184,0.14)",
         }}
@@ -178,79 +185,217 @@ function RatingMiniCard({
       style={{
         padding: 14,
         borderRadius: 18,
-        background: isBest
-          ? "rgba(34,197,94,0.08)"
-          : "rgba(239,68,68,0.08)",
-        border: isBest
-          ? "1px solid rgba(34,197,94,0.22)"
-          : "1px solid rgba(239,68,68,0.22)",
+
+        background:
+          isBest
+            ? "rgba(34,197,94,0.08)"
+            : "rgba(239,68,68,0.08)",
+
+        border:
+          isBest
+            ? "1px solid rgba(34,197,94,0.22)"
+            : "1px solid rgba(239,68,68,0.22)",
       }}
     >
+      {/* =====================================================
+          TITRE
+          ===================================================== */}
+
       <p
         style={{
           margin: 0,
-          color: isBest ? "#22c55e" : "#ef4444",
+          color:
+            isBest
+              ? "#22c55e"
+              : "#ef4444",
           fontWeight: 900,
         }}
       >
         {label}
       </p>
 
-      <h2
-        style={{
-          margin: "6px 0",
-          fontSize: 30,
-          color: isBest ? "#22c55e" : "#ef4444",
-        }}
-      >
-        {Number(
-          rating.passer_rating
-        ).toFixed(1)}
-      </h2>
+      {/* =====================================================
+          MOBILE
+          Rating à gauche
+          Informations à droite
+          ===================================================== */}
 
-      <div
-        style={{
-          marginTop: 6,
-          color: "#94a3b8",
-        }}
-      >
-        <p
-          style={{
-            margin: 0,
-          }}
-        >
-          Semaine {rating.week}
-        </p>
-
+      {isMobile ? (
         <div
           style={{
-            marginTop: 6,
+            display: "grid",
+
+            gridTemplateColumns:
+              "minmax(100px, 0.75fr) minmax(0, 1.25fr)",
+
+            gap: 16,
+
+            alignItems: "center",
+
+            marginTop: 8,
           }}
         >
-          <span
+          {/* RATING */}
+
+          <div
             style={{
-              display: "block",
-              fontSize: 12,
+              minWidth: 0,
+            }}
+          >
+            <strong
+              style={{
+                display: "block",
+
+                fontSize: 34,
+
+                lineHeight: 1,
+
+                color:
+                  isBest
+                    ? "#22c55e"
+                    : "#ef4444",
+
+                fontWeight: 900,
+
+                whiteSpace:
+                  "nowrap",
+              }}
+            >
+              {Number(
+                rating.passer_rating
+              ).toFixed(1)}
+            </strong>
+          </div>
+
+          {/* INFORMATIONS */}
+
+          <div
+            style={{
+              minWidth: 0,
+
+              paddingLeft: 14,
+
+              borderLeft:
+                "1px solid rgba(148,163,184,0.16)",
+            }}
+          >
+            <p
+              style={{
+                margin: 0,
+
+                color:
+                  "#94a3b8",
+
+                fontSize: 13,
+
+                fontWeight: 700,
+              }}
+            >
+              Semaine{" "}
+              {rating.week}
+            </p>
+
+            <div
+              style={{
+                marginTop: 6,
+              }}
+            >
+              <span
+                style={{
+                  display: "block",
+
+                  fontSize: 11,
+
+                  color:
+                    "#94a3b8",
+                }}
+              >
+                Choisi par
+              </span>
+
+              <PlayerIdentity
+                name={
+                  rating.selected_by
+                }
+                realName={
+                  rating.selected_by_real_name
+                }
+              />
+            </div>
+          </div>
+        </div>
+      ) : (
+        /* =====================================================
+           DESKTOP
+           Affichage actuel inchangé
+           ===================================================== */
+
+        <>
+          <h2
+            style={{
+              margin: "6px 0",
+
+              fontSize: 30,
+
+              color:
+                isBest
+                  ? "#22c55e"
+                  : "#ef4444",
+            }}
+          >
+            {Number(
+              rating.passer_rating
+            ).toFixed(1)}
+          </h2>
+
+          <div
+            style={{
+              marginTop: 6,
               color: "#94a3b8",
             }}
           >
-            Choisi par
-          </span>
+            <p
+              style={{
+                margin: 0,
+              }}
+            >
+              Semaine{" "}
+              {rating.week}
+            </p>
 
-          <PlayerIdentity
-            name={
-              rating.selected_by
-            }
-            realName={
-              rating.selected_by_real_name
-            }
-          />
-        </div>
-      </div>
+            <div
+              style={{
+                marginTop: 6,
+              }}
+            >
+              <span
+                style={{
+                  display: "block",
+
+                  fontSize: 12,
+
+                  color:
+                    "#94a3b8",
+                }}
+              >
+                Choisi par
+              </span>
+
+              <PlayerIdentity
+                name={
+                  rating.selected_by
+                }
+                realName={
+                  rating.selected_by_real_name
+                }
+              />
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
-
 export default function QBRatingsPage() {
   const [rows, setRows] = useState([]);
   const [teams, setTeams] = useState([]);
