@@ -1,26 +1,14 @@
-import webpush from "web-push";
 import { createClient } from "@supabase/supabase-js";
+import { sendPushToUser } from "../../../../lib/pushNotifications";
+
+export const runtime =
+  "nodejs";
 
 const supabaseUrl =
   process.env.NEXT_PUBLIC_SUPABASE_URL;
 
 const serviceRoleKey =
   process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-const vapidPublicKey =
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-
-const vapidPrivateKey =
-  process.env.VAPID_PRIVATE_KEY;
-
-const vapidSubject =
-  process.env.VAPID_SUBJECT;
-
-webpush.setVapidDetails(
-  vapidSubject,
-  vapidPublicKey,
-  vapidPrivateKey
-);
 
 const supabaseAdmin =
   createClient(
@@ -94,63 +82,17 @@ export async function POST(request) {
       );
     }
 
-    const userId =
-      userData.user.id;
-
     /*
      * =========================================================
-     * ABONNEMENTS PUSH DE L'UTILISATEUR
+     * ENVOI DE LA NOTIFICATION TEST
      * =========================================================
      */
 
-    const {
-      data:
-        subscriptions,
-      error:
-        subscriptionsError,
-    } =
-      await supabaseAdmin
-        .from(
-          "push_subscriptions"
-        )
-        .select(
-          "id, endpoint, subscription"
-        )
-        .eq(
-          "user_id",
-          userId
-        );
+    const result =
+      await sendPushToUser({
+        userId:
+          userData.user.id,
 
-    if (
-      subscriptionsError
-    ) {
-      throw subscriptionsError;
-    }
-
-    if (
-      !subscriptions ||
-      subscriptions.length ===
-        0
-    ) {
-      return Response.json(
-        {
-          error:
-            "Aucun abonnement push trouvé pour cet utilisateur.",
-        },
-        {
-          status: 404,
-        }
-      );
-    }
-
-    /*
-     * =========================================================
-     * NOTIFICATION TEST
-     * =========================================================
-     */
-
-    const payload =
-      JSON.stringify({
         title:
           "Pool NFL 🏈",
 
@@ -161,89 +103,9 @@ export async function POST(request) {
           "/",
       });
 
-    const results = [];
-
-    for (
-      const item of
-      subscriptions
-    ) {
-      try {
-        await webpush.sendNotification(
-          item.subscription,
-          payload
-        );
-
-        results.push({
-          id:
-            item.id,
-
-          success:
-            true,
-        });
-      } catch (error) {
-        console.error(
-          "Erreur push :",
-          error
-        );
-
-        /*
-         * =========================================================
-         * ABONNEMENT EXPIRÉ / SUPPRIMÉ PAR LE NAVIGATEUR
-         * =========================================================
-         */
-
-        if (
-          error?.statusCode ===
-            404 ||
-          error?.statusCode ===
-            410
-        ) {
-          await supabaseAdmin
-            .from(
-              "push_subscriptions"
-            )
-            .delete()
-            .eq(
-              "id",
-              item.id
-            );
-        }
-
-        results.push({
-          id:
-            item.id,
-
-          success:
-            false,
-
-          statusCode:
-            error?.statusCode ||
-            null,
-        });
-      }
-    }
-
-    /*
-     * =========================================================
-     * RÉPONSE
-     * =========================================================
-     */
-
-    return Response.json({
-      success:
-        true,
-
-      sent:
-        results.filter(
-          (result) =>
-            result.success
-        ).length,
-
-      total:
-        results.length,
-
-      results,
-    });
+    return Response.json(
+      result
+    );
   } catch (error) {
     console.error(
       "Erreur route push test :",
