@@ -65,6 +65,16 @@ export default function HomePage() {
   const [loading, setLoading] =
     useState(false);
 
+  const [
+    notificationStatus,
+    setNotificationStatus,
+  ] = useState("");
+
+  const [
+    notificationLoading,
+    setNotificationLoading,
+  ] = useState(false);
+
   /*
    * =========================================================
    * PROFIL
@@ -462,7 +472,200 @@ export default function HomePage() {
         "/";
     }, 200);
   }
+  /*
+   * =========================================================
+   * NOTIFICATIONS PUSH
+   * =========================================================
+   */
 
+  function urlBase64ToUint8Array(
+    base64String
+  ) {
+    const padding =
+      "=".repeat(
+        (4 -
+          (base64String.length %
+            4)) %
+          4
+      );
+
+    const base64 =
+      (
+        base64String +
+        padding
+      )
+        .replace(
+          /-/g,
+          "+"
+        )
+        .replace(
+          /_/g,
+          "/"
+        );
+
+    const rawData =
+      window.atob(
+        base64
+      );
+
+    return Uint8Array.from(
+      [...rawData].map(
+        (char) =>
+          char.charCodeAt(
+            0
+          )
+      )
+    );
+  }
+
+  async function handleEnableNotifications() {
+    if (!user) {
+      setNotificationStatus(
+        "Tu dois être connecté."
+      );
+
+      return;
+    }
+
+    if (
+      !(
+        "serviceWorker" in
+        navigator
+      )
+    ) {
+      setNotificationStatus(
+        "Les notifications ne sont pas supportées sur cet appareil."
+      );
+
+      return;
+    }
+
+    if (
+      !(
+        "PushManager" in
+        window
+      )
+    ) {
+      setNotificationStatus(
+        "Le push n’est pas supporté sur ce navigateur."
+      );
+
+      return;
+    }
+
+    const vapidPublicKey =
+      process.env
+        .NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+
+    if (!vapidPublicKey) {
+      setNotificationStatus(
+        "Clé VAPID publique manquante."
+      );
+
+      return;
+    }
+
+    setNotificationLoading(
+      true
+    );
+
+    setNotificationStatus(
+      ""
+    );
+
+    try {
+      const registration =
+        await navigator.serviceWorker.register(
+          "/sw.js"
+        );
+
+      const permission =
+        await Notification.requestPermission();
+
+      if (
+        permission !==
+        "granted"
+      ) {
+        setNotificationStatus(
+          "Permission refusée."
+        );
+
+        setNotificationLoading(
+          false
+        );
+
+        return;
+      }
+
+      let subscription =
+        await registration.pushManager.getSubscription();
+
+      if (!subscription) {
+        subscription =
+          await registration.pushManager.subscribe(
+            {
+              userVisibleOnly:
+                true,
+
+              applicationServerKey:
+                urlBase64ToUint8Array(
+                  vapidPublicKey
+                ),
+            }
+          );
+      }
+
+      const subscriptionJson =
+        subscription.toJSON();
+
+      const {
+        error,
+      } = await supabase
+        .from(
+          "push_subscriptions"
+        )
+        .upsert(
+          {
+            user_id:
+              user.id,
+
+            endpoint:
+              subscription.endpoint,
+
+            subscription:
+              subscriptionJson,
+
+            updated_at:
+              new Date().toISOString(),
+          },
+          {
+            onConflict:
+              "endpoint",
+          }
+        );
+
+      if (error) {
+        throw error;
+      }
+
+      setNotificationStatus(
+        "✅ Notifications activées."
+      );
+    } catch (error) {
+      console.error(
+        "Erreur notifications :",
+        error
+      );
+
+      setNotificationStatus(
+        "Erreur lors de l’activation des notifications."
+      );
+    }
+
+    setNotificationLoading(
+      false
+    );
+  }
   /*
    * =========================================================
    * AFFICHAGE
@@ -585,33 +788,105 @@ export default function HomePage() {
                 )}
               </div>
 
-              {/* DÉCONNEXION */}
+              {/* ACTIONS UTILISATEUR */}
 
-              <button
-                type="button"
-                className="button-secondary"
-                onClick={
-                  handleLogout
-                }
+              <div
                 style={{
-                  width:
-                    "auto",
+                  display:
+                    "flex",
 
-                  minWidth:
-                    140,
+                  flexDirection:
+                    "column",
 
-                  whiteSpace:
-                    "nowrap",
+                  gap:
+                    8,
 
-                  margin:
-                    0,
+                  alignItems:
+                    "stretch",
                 }}
               >
-                Se déconnecter
-              </button>
-            </div>
-          </section>
+                <button
+                  type="button"
+                  className="button"
+                  onClick={
+                    handleEnableNotifications
+                  }
+                  disabled={
+                    notificationLoading
+                  }
+                  style={{
+                    width:
+                      "auto",
 
+                    minWidth:
+                      180,
+
+                    whiteSpace:
+                      "nowrap",
+
+                    margin:
+                      0,
+                  }}
+                >
+                  {notificationLoading
+                    ? "Activation..."
+                    : "🔔 Activer les notifications"}
+                </button>
+
+                <button
+                  type="button"
+                  className="button-secondary"
+                  onClick={
+                    handleLogout
+                  }
+                  style={{
+                    width:
+                      "auto",
+
+                    minWidth:
+                      140,
+
+                    whiteSpace:
+                      "nowrap",
+
+                    margin:
+                      0,
+                  }}
+                >
+                  Se déconnecter
+                </button>
+                            </div>
+            </div>
+
+            {notificationStatus && (
+              <p
+                style={{
+                  marginTop:
+                    12,
+
+                  marginBottom:
+                    0,
+
+                  color:
+                    notificationStatus.includes(
+                      "✅"
+                    )
+                      ? "#86efac"
+                      : "#fca5a5",
+
+                  fontSize:
+                    13,
+
+                  fontWeight:
+                    700,
+                }}
+              >
+                {
+                  notificationStatus
+                }
+              </p>
+            )}
+          </section>
           {/* ================================
               NAVIGATION
               ================================ */}
