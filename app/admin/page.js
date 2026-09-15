@@ -721,6 +721,12 @@ export default function AdminPage() {
 
     let updated = 0;
 
+    /*
+     * Matchs dont le score a réellement changé
+     * depuis la dernière mise à jour Admin.
+     */
+    const changedGames = [];
+
     for (const game of games || []) {
       if (!game.external_game_id) {
         continue;
@@ -771,6 +777,26 @@ export default function AdminPage() {
         continue;
       }
 
+      /*
+       * =====================================================
+       * DÉTECTER SI LE SCORE A RÉELLEMENT CHANGÉ
+       * =====================================================
+       */
+
+      const previousHomeScore =
+        game.home_score == null
+          ? null
+          : Number(game.home_score);
+
+      const previousAwayScore =
+        game.away_score == null
+          ? null
+          : Number(game.away_score);
+
+      const scoreChanged =
+        previousHomeScore !== homeScore ||
+        previousAwayScore !== awayScore;
+
       const { error } = await supabase
         .from("games")
         .update({
@@ -787,11 +813,35 @@ export default function AdminPage() {
       }
 
       updated++;
+
+      /*
+       * On garde seulement les matchs
+       * qui apportent réellement un nouveau score.
+       */
+      if (scoreChanged) {
+        changedGames.push({
+          id: game.id,
+
+          home_team:
+            game.home_team,
+
+          away_team:
+            game.away_team,
+
+          home_score:
+            homeScore,
+
+          away_score:
+            awayScore,
+        });
+      }
     }
 
-    return updated;
+    return {
+      updated,
+      changedGames,
+    };
   }
-
   /* =========================================================
      CLASSEMENTS / FICHES DES ÉQUIPES NFL
      ========================================================= */
@@ -1661,7 +1711,7 @@ export default function AdminPage() {
       /*
        * 1. Scores NFL
        */
-      const scoresUpdated =
+      const scoresResult =
         await updateScoresFromEspn(
           currentWeek
         );
@@ -1688,12 +1738,143 @@ export default function AdminPage() {
           currentWeek
         );
 
+      /*
+       * =====================================================
+       * 5. NOTIFICATION DES CLASSEMENTS
+       * =====================================================
+       *
+       * Seulement lorsqu'au moins un score de match
+       * admissible a réellement changé.
+       *
+       * Une erreur de notification ne doit JAMAIS
+       * faire échouer la mise à jour ESPN.
+       * =====================================================
+       */
+
+      let rankingNotificationResult =
+        null;
+
+      if (
+        scoresResult.changedGames.length >
+        0
+      ) {
+        try {
+          const {
+            data: { session },
+          } =
+            await supabase.auth.getSession();
+
+          if (!session?.access_token) {
+            console.error(
+              "Notification classement : session introuvable."
+            );
+          } else {
+            /*
+             * Un seul match modifié :
+             *
+             * Après Ravens @ Bengals...
+             *
+             * Plusieurs matchs modifiés :
+             *
+             * Après les derniers matchs...
+             */
+            let gameLabel = "";
+
+            if (
+              scoresResult.changedGames
+                .length === 1
+            ) {
+              const changedGame =
+                scoresResult
+                  .changedGames[0];
+
+              gameLabel =
+                `${changedGame.away_team} @ ${changedGame.home_team}`;
+            }
+
+            const notificationResponse =
+              await fetch(
+                "/api/push/rankings-updated",
+                {
+                  method:
+                    "POST",
+
+                  headers: {
+                    "Content-Type":
+                      "application/json",
+
+                    Authorization:
+                      `Bearer ${session.access_token}`,
+                  },
+
+                  body:
+                    JSON.stringify({
+                      week:
+                        Number(
+                          currentWeek
+                        ),
+
+                      gameLabel,
+                    }),
+                }
+              );
+
+            rankingNotificationResult =
+              await notificationResponse.json();
+
+            if (
+              !notificationResponse.ok
+            ) {
+              console.error(
+                "Erreur notification classement :",
+                rankingNotificationResult
+              );
+            } else {
+              console.log(
+                "Notification classement :",
+                rankingNotificationResult
+              );
+            }
+          }
+        } catch (
+          notificationError
+        ) {
+          console.error(
+            "Erreur notification classement :",
+            notificationError
+          );
+        }
+      }
+
+      /*
+       * =====================================================
+       * MESSAGE ADMIN
+       * =====================================================
+       */
+
       let finalMessage =
         `Mise à jour complète ✅ ` +
-        `Scores ESPN : ${scoresUpdated}. ` +
+        `Scores ESPN : ${scoresResult.updated}. ` +
         `Équipes : ${standingsResult.updated}. ` +
         `QB ratings : ${qbResult.updated}. ` +
         `Classements : ${rankingsCalculated}.`;
+
+      /*
+       * Information utile pour toi dans Admin.
+       */
+      if (
+        scoresResult.changedGames.length ===
+        0
+      ) {
+        finalMessage +=
+          ` Aucun nouveau score à notifier.`;
+      } else if (
+        rankingNotificationResult
+          ?.success
+      ) {
+        finalMessage +=
+          ` Notifications classement : ${rankingNotificationResult.sent}.`;
+      }
 
       if (
         standingsResult
@@ -1733,7 +1914,6 @@ export default function AdminPage() {
       );
     }
   };
-
  /* =========================================================
    SEMAINE SUIVANTE
    ========================================================= */
