@@ -9,6 +9,9 @@ import {
 export const runtime =
   "nodejs";
 
+export const dynamic =
+  "force-dynamic";
+
 /*
  * =========================================================
  * CONFIGURATION
@@ -41,6 +44,121 @@ const supabaseAdmin =
 
 /*
  * =========================================================
+ * FORMAT DU RANG
+ * =========================================================
+ */
+
+function formatRank(rank) {
+  if (rank === 1) {
+    return "1er";
+  }
+
+  return `${rank}e`;
+}
+
+/*
+ * =========================================================
+ * CONTENU NOTIFICATION CLASSEMENT
+ * =========================================================
+ */
+
+async function getRankingNotification(
+  event
+) {
+  const {
+    data: weeklyScores,
+    error: scoresError,
+  } = await supabaseAdmin
+    .from("weekly_scores")
+    .select(
+      `
+        user_id,
+        final_score
+      `
+    )
+    .eq(
+      "week",
+      event.week
+    );
+
+  if (scoresError) {
+    throw scoresError;
+  }
+
+  if (
+    !weeklyScores ||
+    weeklyScores.length === 0
+  ) {
+    throw new Error(
+      `Aucun classement pour la semaine ${event.week}.`
+    );
+  }
+
+  /*
+   * =====================================================
+   * TRI DU CLASSEMENT
+   * =====================================================
+   */
+
+  const standings =
+    [...weeklyScores]
+      .map((row) => ({
+        ...row,
+
+        final_score:
+          Number(
+            row.final_score ||
+              0
+          ),
+      }))
+      .sort(
+        (a, b) =>
+          b.final_score -
+          a.final_score
+      );
+
+  const playerIndex =
+    standings.findIndex(
+      (row) =>
+        row.user_id ===
+        event.user_id
+    );
+
+  if (playerIndex === -1) {
+    throw new Error(
+      "Joueur absent du classement."
+    );
+  }
+
+  const playerStanding =
+    standings[playerIndex];
+
+  const rank =
+    playerIndex + 1;
+
+  const score =
+    playerStanding.final_score;
+
+  const rankText =
+    formatRank(rank);
+
+  const scoreText =
+    score.toFixed(3);
+
+  return {
+    title:
+      "🏆 Classements mis à jour",
+
+    body:
+      `Après les derniers matchs, tu es ${rankText} cette semaine avec ${scoreText} pts.`,
+
+    url:
+      "/classements",
+  };
+}
+
+/*
+ * =========================================================
  * ROUTE CRON
  * =========================================================
  */
@@ -52,14 +170,6 @@ export async function GET(
     /*
      * =========================================================
      * SÉCURITÉ
-     * =========================================================
-     *
-     * Vercel Cron enverra automatiquement :
-     *
-     * Authorization: Bearer CRON_SECRET
-     *
-     * Cette route ne peut donc pas être
-     * déclenchée librement par un joueur.
      * =========================================================
      */
 
@@ -98,66 +208,53 @@ export async function GET(
      * =========================================================
      * NOTIFICATIONS ARRIVÉES À ÉCHÉANCE
      * =========================================================
-     *
-     * On prend uniquement :
-     *
-     * - status = pending
-     * - scheduled_for existe
-     * - scheduled_for <= maintenant
-     * - sent_at est encore vide
-     * =========================================================
      */
 
     const {
-      data:
-        events,
-      error:
-        eventsError,
-    } =
-      await supabaseAdmin
-        .from(
-          "push_notification_events"
-        )
-        .select(
-          `
-            id,
-            event_key,
-            user_id,
-            notification_type,
-            week,
-            scheduled_for,
-            sent_at,
-            status
-          `
-        )
-        .eq(
-          "status",
-          "pending"
-        )
-        .is(
-          "sent_at",
-          null
-        )
-        .not(
-          "scheduled_for",
-          "is",
-          null
-        )
-        .lte(
-          "scheduled_for",
-          now
-        )
-        .order(
-          "scheduled_for",
-          {
-            ascending:
-              true,
-          }
-        );
+      data: events,
+      error: eventsError,
+    } = await supabaseAdmin
+      .from(
+        "push_notification_events"
+      )
+      .select(
+        `
+          id,
+          event_key,
+          user_id,
+          notification_type,
+          week,
+          scheduled_for,
+          sent_at,
+          status
+        `
+      )
+      .eq(
+        "status",
+        "pending"
+      )
+      .is(
+        "sent_at",
+        null
+      )
+      .not(
+        "scheduled_for",
+        "is",
+        null
+      )
+      .lte(
+        "scheduled_for",
+        now
+      )
+      .order(
+        "scheduled_for",
+        {
+          ascending:
+            true,
+        }
+      );
 
-    if (
-      eventsError
-    ) {
+    if (eventsError) {
       throw eventsError;
     }
 
@@ -169,8 +266,7 @@ export async function GET(
 
     if (
       !events ||
-      events.length ===
-        0
+      events.length === 0
     ) {
       return Response.json({
         success:
@@ -189,7 +285,7 @@ export async function GET(
 
     /*
      * =========================================================
-     * TRAITEMENT DES NOTIFICATIONS
+     * TRAITEMENT
      * =========================================================
      */
 
@@ -205,14 +301,11 @@ export async function GET(
     const results =
       [];
 
-    for (
-      const event of
-      events
-    ) {
+    for (const event of events) {
       try {
         /*
          * =====================================================
-         * CONTENU SELON LE TYPE DE NOTIFICATION
+         * CONTENU SELON LE TYPE
          * =====================================================
          */
 
@@ -224,6 +317,12 @@ export async function GET(
 
         let url =
           "/";
+
+        /*
+         * =====================================================
+         * TOUR DE SÉLECTION QB
+         * =====================================================
+         */
 
         if (
           event.notification_type ===
@@ -237,6 +336,31 @@ export async function GET(
 
           url =
             "/mes-choix";
+        }
+
+        /*
+         * =====================================================
+         * CLASSEMENT
+         * =====================================================
+         */
+
+        if (
+          event.notification_type ===
+          "rankings_updated"
+        ) {
+          const rankingNotification =
+            await getRankingNotification(
+              event
+            );
+
+          title =
+            rankingNotification.title;
+
+          body =
+            rankingNotification.body;
+
+          url =
+            rankingNotification.url;
         }
 
         /*
@@ -264,36 +388,31 @@ export async function GET(
          */
 
         if (
-          pushResult.sent >
-          0
+          pushResult.sent > 0
         ) {
           const sentAt =
             new Date()
               .toISOString();
 
           const {
-            error:
-              updateError,
-          } =
-            await supabaseAdmin
-              .from(
-                "push_notification_events"
-              )
-              .update({
-                status:
-                  "sent",
+            error: updateError,
+          } = await supabaseAdmin
+            .from(
+              "push_notification_events"
+            )
+            .update({
+              status:
+                "sent",
 
-                sent_at:
-                  sentAt,
-              })
-              .eq(
-                "id",
-                event.id
-              );
+              sent_at:
+                sentAt,
+            })
+            .eq(
+              "id",
+              event.id
+            );
 
-          if (
-            updateError
-          ) {
+          if (updateError) {
             throw updateError;
           }
 
@@ -305,6 +424,9 @@ export async function GET(
 
             eventKey:
               event.event_key,
+
+            type:
+              event.notification_type,
 
             status:
               "sent",
@@ -318,31 +440,25 @@ export async function GET(
 
         /*
          * =====================================================
-         * JOUEUR SANS ABONNEMENT PUSH
-         * =====================================================
-         *
-         * Le joueur peut quand même participer normalement.
-         * L'absence de l'app ou des notifications
-         * ne bloque jamais le pool.
+         * AUCUN ABONNEMENT PUSH
          * =====================================================
          */
 
         const {
           error:
             noSubscriptionError,
-        } =
-          await supabaseAdmin
-            .from(
-              "push_notification_events"
-            )
-            .update({
-              status:
-                "no_subscription",
-            })
-            .eq(
-              "id",
-              event.id
-            );
+        } = await supabaseAdmin
+          .from(
+            "push_notification_events"
+          )
+          .update({
+            status:
+              "no_subscription",
+          })
+          .eq(
+            "id",
+            event.id
+          );
 
         if (
           noSubscriptionError
@@ -359,12 +475,13 @@ export async function GET(
           eventKey:
             event.event_key,
 
+          type:
+            event.notification_type,
+
           status:
             "no_subscription",
         });
-      } catch (
-        eventError
-      ) {
+      } catch (eventError) {
         console.error(
           "Erreur notification programmée :",
           event.id,
@@ -374,11 +491,8 @@ export async function GET(
         failedCount++;
 
         /*
-         * On laisse status = pending.
-         *
-         * Ainsi une erreur temporaire
-         * pourra être réessayée au prochain
-         * passage du cron.
+         * On laisse pending pour permettre
+         * un nouvel essai ultérieur.
          */
 
         results.push({
@@ -387,6 +501,9 @@ export async function GET(
 
           eventKey:
             event.event_key,
+
+          type:
+            event.notification_type,
 
           status:
             "failed",
@@ -422,9 +539,7 @@ export async function GET(
 
       results,
     });
-  } catch (
-    error
-  ) {
+  } catch (error) {
     console.error(
       "Erreur route notifications programmées :",
       error
