@@ -1,9 +1,11 @@
 import {
   createClient,
 } from "@supabase/supabase-js";
+
 import {
   sendPushToUser,
 } from "../../../../lib/pushNotifications";
+
 export const runtime =
   "nodejs";
 
@@ -58,13 +60,14 @@ function formatRank(
  * =========================================================
  *
  * Avant 8 h 30 :
- * on programme la notification pour 8 h 30.
+ * on programme pour 8 h 30.
  *
  * À partir de 8 h 30 :
- * la notification sera envoyée immédiatement.
+ * on envoie immédiatement.
  *
- * Septembre : Québec = UTC-4.
- * 8 h 30 Québec = 12 h 30 UTC.
+ * Septembre :
+ * Québec = UTC-4
+ * 8 h 30 = 12 h 30 UTC
  * =========================================================
  */
 
@@ -103,6 +106,7 @@ function getRankingDelivery() {
       null,
   };
 }
+
 /*
  * =========================================================
  * ROUTE
@@ -198,7 +202,9 @@ export async function POST(
         adminError,
     } =
       await supabaseAdmin
-        .from("users")
+        .from(
+          "users"
+        )
         .select(
           "id, is_admin"
         )
@@ -311,6 +317,9 @@ export async function POST(
         scheduled:
           0,
 
+        sent:
+          0,
+
         message:
           "Aucun classement hebdomadaire à notifier.",
       });
@@ -341,22 +350,28 @@ export async function POST(
             a.final_score
         );
 
-  /*
- * =====================================================
- * HEURE D'ENVOI
- * =====================================================
- */
+    /*
+     * =====================================================
+     * HEURE D'ENVOI
+     * =====================================================
+     */
 
-const {
-  sendNow,
-  scheduledFor,
-} =
-  getRankingDelivery();
+    const {
+      sendNow,
+      scheduledFor,
+    } =
+      getRankingDelivery();
 
-const updateId =
-  Date.now();
+    const updateId =
+      Date.now();
 
     let scheduledCount =
+      0;
+
+    let sentCount =
+      0;
+
+    let noSubscriptionCount =
       0;
 
     let failedCount =
@@ -367,7 +382,7 @@ const updateId =
 
     /*
      * =====================================================
-     * PROGRAMMER UNE NOTIFICATION PAR JOUEUR
+     * NOTIFICATION PAR JOUEUR
      * =====================================================
      */
 
@@ -423,10 +438,10 @@ const updateId =
       }
 
       try {
-      try {
         /*
          * =================================================
-         * ENVOI IMMÉDIAT APRÈS 8 H 30
+         * APRÈS 8 H 30 :
+         * ENVOI IMMÉDIAT
          * =================================================
          */
 
@@ -447,23 +462,46 @@ const updateId =
                 "/classements",
             });
 
-          results.push({
-            userId,
+          if (
+            pushResult.sent > 0
+          ) {
+            sentCount +=
+              pushResult.sent;
 
-            rank,
+            results.push({
+              userId,
 
-            score,
+              rank,
 
-            notificationBody,
+              score,
 
-            sent:
-              pushResult.sent,
+              notificationBody,
 
-            status:
-              pushResult.sent > 0
-                ? "sent"
-                : "no_subscription",
-          });
+              sent:
+                pushResult.sent,
+
+              status:
+                "sent",
+            });
+          } else {
+            noSubscriptionCount++;
+
+            results.push({
+              userId,
+
+              rank,
+
+              score,
+
+              notificationBody,
+
+              sent:
+                0,
+
+              status:
+                "no_subscription",
+            });
+          }
 
           continue;
         }
@@ -538,7 +576,7 @@ const updateId =
         playerError
       ) {
         console.error(
-          "Erreur programmation classement :",
+          "Erreur notification classement :",
           userId,
           playerError
         );
@@ -582,14 +620,27 @@ const updateId =
       players:
         standings.length,
 
+      delivery:
+        sendNow
+          ? "immediate"
+          : "scheduled",
+
+      sent:
+        sentCount,
+
       scheduled:
         scheduledCount,
+
+      noSubscription:
+        noSubscriptionCount,
 
       failed:
         failedCount,
 
       scheduledFor:
-        scheduledFor.toISOString(),
+        scheduledFor
+          ? scheduledFor.toISOString()
+          : null,
 
       results,
     });
