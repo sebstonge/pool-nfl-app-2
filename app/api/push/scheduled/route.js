@@ -68,18 +68,21 @@ async function getRankingNotification(
   const {
     data: weeklyScores,
     error: scoresError,
-  } = await supabaseAdmin
-    .from("weekly_scores")
-    .select(
-      `
-        user_id,
-        final_score
-      `
-    )
-    .eq(
-      "week",
-      event.week
-    );
+  } =
+    await supabaseAdmin
+      .from(
+        "weekly_scores"
+      )
+      .select(
+        `
+          user_id,
+          final_score
+        `
+      )
+      .eq(
+        "week",
+        event.week
+      );
 
   if (scoresError) {
     throw scoresError;
@@ -102,15 +105,17 @@ async function getRankingNotification(
 
   const standings =
     [...weeklyScores]
-      .map((row) => ({
-        ...row,
+      .map(
+        (row) => ({
+          ...row,
 
-        final_score:
-          Number(
-            row.final_score ||
-              0
-          ),
-      }))
+          final_score:
+            Number(
+              row.final_score ||
+                0
+            ),
+        })
+      )
       .sort(
         (a, b) =>
           b.final_score -
@@ -124,33 +129,60 @@ async function getRankingNotification(
         event.user_id
     );
 
-  if (playerIndex === -1) {
+  if (
+    playerIndex === -1
+  ) {
     throw new Error(
       "Joueur absent du classement."
     );
   }
 
   const playerStanding =
-    standings[playerIndex];
+    standings[
+      playerIndex
+    ];
 
   const rank =
     playerIndex + 1;
 
   const score =
-    playerStanding.final_score;
+    playerStanding
+      .final_score;
 
   const rankText =
-    formatRank(rank);
+    formatRank(
+      rank
+    );
 
   const scoreText =
-    score.toFixed(3);
+    score.toFixed(
+      3
+    );
+
+  /*
+   * =====================================================
+   * CONTEXTE DU/DES MATCHS
+   * =====================================================
+   *
+   * 1 seul match modifié :
+   * Après Ravens @ Bengals...
+   *
+   * Plusieurs matchs modifiés :
+   * Après les derniers matchs...
+   * =====================================================
+   */
+
+  const contextText =
+    event.game_label
+      ? `Après ${event.game_label}`
+      : "Après les derniers matchs";
 
   return {
     title:
       "🏆 Classements mis à jour",
 
     body:
-      `Après les derniers matchs, tu es ${rankText} cette semaine avec ${scoreText} pts.`,
+      `${contextText}, tu es ${rankText} cette semaine avec ${scoreText} pts.`,
 
     url:
       "/classements",
@@ -168,9 +200,9 @@ export async function GET(
 ) {
   try {
     /*
-     * =========================================================
+     * =====================================================
      * SÉCURITÉ
-     * =========================================================
+     * =====================================================
      */
 
     const authorization =
@@ -196,72 +228,77 @@ export async function GET(
     }
 
     /*
-     * =========================================================
+     * =====================================================
      * HEURE ACTUELLE
-     * =========================================================
+     * =====================================================
      */
 
     const now =
-      new Date().toISOString();
+      new Date()
+        .toISOString();
 
     /*
-     * =========================================================
+     * =====================================================
      * NOTIFICATIONS ARRIVÉES À ÉCHÉANCE
-     * =========================================================
+     * =====================================================
      */
 
     const {
       data: events,
       error: eventsError,
-    } = await supabaseAdmin
-      .from(
-        "push_notification_events"
-      )
-      .select(
-        `
-          id,
-          event_key,
-          user_id,
-          notification_type,
-          week,
-          scheduled_for,
-          sent_at,
-          status
-        `
-      )
-      .eq(
-        "status",
-        "pending"
-      )
-      .is(
-        "sent_at",
-        null
-      )
-      .not(
-        "scheduled_for",
-        "is",
-        null
-      )
-      .lte(
-        "scheduled_for",
-        now
-      )
-      .order(
-        "scheduled_for",
-        {
-          ascending:
-            true,
-        }
-      );
+    } =
+      await supabaseAdmin
+        .from(
+          "push_notification_events"
+        )
+        .select(
+          `
+            id,
+            event_key,
+            user_id,
+            notification_type,
+            week,
+            game_label,
+            scheduled_for,
+            sent_at,
+            status
+          `
+        )
+        .eq(
+          "status",
+          "pending"
+        )
+        .is(
+          "sent_at",
+          null
+        )
+        .not(
+          "scheduled_for",
+          "is",
+          null
+        )
+        .lte(
+          "scheduled_for",
+          now
+        )
+        .order(
+          "scheduled_for",
+          {
+            ascending:
+              true,
+          }
+        );
 
-    if (eventsError) {
+    if (
+      eventsError
+    ) {
       throw eventsError;
     }
 
     /*
-     * =========================================================
+     * =====================================================
      * RIEN À ENVOYER
-     * =========================================================
+     * =====================================================
      */
 
     if (
@@ -284,9 +321,9 @@ export async function GET(
     }
 
     /*
-     * =========================================================
+     * =====================================================
      * TRAITEMENT
-     * =========================================================
+     * =====================================================
      */
 
     let sentCount =
@@ -301,12 +338,14 @@ export async function GET(
     const results =
       [];
 
-    for (const event of events) {
+    for (
+      const event of events
+    ) {
       try {
         /*
-         * =====================================================
+         * =================================================
          * CONTENU SELON LE TYPE
-         * =====================================================
+         * =================================================
          */
 
         let title =
@@ -319,9 +358,9 @@ export async function GET(
           "/";
 
         /*
-         * =====================================================
+         * =================================================
          * TOUR DE SÉLECTION QB
-         * =====================================================
+         * =================================================
          */
 
         if (
@@ -334,14 +373,14 @@ export async function GET(
           body =
             `Tu peux maintenant soumettre ton QB et tes choix pour la semaine ${event.week}.`;
 
-     url =
-  "/";
+          url =
+            "/";
         }
 
         /*
-         * =====================================================
+         * =================================================
          * CLASSEMENT
-         * =====================================================
+         * =================================================
          */
 
         if (
@@ -354,19 +393,22 @@ export async function GET(
             );
 
           title =
-            rankingNotification.title;
+            rankingNotification
+              .title;
 
           body =
-            rankingNotification.body;
+            rankingNotification
+              .body;
 
           url =
-            rankingNotification.url;
+            rankingNotification
+              .url;
         }
 
         /*
-         * =====================================================
+         * =================================================
          * ENVOI PUSH
-         * =====================================================
+         * =================================================
          */
 
         const pushResult =
@@ -382,9 +424,9 @@ export async function GET(
           });
 
         /*
-         * =====================================================
+         * =================================================
          * NOTIFICATION ENVOYÉE
-         * =====================================================
+         * =================================================
          */
 
         if (
@@ -395,24 +437,28 @@ export async function GET(
               .toISOString();
 
           const {
-            error: updateError,
-          } = await supabaseAdmin
-            .from(
-              "push_notification_events"
-            )
-            .update({
-              status:
-                "sent",
+            error:
+              updateError,
+          } =
+            await supabaseAdmin
+              .from(
+                "push_notification_events"
+              )
+              .update({
+                status:
+                  "sent",
 
-              sent_at:
-                sentAt,
-            })
-            .eq(
-              "id",
-              event.id
-            );
+                sent_at:
+                  sentAt,
+              })
+              .eq(
+                "id",
+                event.id
+              );
 
-          if (updateError) {
+          if (
+            updateError
+          ) {
             throw updateError;
           }
 
@@ -439,26 +485,27 @@ export async function GET(
         }
 
         /*
-         * =====================================================
+         * =================================================
          * AUCUN ABONNEMENT PUSH
-         * =====================================================
+         * =================================================
          */
 
         const {
           error:
             noSubscriptionError,
-        } = await supabaseAdmin
-          .from(
-            "push_notification_events"
-          )
-          .update({
-            status:
-              "no_subscription",
-          })
-          .eq(
-            "id",
-            event.id
-          );
+        } =
+          await supabaseAdmin
+            .from(
+              "push_notification_events"
+            )
+            .update({
+              status:
+                "no_subscription",
+            })
+            .eq(
+              "id",
+              event.id
+            );
 
         if (
           noSubscriptionError
@@ -481,7 +528,9 @@ export async function GET(
           status:
             "no_subscription",
         });
-      } catch (eventError) {
+      } catch (
+        eventError
+      ) {
         console.error(
           "Erreur notification programmée :",
           event.id,
@@ -491,8 +540,8 @@ export async function GET(
         failedCount++;
 
         /*
-         * On laisse pending pour permettre
-         * un nouvel essai ultérieur.
+         * On laisse pending afin qu'un
+         * nouvel essai reste possible.
          */
 
         results.push({
@@ -509,16 +558,17 @@ export async function GET(
             "failed",
 
           error:
-            eventError?.message ||
+            eventError
+              ?.message ||
             "Erreur inconnue",
         });
       }
     }
 
     /*
-     * =========================================================
+     * =====================================================
      * RÉPONSE
-     * =========================================================
+     * =====================================================
      */
 
     return Response.json({
@@ -539,7 +589,9 @@ export async function GET(
 
       results,
     });
-  } catch (error) {
+  } catch (
+    error
+  ) {
     console.error(
       "Erreur route notifications programmées :",
       error
