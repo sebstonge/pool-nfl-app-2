@@ -576,19 +576,19 @@ export async function POST(
      */
 
     const result =
-      await sendPushToUser({
-        userId:
-          nextPlayer.id,
+  await sendPushToUser({
+    userId:
+      nextPlayer.id,
 
-        title:
-          "⏰ C’est à ton tour",
+    title:
+      "⏰ C’est à ton tour",
 
-        body:
-          `Tu peux maintenant soumettre ton QB et tes choix pour la semaine ${week}.`,
+    body:
+      `Tu peux maintenant soumettre ton QB et tes choix pour la semaine ${week}.`,
 
-        url:
-          "/mes-choix",
-      });
+    url:
+      "/",
+  });
 
     /*
      * =========================================================
