@@ -7,6 +7,10 @@
     {
       "path": "/api/push/scheduled",
       "schedule": "30 13 * * *"
+    },
+    {
+      "path": "/api/push/qb-final",
+      "schedule": "*/15 * * * *"
     }
   ]
 }
