@@ -1259,37 +1259,49 @@ const qbIsLive =
     ● EN DIRECT
   </div>
 )}
-          <div
+                   <div
             style={{
               marginTop: 4,
               fontSize: 10,
-              color: "#94a3b8",
-              lineHeight: 1.2,
+              lineHeight: 1.25,
             }}
           >
-            Rating{" "}
-            <strong
+            {/* RATING DE LA SEMAINE */}
+
+            <div
               style={{
-                color:
-                  displayedRating !=
-                  null
-                    ? ratingColor(
-                        displayedRating
-                      )
-                    : "#64748b",
+                color: "#94a3b8",
               }}
             >
-              {displayedRating != null
-                ? displayedRating.toFixed(
-                    1
-                  )
-                : "--"}
-            </strong>
+              Rating{" "}
+              <strong
+                style={{
+                  color:
+                    displayedRating !=
+                    null
+                      ? ratingColor(
+                          displayedRating
+                        )
+                      : "#64748b",
+                }}
+              >
+                {displayedRating != null
+                  ? displayedRating.toFixed(
+                      1
+                    )
+                  : "--"}
+              </strong>
+            </div>
+
+            {/* MOYENNE DE SAISON */}
 
             {average != null && (
-              <>
-                <span> · </span>
-
+              <div
+                style={{
+                  marginTop: 2,
+                  color: "#94a3b8",
+                }}
+              >
                 Moy.{" "}
                 <strong
                   style={{
@@ -1301,7 +1313,7 @@ const qbIsLive =
                 >
                   {average.toFixed(1)}
                 </strong>
-              </>
+              </div>
             )}
           </div>
         </div>
