@@ -1,7 +1,9 @@
 import {
   createClient,
 } from "@supabase/supabase-js";
-
+import {
+  sendPushToUser,
+} from "../../../../lib/pushNotifications";
 export const runtime =
   "nodejs";
 
@@ -52,48 +54,55 @@ function formatRank(
 
 /*
  * =========================================================
- * PROCHAIN 8 H 30 — HEURE DU QUÉBEC
+ * HEURE D'ENVOI — 8 H 30 QUÉBEC
  * =========================================================
  *
- * En septembre, le Québec est à UTC-4.
+ * Avant 8 h 30 :
+ * on programme la notification pour 8 h 30.
  *
+ * À partir de 8 h 30 :
+ * la notification sera envoyée immédiatement.
+ *
+ * Septembre : Québec = UTC-4.
  * 8 h 30 Québec = 12 h 30 UTC.
- *
- * Cette route est utilisée lorsque l'Admin fait
- * sa mise à jour tôt le matin.
  * =========================================================
  */
 
-function getNext830Quebec() {
+function getRankingDelivery() {
   const now =
     new Date();
 
-  const scheduled =
+  const today830 =
     new Date(now);
 
-  scheduled.setUTCHours(
+  today830.setUTCHours(
     12,
     30,
     0,
     0
   );
 
-  /*
-   * Si 8 h 30 Québec est déjà passé,
-   * on programme pour le lendemain.
-   */
   if (
-    scheduled.getTime() <=
-    now.getTime()
+    now.getTime() <
+    today830.getTime()
   ) {
-    scheduled.setUTCDate(
-      scheduled.getUTCDate() + 1
-    );
+    return {
+      sendNow:
+        false,
+
+      scheduledFor:
+        today830,
+    };
   }
 
-  return scheduled;
-}
+  return {
+    sendNow:
+      true,
 
+    scheduledFor:
+      null,
+  };
+}
 /*
  * =========================================================
  * ROUTE
@@ -332,17 +341,20 @@ export async function POST(
             a.final_score
         );
 
-    /*
-     * =====================================================
-     * HEURE D'ENVOI
-     * =====================================================
-     */
+  /*
+ * =====================================================
+ * HEURE D'ENVOI
+ * =====================================================
+ */
 
-    const scheduledFor =
-      getNext830Quebec();
+const {
+  sendNow,
+  scheduledFor,
+} =
+  getRankingDelivery();
 
-    const updateId =
-      Date.now();
+const updateId =
+  Date.now();
 
     let scheduledCount =
       0;
@@ -411,16 +423,55 @@ export async function POST(
       }
 
       try {
+      try {
         /*
          * =================================================
-         * CRÉER L'ÉVÉNEMENT PROGRAMMÉ
+         * ENVOI IMMÉDIAT APRÈS 8 H 30
          * =================================================
-         *
-         * On conserve le texte directement dans event_key
-         * uniquement pour identifier l'événement.
-         *
-         * Le cron reconstruira le classement au moment
-         * de l'envoi à partir de weekly_scores.
+         */
+
+        if (
+          sendNow
+        ) {
+          const pushResult =
+            await sendPushToUser({
+              userId,
+
+              title:
+                "🏆 Classements mis à jour",
+
+              body:
+                notificationBody,
+
+              url:
+                "/classements",
+            });
+
+          results.push({
+            userId,
+
+            rank,
+
+            score,
+
+            notificationBody,
+
+            sent:
+              pushResult.sent,
+
+            status:
+              pushResult.sent > 0
+                ? "sent"
+                : "no_subscription",
+          });
+
+          continue;
+        }
+
+        /*
+         * =================================================
+         * AVANT 8 H 30 :
+         * PROGRAMMER POUR 8 H 30
          * =================================================
          */
 
