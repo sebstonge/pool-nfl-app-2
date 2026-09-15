@@ -921,7 +921,9 @@ export default function HomePage() {
       {notificationStatus}
     </p>
   )}
-          </section>
+
+</div>
+</section>
 
           {/* ================================
               NAVIGATION
