@@ -205,9 +205,7 @@ function getWeek1FirstPlayerStart(alexandrePickCreatedAt) {
  * le chrono commence immédiatement.
  */
 function getAdjustedFirstPlayerStart(startedAt) {
-  if (!startedAt) {
-    return null;
-  }
+  if (!startedAt) return null;
 
   const started = new Date(startedAt);
 
@@ -215,15 +213,25 @@ function getAdjustedFirstPlayerStart(startedAt) {
     return null;
   }
 
-  if (started.getHours() < 9) {
+  /*
+    Si la semaine est ouverte avant 8 h 30,
+    le chrono officiel du premier joueur commence à 8 h 30.
+
+    Si elle est ouverte à 8 h 30 ou plus tard,
+    le chrono commence au moment réel de l'ouverture.
+  */
+
+  if (
+    started.getHours() < 8 ||
+    (started.getHours() === 8 && started.getMinutes() < 30)
+  ) {
     const adjusted = new Date(started);
-    adjusted.setHours(9, 0, 0, 0);
+    adjusted.setHours(8, 30, 0, 0);
     return adjusted;
   }
 
   return started;
 }
-
 /* =========================================================
    PAGE
    ========================================================= */
@@ -1726,100 +1734,146 @@ export default function AdminPage() {
     }
   };
 
-  /* =========================================================
-     SEMAINE SUIVANTE
-     ========================================================= */
+ /* =========================================================
+   SEMAINE SUIVANTE
+   ========================================================= */
 
-  const nextWeek = async () => {
-    const confirmation =
-      window.confirm(
-        "Passer à la semaine suivante? Assure-toi que les scores sont calculés."
+const nextWeek = async () => {
+  const confirmed = window.confirm(
+    "Passer à la semaine suivante ?\n\n" +
+      "Cette action ouvrira officiellement la prochaine semaine du pool."
+  );
+
+  if (!confirmed) return;
+
+
+  setMessage("");
+
+  try {
+    /* =====================================================
+       1. LIRE LA SEMAINE ACTUELLE
+       ===================================================== */
+
+    const { data: currentSettings, error: settingsError } =
+      await supabase
+        .from("settings")
+        .select("current_week")
+        .single();
+
+    if (settingsError) throw settingsError;
+
+    const currentWeek = Number(currentSettings?.current_week || 1);
+    const newWeek = currentWeek + 1;
+
+    /* =====================================================
+       2. ENREGISTRER LE MOMENT D'OUVERTURE
+       ===================================================== */
+
+    const startedAt = new Date().toISOString();
+
+    const { error: startError } = await supabase
+      .from("qb_selection_weeks")
+      .upsert(
+        {
+          week: newWeek,
+          started_at: startedAt,
+        },
+        {
+          onConflict: "week",
+        }
       );
 
-    if (!confirmation) {
-      return;
-    }
+    if (startError) throw startError;
+
+    /* =====================================================
+       3. PASSER À LA NOUVELLE SEMAINE
+       ===================================================== */
+
+    const { error: updateError } = await supabase
+      .from("settings")
+      .update({
+        current_week: newWeek,
+      })
+      .eq("id", 1);
+
+    if (updateError) throw updateError;
+
+    /* =====================================================
+       4. NOTIFIER LE PREMIER JOUEUR
+
+       - avant 8 h 30 Québec :
+         notification programmée pour 8 h 30
+
+       - à partir de 8 h 30 :
+         notification immédiate
+
+       Une erreur de notification ne doit JAMAIS annuler
+       le changement de semaine.
+       ===================================================== */
 
     try {
-      const currentSettings =
-        await loadSettings();
-
-      const newWeek =
-        Number(
-          currentSettings.current_week ||
-            1
-        ) + 1;
-
-      /*
-       * On enregistre l'heure EXACTE
-       * à laquelle tu ouvres la nouvelle semaine.
-       */
-      const startedAt =
-        new Date().toISOString();
-
       const {
-        error: startError,
-      } = await supabase
-        .from("qb_selection_weeks")
-        .upsert(
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session?.access_token) {
+        console.error(
+          "Notification premier joueur : session introuvable."
+        );
+      } else {
+        const notificationResponse = await fetch(
+          "/api/push/first-player",
           {
-            week: newWeek,
-            started_at: startedAt,
-          },
-          {
-            onConflict: "week",
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${session.access_token}`,
+            },
           }
         );
 
-      if (startError) {
-        setMessage(
-          "Erreur départ sélection QB : " +
-            startError.message
-        );
+        const notificationResult =
+          await notificationResponse.json();
 
-        return;
+        if (!notificationResponse.ok) {
+          console.error(
+            "Erreur notification premier joueur :",
+            notificationResult
+          );
+        } else {
+          console.log(
+            "Notification premier joueur :",
+            notificationResult
+          );
+        }
       }
-
-      const { error } = await supabase
-        .from("settings")
-        .update({
-          current_week: newWeek,
-        })
-        .eq(
-          "id",
-          currentSettings.id
-        );
-
-      if (error) {
-        setMessage(
-          "Erreur semaine suivante : " +
-            error.message
-        );
-
-        return;
-      }
-
-      const refreshedSettings =
-        await loadSettings();
-
-      await loadSelectionStats(
-        Number(
-          refreshedSettings.current_week
-        )
-      );
-
-      setMessage(
-        `Semaine active changée à ${refreshedSettings.current_week} ✅`
-      );
-    } catch (error) {
-      console.error(error);
-
-      setMessage(
-        "Erreur semaine suivante : " +
-          error.message
+    } catch (notificationError) {
+      console.error(
+        "Erreur notification premier joueur :",
+        notificationError
       );
     }
-  };
+
+    /* =====================================================
+       5. RECHARGER L'ADMIN
+       ===================================================== */
+
+  await loadSettings();
+await loadSelectionStats(newWeek);
+
+    setMessage(
+      `Semaine ${newWeek} ouverte avec succès ✅`
+    );
+  } catch (error) {
+    console.error(
+      "Erreur passage semaine suivante :",
+      error
+    );
+
+    setMessage(
+      `Erreur : ${error?.message || "Impossible de passer à la semaine suivante."}`
+    );
+  }
+};
 
   /* =========================================================
      ACCÈS
