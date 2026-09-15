@@ -1,0 +1,19 @@
+name: QB Final Check
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+
+  workflow_dispatch:
+
+jobs:
+  check-qb-final:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check final QB games
+        run: |
+          curl --fail-with-body \
+            --request POST \
+            --header "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "https://pool-nfl-app-2.vercel.app/api/push/qb-final"
