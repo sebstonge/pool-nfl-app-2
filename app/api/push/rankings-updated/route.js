@@ -524,23 +524,26 @@ export async function POST(
               "push_notification_events"
             )
             .insert({
-              event_key:
-                eventKey,
+  event_key:
+    eventKey,
 
-              user_id:
-                userId,
+  user_id:
+    userId,
 
-              notification_type:
-                "rankings_updated",
+  notification_type:
+    "rankings_updated",
 
-              week,
+  week,
 
-              scheduled_for:
-                scheduledFor.toISOString(),
+  game_label:
+    gameLabel || null,
 
-              status:
-                "pending",
-            })
+  scheduled_for:
+    scheduledFor.toISOString(),
+
+  status:
+    "pending",
+})
             .select(
               "id"
             )
