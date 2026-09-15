@@ -334,8 +334,8 @@ export async function GET(
           body =
             `Tu peux maintenant soumettre ton QB et tes choix pour la semaine ${event.week}.`;
 
-          url =
-            "/mes-choix";
+     url =
+  "/";
         }
 
         /*
