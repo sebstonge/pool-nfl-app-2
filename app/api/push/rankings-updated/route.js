@@ -2,10 +2,6 @@ import {
   createClient,
 } from "@supabase/supabase-js";
 
-import {
-  sendPushToUser,
-} from "../../../../lib/pushNotifications";
-
 export const runtime =
   "nodejs";
 
@@ -52,6 +48,50 @@ function formatRank(
   }
 
   return `${rank}e`;
+}
+
+/*
+ * =========================================================
+ * PROCHAIN 8 H 30 — HEURE DU QUÉBEC
+ * =========================================================
+ *
+ * En septembre, le Québec est à UTC-4.
+ *
+ * 8 h 30 Québec = 12 h 30 UTC.
+ *
+ * Cette route est utilisée lorsque l'Admin fait
+ * sa mise à jour tôt le matin.
+ * =========================================================
+ */
+
+function getNext830Quebec() {
+  const now =
+    new Date();
+
+  const scheduled =
+    new Date(now);
+
+  scheduled.setUTCHours(
+    12,
+    30,
+    0,
+    0
+  );
+
+  /*
+   * Si 8 h 30 Québec est déjà passé,
+   * on programme pour le lendemain.
+   */
+  if (
+    scheduled.getTime() <=
+    now.getTime()
+  ) {
+    scheduled.setUTCDate(
+      scheduled.getUTCDate() + 1
+    );
+  }
+
+  return scheduled;
 }
 
 /*
@@ -259,7 +299,7 @@ export async function POST(
 
         week,
 
-        sent:
+        scheduled:
           0,
 
         message:
@@ -270,9 +310,6 @@ export async function POST(
     /*
      * =====================================================
      * TRI DU CLASSEMENT
-     * =====================================================
-     *
-     * Plus grand score = meilleur classement.
      * =====================================================
      */
 
@@ -297,23 +334,17 @@ export async function POST(
 
     /*
      * =====================================================
-     * IDENTIFIANT DE CETTE MISE À JOUR
-     * =====================================================
-     *
-     * On utilise l'heure précise du clic Admin.
-     *
-     * Chaque clic constitue donc une nouvelle
-     * mise à jour possible des classements.
+     * HEURE D'ENVOI
      * =====================================================
      */
+
+    const scheduledFor =
+      getNext830Quebec();
 
     const updateId =
       Date.now();
 
-    let sentCount =
-      0;
-
-    let noSubscriptionCount =
+    let scheduledCount =
       0;
 
     let failedCount =
@@ -324,7 +355,7 @@ export async function POST(
 
     /*
      * =====================================================
-     * ENVOYER À CHAQUE JOUEUR
+     * PROGRAMMER UNE NOTIFICATION PAR JOUEUR
      * =====================================================
      */
 
@@ -351,10 +382,45 @@ export async function POST(
         `-update-${updateId}` +
         `-user-${userId}`;
 
+      /*
+       * ===================================================
+       * TEXTE PERSONNALISÉ
+       * ===================================================
+       */
+
+      const rankText =
+        formatRank(
+          rank
+        );
+
+      const scoreText =
+        score.toFixed(
+          3
+        );
+
+      let notificationBody;
+
+      if (
+        gameLabel
+      ) {
+        notificationBody =
+          `Après ${gameLabel}, tu es ${rankText} cette semaine avec ${scoreText} pts.`;
+      } else {
+        notificationBody =
+          `Après les derniers matchs, tu es ${rankText} cette semaine avec ${scoreText} pts.`;
+      }
+
       try {
         /*
          * =================================================
-         * CRÉER L'ÉVÉNEMENT
+         * CRÉER L'ÉVÉNEMENT PROGRAMMÉ
+         * =================================================
+         *
+         * On conserve le texte directement dans event_key
+         * uniquement pour identifier l'événement.
+         *
+         * Le cron reconstruira le classement au moment
+         * de l'envoi à partir de weekly_scores.
          * =================================================
          */
 
@@ -380,6 +446,9 @@ export async function POST(
 
               week,
 
+              scheduled_for:
+                scheduledFor.toISOString(),
+
               status:
                 "pending",
             })
@@ -394,143 +463,7 @@ export async function POST(
           throw eventError;
         }
 
-        /*
-         * =================================================
-         * TEXTE
-         * =================================================
-         */
-
-        const rankText =
-          formatRank(
-            rank
-          );
-
-        const scoreText =
-          score.toFixed(
-            3
-          );
-
-        let notificationBody;
-
-        if (
-          gameLabel
-        ) {
-          notificationBody =
-            `Après ${gameLabel}, tu es ${rankText} cette semaine avec ${scoreText} pts.`;
-        } else {
-          notificationBody =
-            `Après les derniers matchs, tu es ${rankText} cette semaine avec ${scoreText} pts.`;
-        }
-
-        /*
-         * =================================================
-         * ENVOI
-         * =================================================
-         */
-
-        const pushResult =
-          await sendPushToUser({
-            userId,
-
-            title:
-              "🏆 Classements mis à jour",
-
-            body:
-              notificationBody,
-
-            url:
-              "/classements",
-          });
-
-        /*
-         * =================================================
-         * ENVOYÉ
-         * =================================================
-         */
-
-        if (
-          pushResult.sent >
-          0
-        ) {
-          const sentAt =
-            new Date()
-              .toISOString();
-
-          const {
-            error:
-              updateError,
-          } =
-            await supabaseAdmin
-              .from(
-                "push_notification_events"
-              )
-              .update({
-                status:
-                  "sent",
-
-                sent_at:
-                  sentAt,
-              })
-              .eq(
-                "id",
-                event.id
-              );
-
-          if (
-            updateError
-          ) {
-            throw updateError;
-          }
-
-          sentCount++;
-
-          results.push({
-            userId,
-
-            rank,
-
-            score,
-
-            status:
-              "sent",
-
-            devices:
-              pushResult.sent,
-          });
-
-          continue;
-        }
-
-        /*
-         * =================================================
-         * AUCUN ABONNEMENT
-         * =================================================
-         */
-
-        const {
-          error:
-            noSubscriptionError,
-        } =
-          await supabaseAdmin
-            .from(
-              "push_notification_events"
-            )
-            .update({
-              status:
-                "no_subscription",
-            })
-            .eq(
-              "id",
-              event.id
-            );
-
-        if (
-          noSubscriptionError
-        ) {
-          throw noSubscriptionError;
-        }
-
-        noSubscriptionCount++;
+        scheduledCount++;
 
         results.push({
           userId,
@@ -539,14 +472,22 @@ export async function POST(
 
           score,
 
+          notificationBody,
+
+          scheduledFor:
+            scheduledFor.toISOString(),
+
+          eventId:
+            event.id,
+
           status:
-            "no_subscription",
+            "pending",
         });
       } catch (
         playerError
       ) {
         console.error(
-          "Erreur notification classement :",
+          "Erreur programmation classement :",
           userId,
           playerError
         );
@@ -590,14 +531,14 @@ export async function POST(
       players:
         standings.length,
 
-      sent:
-        sentCount,
-
-      noSubscription:
-        noSubscriptionCount,
+      scheduled:
+        scheduledCount,
 
       failed:
         failedCount,
+
+      scheduledFor:
+        scheduledFor.toISOString(),
 
       results,
     });
