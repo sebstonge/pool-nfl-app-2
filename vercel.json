@@ -3,14 +3,6 @@
     {
       "path": "/api/push/scheduled",
       "schedule": "30 12 * * *"
-    },
-    {
-      "path": "/api/push/scheduled",
-      "schedule": "30 13 * * *"
-    },
-    {
-      "path": "/api/push/qb-final",
-      "schedule": "*/15 * * * *"
     }
   ]
 }
