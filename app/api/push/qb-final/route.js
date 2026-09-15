@@ -4,7 +4,7 @@ import {
 
 import {
   sendPushToUser,
-} from "../../../../../lib/pushNotifications";
+} from "../../../../lib/pushNotifications";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
