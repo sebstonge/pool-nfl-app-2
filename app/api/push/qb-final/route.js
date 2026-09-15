@@ -833,20 +833,20 @@ export async function GET(
           1
         );
 
-      const pushResult =
-        await sendPushToUser({
-          userId:
-            pick.user_id,
+     const pushResult =
+  await sendPushToUser({
+    userId:
+      pick.user_id,
 
-          title:
-            "🏈 Passer Rating final",
+    title:
+      "🏈 Passer Rating final",
 
-          body:
-            `${actualQB.name} a conclu son match contre ${opponent} avec un passer rating de ${ratingText}.`,
+    body:
+      `${actualQB.name} a conclu son match contre ${opponent} avec un passer rating de ${ratingText}.`,
 
-          url:
-            "/qb-ratings",
-        });
+    url:
+      "/",
+  });
 
       /*
        * ===================================================
