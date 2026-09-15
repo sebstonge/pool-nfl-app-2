@@ -706,7 +706,46 @@ export default function HomePage() {
       false
     );
   }
+  /*
+   * =========================================================
+   * ÉTAT DES NOTIFICATIONS
+   * =========================================================
+   */
 
+  useEffect(() => {
+    async function checkNotificationStatus() {
+      try {
+        if (
+          !("serviceWorker" in navigator) ||
+          !("PushManager" in window) ||
+          Notification.permission !== "granted"
+        ) {
+          return;
+        }
+
+        const registration =
+          await navigator.serviceWorker.register(
+            "/sw.js"
+          );
+
+        const subscription =
+          await registration.pushManager.getSubscription();
+
+        if (subscription) {
+          setNotificationStatus(
+            "✅ Notifications activées."
+          );
+        }
+      } catch (error) {
+        console.error(
+          "Erreur vérification notifications :",
+          error
+        );
+      }
+    }
+
+    checkNotificationStatus();
+  }, []);
   /*
    * =========================================================
    * AFFICHAGE
