@@ -840,119 +840,87 @@ export default function HomePage() {
                 )}
               </div>
 
-              {/* =================================================
-                  ACTIONS UTILISATEUR
-                  ================================================= */}
+              {/* ACTIONS UTILISATEUR */}
 
-              <div
-                style={{
-                  display:
-                    "flex",
+<div
+  style={{
+    display: "flex",
+    flexDirection: "column",
+    gap: 8,
+    alignItems: "stretch",
+  }}
+>
+  <button
+    type="button"
+    className="button"
+    onClick={
+      notificationStatus.includes("✅")
+        ? undefined
+        : handleEnableNotifications
+    }
+    disabled={
+      notificationLoading ||
+      notificationStatus.includes("✅")
+    }
+    style={{
+      width: "auto",
+      minWidth: 180,
+      whiteSpace: "nowrap",
+      margin: 0,
 
-                  flexDirection:
-                    "column",
+      background: notificationStatus.includes("✅")
+        ? "#475569"
+        : undefined,
 
-                  gap:
-                    8,
+      borderColor: notificationStatus.includes("✅")
+        ? "#64748b"
+        : undefined,
 
-                  alignItems:
-                    "stretch",
+      color: "#f8fafc",
 
-                  width:
-                    isMobile
-                      ? "100%"
-                      : "auto",
-                }}
-              >
-                <button
-                  type="button"
-                  className="button"
-                  onClick={
-                    handleEnableNotifications
-                  }
-                  disabled={
-                    notificationLoading
-                  }
-                  style={{
-                    width:
-                      isMobile
-                        ? "100%"
-                        : "auto",
+      cursor: notificationStatus.includes("✅")
+        ? "default"
+        : "pointer",
 
-                    minWidth:
-                      isMobile
-                        ? 0
-                        : 180,
+      opacity: 1,
+    }}
+  >
+    {notificationLoading
+      ? "Activation..."
+      : notificationStatus.includes("✅")
+        ? "✅ Notifications activées"
+        : "🔔 Activer les notifications"}
+  </button>
 
-                    whiteSpace:
-                      "nowrap",
+  <button
+    type="button"
+    className="button-secondary"
+    onClick={handleLogout}
+    style={{
+      width: "auto",
+      minWidth: 140,
+      whiteSpace: "nowrap",
+      margin: 0,
+    }}
+  >
+    Se déconnecter
+  </button>
+</div>
 
-                    margin:
-                      0,
-                  }}
-                >
-                  {notificationLoading
-                    ? "Activation..."
-                    : "🔔 Activer les notifications"}
-                </button>
-
-                <button
-                  type="button"
-                  className="button-secondary"
-                  onClick={
-                    handleLogout
-                  }
-                  style={{
-                    width:
-                      isMobile
-                        ? "100%"
-                        : "auto",
-
-                    minWidth:
-                      isMobile
-                        ? 0
-                        : 140,
-
-                    whiteSpace:
-                      "nowrap",
-
-                    margin:
-                      0,
-                  }}
-                >
-                  Se déconnecter
-                </button>
-              </div>
-            </div>
-
-            {notificationStatus && (
-              <p
-                style={{
-                  marginTop:
-                    12,
-
-                  marginBottom:
-                    0,
-
-                  color:
-                    notificationStatus.includes(
-                      "✅"
-                    )
-                      ? "#86efac"
-                      : "#fca5a5",
-
-                  fontSize:
-                    13,
-
-                  fontWeight:
-                    700,
-                }}
-              >
-                {
-                  notificationStatus
-                }
-              </p>
-            )}
+{notificationStatus &&
+  !notificationStatus.includes("✅") && (
+    <p
+      style={{
+        marginTop: 12,
+        marginBottom: 0,
+        color: "#fca5a5",
+        fontSize: 13,
+        fontWeight: 700,
+      }}
+    >
+      {notificationStatus}
+    </p>
+  )}
           </section>
 
           {/* ================================
