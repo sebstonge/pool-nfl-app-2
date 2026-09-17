@@ -77,13 +77,18 @@ export default function HomePage() {
 
   /*
    * =========================================================
-   * AFFICHAGE MOBILE
+   * AFFICHAGE RESPONSIVE
    * =========================================================
    */
 
   const [
     isMobile,
     setIsMobile,
+  ] = useState(false);
+
+  const [
+    isDesktop,
+    setIsDesktop,
   ] = useState(false);
 
   /*
@@ -146,6 +151,7 @@ export default function HomePage() {
       return;
     }
   }
+
   /*
    * =========================================================
    * NETTOYAGE DES PARAMÈTRES DE PARTAGE META
@@ -259,23 +265,30 @@ export default function HomePage() {
    */
 
   useEffect(() => {
-    const updateMobile = () => {
+    const updateResponsive = () => {
+      const width =
+        window.innerWidth;
+
       setIsMobile(
-        window.innerWidth < 700
+        width < 700
+      );
+
+      setIsDesktop(
+        width >= 900
       );
     };
 
-    updateMobile();
+    updateResponsive();
 
     window.addEventListener(
       "resize",
-      updateMobile
+      updateResponsive
     );
 
     return () => {
       window.removeEventListener(
         "resize",
-        updateMobile
+        updateResponsive
       );
     };
   }, []);
@@ -753,6 +766,7 @@ export default function HomePage() {
       false
     );
   }
+
   /*
    * =========================================================
    * ÉTAT DES NOTIFICATIONS
@@ -765,6 +779,7 @@ export default function HomePage() {
         if (
           !("serviceWorker" in navigator) ||
           !("PushManager" in window) ||
+          !("Notification" in window) ||
           Notification.permission !== "granted"
         ) {
           return;
@@ -793,6 +808,7 @@ export default function HomePage() {
 
     checkNotificationStatus();
   }, []);
+
   /*
    * =========================================================
    * AFFICHAGE
@@ -800,9 +816,43 @@ export default function HomePage() {
    */
 
   return (
-    <main className="page">
-      <section className="header-card">
-        <h1>
+    <main
+      className="page"
+      style={
+        isDesktop
+          ? {
+              maxWidth: 1280,
+              width: "calc(100% - 48px)",
+              margin: "0 auto",
+              paddingTop: 112,
+            }
+          : undefined
+      }
+    >
+      {/* =====================================================
+          HEADER
+          ===================================================== */}
+
+      <section
+        className="header-card"
+        style={
+          isDesktop
+            ? {
+                padding: "28px 32px",
+                marginBottom: 20,
+              }
+            : undefined
+        }
+      >
+        <h1
+          style={
+            isDesktop
+              ? {
+                  marginBottom: 6,
+                }
+              : undefined
+          }
+        >
           Pool NFL 🏈
         </h1>
 
@@ -826,11 +876,15 @@ export default function HomePage() {
                 gridTemplateColumns:
                   isMobile
                     ? "1fr"
+                    : isDesktop
+                    ? "minmax(0, 1fr) 300px"
                     : "minmax(0, 1fr) auto",
 
                 gap:
                   isMobile
                     ? 14
+                    : isDesktop
+                    ? 24
                     : 16,
 
                 alignItems:
@@ -879,6 +933,8 @@ export default function HomePage() {
                     fontSize:
                       isMobile
                         ? 18
+                        : isDesktop
+                        ? 22
                         : 20,
 
                     fontWeight:
@@ -926,90 +982,148 @@ export default function HomePage() {
                 )}
               </div>
 
-              {/* ACTIONS UTILISATEUR */}
+              {/* =================================================
+                  ACTIONS UTILISATEUR
+                  ================================================= */}
 
-<div
-  style={{
-    display: "flex",
-    flexDirection: "column",
-    gap: 8,
-    alignItems: "stretch",
-  }}
->
-  <button
-    type="button"
-    className="button"
-    onClick={
-      notificationStatus.includes("✅")
-        ? undefined
-        : handleEnableNotifications
-    }
-    disabled={
-      notificationLoading ||
-      notificationStatus.includes("✅")
-    }
-    style={{
-      width: "auto",
-      minWidth: 180,
-      whiteSpace: "nowrap",
-      margin: 0,
+              <div
+                style={{
+                  display:
+                    "flex",
 
-      background: notificationStatus.includes("✅")
-        ? "#475569"
-        : undefined,
+                  flexDirection:
+                    "column",
 
-      borderColor: notificationStatus.includes("✅")
-        ? "#64748b"
-        : undefined,
+                  gap:
+                    8,
 
-      color: "#f8fafc",
+                  alignItems:
+                    "stretch",
+                }}
+              >
+                <button
+                  type="button"
+                  className="button"
+                  onClick={
+                    notificationStatus.includes(
+                      "✅"
+                    )
+                      ? undefined
+                      : handleEnableNotifications
+                  }
+                  disabled={
+                    notificationLoading ||
+                    notificationStatus.includes(
+                      "✅"
+                    )
+                  }
+                  style={{
+                    width:
+                      isDesktop
+                        ? "100%"
+                        : "auto",
 
-      cursor: notificationStatus.includes("✅")
-        ? "default"
-        : "pointer",
+                    minWidth:
+                      180,
 
-      opacity: 1,
-    }}
-  >
-    {notificationLoading
-      ? "Activation..."
-      : notificationStatus.includes("✅")
-        ? "✅ Notifications activées"
-        : "🔔 Activer les notifications"}
-  </button>
+                    whiteSpace:
+                      "nowrap",
 
-  <button
-    type="button"
-    className="button-secondary"
-    onClick={handleLogout}
-    style={{
-      width: "auto",
-      minWidth: 140,
-      whiteSpace: "nowrap",
-      margin: 0,
-    }}
-  >
-    Se déconnecter
-  </button>
-</div>
+                    margin:
+                      0,
 
-{notificationStatus &&
-  !notificationStatus.includes("✅") && (
-    <p
-      style={{
-        marginTop: 12,
-        marginBottom: 0,
-        color: "#fca5a5",
-        fontSize: 13,
-        fontWeight: 700,
-      }}
-    >
-      {notificationStatus}
-    </p>
-  )}
+                    background:
+                      notificationStatus.includes(
+                        "✅"
+                      )
+                        ? "#475569"
+                        : undefined,
 
-</div>
-</section>
+                    borderColor:
+                      notificationStatus.includes(
+                        "✅"
+                      )
+                        ? "#64748b"
+                        : undefined,
+
+                    color:
+                      "#f8fafc",
+
+                    cursor:
+                      notificationStatus.includes(
+                        "✅"
+                      )
+                        ? "default"
+                        : "pointer",
+
+                    opacity:
+                      1,
+                  }}
+                >
+                  {notificationLoading
+                    ? "Activation..."
+                    : notificationStatus.includes(
+                        "✅"
+                      )
+                    ? "✅ Notifications activées"
+                    : "🔔 Activer les notifications"}
+                </button>
+
+                <button
+                  type="button"
+                  className="button-secondary"
+                  onClick={
+                    handleLogout
+                  }
+                  style={{
+                    width:
+                      isDesktop
+                        ? "100%"
+                        : "auto",
+
+                    minWidth:
+                      140,
+
+                    whiteSpace:
+                      "nowrap",
+
+                    margin:
+                      0,
+                  }}
+                >
+                  Se déconnecter
+                </button>
+              </div>
+
+              {notificationStatus &&
+                !notificationStatus.includes(
+                  "✅"
+                ) && (
+                  <p
+                    style={{
+                      marginTop:
+                        12,
+
+                      marginBottom:
+                        0,
+
+                      color:
+                        "#fca5a5",
+
+                      fontSize:
+                        13,
+
+                      fontWeight:
+                        700,
+                    }}
+                  >
+                    {
+                      notificationStatus
+                    }
+                  </p>
+                )}
+            </div>
+          </section>
 
           {/* ================================
               NAVIGATION
@@ -1022,10 +1136,14 @@ export default function HomePage() {
                 "grid",
 
               gridTemplateColumns:
-                "repeat(2, minmax(0, 1fr))",
+                isDesktop
+                  ? "repeat(3, minmax(0, 1fr))"
+                  : "repeat(2, minmax(0, 1fr))",
 
               gap:
-                14,
+                isDesktop
+                  ? 18
+                  : 14,
             }}
           >
             <NavItem
@@ -1086,7 +1204,18 @@ export default function HomePage() {
          * =====================================================
          */
 
-        <section className="card">
+        <section
+          className="card"
+          style={
+            isDesktop
+              ? {
+                  maxWidth: 720,
+                  marginLeft: "auto",
+                  marginRight: "auto",
+                }
+              : undefined
+          }
+        >
           {/* =====================================================
               IDENTIFICATION DU SITE
               ===================================================== */}
@@ -1148,7 +1277,9 @@ export default function HomePage() {
             </p>
           </div>
 
-          {/* MODES CONNEXION / INSCRIPTION */}
+          {/* =====================================================
+              MODES CONNEXION / INSCRIPTION
+              ===================================================== */}
 
           <div
             style={{
@@ -1277,7 +1408,9 @@ export default function HomePage() {
               : "Crée ton compte. Tu choisiras ensuite ton nom d’utilisateur et ton nom réel."}
           </p>
 
-          {/* COURRIEL */}
+          {/* =====================================================
+              COURRIEL
+              ===================================================== */}
 
           <input
             className="input"
@@ -1295,7 +1428,9 @@ export default function HomePage() {
             }
           />
 
-          {/* MOT DE PASSE */}
+          {/* =====================================================
+              MOT DE PASSE
+              ===================================================== */}
 
           <input
             className="input"
@@ -1318,7 +1453,9 @@ export default function HomePage() {
             }
           />
 
-          {/* CONFIRMATION */}
+          {/* =====================================================
+              CONFIRMATION
+              ===================================================== */}
 
           {authMode ===
             "signup" && (
@@ -1341,7 +1478,9 @@ export default function HomePage() {
             />
           )}
 
-          {/* ACTION */}
+          {/* =====================================================
+              ACTION
+              ===================================================== */}
 
           <button
             type="button"
@@ -1368,7 +1507,9 @@ export default function HomePage() {
               : "Créer mon compte"}
           </button>
 
-          {/* MESSAGE */}
+          {/* =====================================================
+              MESSAGE
+              ===================================================== */}
 
           {message && (
             <p
