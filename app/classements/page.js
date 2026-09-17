@@ -4,6 +4,10 @@ import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import BottomNav from "../components/BottomNav";
 
+/* =========================================================
+   HELPERS
+   ========================================================= */
+
 function displayName(user, fallbackId) {
   if (user?.display_name) return user.display_name;
   if (user?.email) return user.email.split("@")[0];
@@ -31,7 +35,6 @@ function PlayerIdentity({
   align = "left",
   compact = false,
   podium = false,
-  isDesktop = false,
 }) {
   return (
     <div
@@ -45,9 +48,7 @@ function PlayerIdentity({
         style={{
           display: "block",
           fontSize: podium
-            ? isDesktop
-              ? 18
-              : "clamp(11px, 3vw, 15px)"
+            ? "clamp(11px, 3vw, 15px)"
             : compact
             ? 14
             : 18,
@@ -64,12 +65,10 @@ function PlayerIdentity({
         <span
           style={{
             display: "block",
-            marginTop: isDesktop && podium ? 5 : 2,
+            marginTop: 2,
             color: "#94a3b8",
             fontSize: podium
-              ? isDesktop
-                ? 13
-                : "clamp(9px, 2.5vw, 12px)"
+              ? "clamp(9px, 2.5vw, 12px)"
               : compact
               ? 11
               : 13,
@@ -87,13 +86,93 @@ function PlayerIdentity({
 }
 
 /* =========================================================
-   LIGNE DE CLASSEMENT
+   PODIUM MOBILE
+   ========================================================= */
+
+function PodiumCard({ row, first = false }) {
+  if (!row) return <div />;
+
+  return (
+    <div
+      style={{
+        padding: first ? "18px 6px" : "14px 5px",
+        borderRadius: 18,
+
+        background:
+          row.rank === 1
+            ? "linear-gradient(180deg, rgba(34,197,94,0.20), rgba(15,23,42,0.70))"
+            : "rgba(15,23,42,0.72)",
+
+        border:
+          row.rank === 1
+            ? "1px solid rgba(34,197,94,0.35)"
+            : "1px solid rgba(148,163,184,0.16)",
+
+        textAlign: "center",
+
+        minHeight: first ? 190 : 165,
+
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+        alignItems: "center",
+
+        minWidth: 0,
+        overflow: "hidden",
+      }}
+    >
+      <div
+        style={{
+          fontSize: first
+            ? "clamp(30px, 9vw, 42px)"
+            : "clamp(25px, 7vw, 34px)",
+          lineHeight: 1,
+        }}
+      >
+        {medal(row.rank)}
+      </div>
+
+      <div
+        style={{
+          marginTop: first ? 18 : 14,
+          marginBottom: 9,
+          width: "100%",
+          minWidth: 0,
+        }}
+      >
+        <PlayerIdentity
+          name={row.name}
+          realName={row.realName}
+          align="center"
+          compact={!first}
+          podium
+        />
+      </div>
+
+      <div
+        style={{
+          fontSize: first
+            ? "clamp(22px, 6vw, 34px)"
+            : "clamp(19px, 5vw, 28px)",
+          fontWeight: 900,
+          color: "#22c55e",
+          whiteSpace: "nowrap",
+          letterSpacing: "-0.5px",
+        }}
+      >
+        {(row.total ?? row.score).toFixed(3)}
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================
+   LIGNE MOBILE
    ========================================================= */
 
 function RankingRow({
   row,
   mode,
-  isDesktop = false,
   isLast = false,
 }) {
   const movement =
@@ -107,61 +186,44 @@ function RankingRow({
     <div
       style={{
         display: "grid",
-        gridTemplateColumns: isDesktop
-          ? "56px minmax(0, 1fr) auto"
-          : "38px minmax(0, 1fr) auto",
-        gap: isDesktop ? 16 : 10,
+        gridTemplateColumns: "38px minmax(0, 1fr) auto",
+        gap: 10,
         alignItems: "center",
-        padding: isDesktop ? "15px 4px" : "11px 0",
+        padding: "11px 0",
+
         borderBottom: isLast
           ? "none"
           : "1px solid rgba(148,163,184,0.12)",
       }}
     >
-      {/* RANG */}
-
       <div
         style={{
-          width: isDesktop ? 56 : 38,
+          width: 38,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           fontWeight: 900,
           color: "#f8fafc",
-          fontSize:
-            row.rank <= 3
-              ? isDesktop
-                ? 26
-                : 22
-              : isDesktop
-              ? 19
-              : 17,
+          fontSize: row.rank <= 3 ? 22 : 17,
         }}
       >
-        {row.rank <= 3
-          ? medal(row.rank)
-          : row.rank}
+        {row.rank <= 3 ? medal(row.rank) : row.rank}
       </div>
 
-      {/* JOUEUR */}
-
-      <div
-        style={{
-          minWidth: 0,
-        }}
-      >
+      <div style={{ minWidth: 0 }}>
         <PlayerIdentity
           name={row.name}
           realName={row.realName}
-          compact={!isDesktop}
+          compact
         />
 
         {mode === "season" && (
           <div
             style={{
               marginTop: 5,
-              fontSize: isDesktop ? 13 : 12,
+              fontSize: 12,
               fontWeight: 800,
+
               color:
                 row.movement > 0
                   ? "#22c55e"
@@ -188,16 +250,11 @@ function RankingRow({
                 <span
                   key={badge}
                   style={{
-                    padding: isDesktop
-                      ? "5px 9px"
-                      : "4px 7px",
+                    padding: "4px 7px",
                     borderRadius: 999,
-                    background:
-                      "rgba(148,163,184,0.14)",
+                    background: "rgba(148,163,184,0.14)",
                     color: "#e2e8f0",
-                    fontSize: isDesktop
-                      ? 11
-                      : 10,
+                    fontSize: 10,
                     fontWeight: 800,
                   }}
                 >
@@ -208,12 +265,10 @@ function RankingRow({
           )}
       </div>
 
-      {/* POINTS */}
-
       <div
         style={{
           textAlign: "right",
-          minWidth: isDesktop ? 180 : 100,
+          minWidth: 100,
           paddingLeft: 6,
         }}
       >
@@ -221,7 +276,7 @@ function RankingRow({
           style={{
             color: "#f8fafc",
             fontWeight: 900,
-            fontSize: isDesktop ? 19 : 16,
+            fontSize: 16,
             whiteSpace: "nowrap",
           }}
         >
@@ -237,7 +292,7 @@ function RankingRow({
             style={{
               marginTop: 3,
               color: "#ef4444",
-              fontSize: isDesktop ? 13 : 12,
+              fontSize: 12,
               whiteSpace: "nowrap",
             }}
           >
@@ -250,7 +305,7 @@ function RankingRow({
             style={{
               marginTop: 3,
               color: "#94a3b8",
-              fontSize: isDesktop ? 12 : 11,
+              fontSize: 11,
               whiteSpace: "nowrap",
             }}
           >
@@ -263,66 +318,52 @@ function RankingRow({
 }
 
 /* =========================================================
-   PODIUM
+   PODIUM DESKTOP COMPACT
    ========================================================= */
 
-function PodiumCard({
+function DesktopPodiumCard({
   row,
   first = false,
-  isDesktop = false,
 }) {
-  if (!row) return <div />;
+  if (!row) {
+    return <div />;
+  }
 
   return (
     <div
       style={{
-        padding: isDesktop
-          ? first
-            ? "28px 18px"
-            : "24px 16px"
-          : first
-          ? "18px 6px"
-          : "14px 5px",
+        minWidth: 0,
 
-        borderRadius: isDesktop ? 22 : 18,
+        minHeight: first ? 158 : 144,
+
+        padding: first
+          ? "18px 10px"
+          : "15px 8px",
+
+        borderRadius: 16,
 
         background:
           row.rank === 1
-            ? "linear-gradient(180deg, rgba(34,197,94,0.20), rgba(15,23,42,0.70))"
-            : "rgba(15,23,42,0.72)",
+            ? "linear-gradient(180deg, rgba(34,197,94,0.18), rgba(15,23,42,0.65))"
+            : "rgba(15,23,42,0.66)",
 
         border:
           row.rank === 1
-            ? "1px solid rgba(34,197,94,0.35)"
-            : "1px solid rgba(148,163,184,0.16)",
-
-        textAlign: "center",
-
-        minHeight: isDesktop
-          ? first
-            ? 250
-            : 220
-          : first
-          ? 190
-          : 165,
+            ? "1px solid rgba(34,197,94,0.32)"
+            : "1px solid rgba(148,163,184,0.14)",
 
         display: "flex",
         flexDirection: "column",
-        justifyContent: "center",
         alignItems: "center",
-        minWidth: 0,
+        justifyContent: "center",
+
+        textAlign: "center",
         overflow: "hidden",
       }}
     >
       <div
         style={{
-          fontSize: isDesktop
-            ? first
-              ? 56
-              : 46
-            : first
-            ? "clamp(30px, 9vw, 42px)"
-            : "clamp(25px, 7vw, 34px)",
+          fontSize: first ? 36 : 30,
           lineHeight: 1,
         }}
       >
@@ -331,67 +372,363 @@ function PodiumCard({
 
       <div
         style={{
-          marginTop: isDesktop
-            ? first
-              ? 24
-              : 20
-            : first
-            ? 18
-            : 14,
-
-          marginBottom: isDesktop ? 14 : 9,
-
           width: "100%",
           minWidth: 0,
+          marginTop: 10,
         }}
       >
-        <PlayerIdentity
-          name={row.name}
-          realName={row.realName}
-          align="center"
-          compact={!first}
-          podium={true}
-          isDesktop={isDesktop}
-        />
+        <strong
+          style={{
+            display: "block",
+            color: "#f8fafc",
+            fontSize: first ? 15 : 14,
+            lineHeight: 1.15,
+            overflowWrap: "anywhere",
+          }}
+        >
+          {row.name}
+        </strong>
+
+        {row.realName && (
+          <span
+            style={{
+              display: "block",
+              marginTop: 3,
+              color: "#94a3b8",
+              fontSize: 10,
+              lineHeight: 1.2,
+              overflowWrap: "anywhere",
+            }}
+          >
+            {row.realName}
+          </span>
+        )}
       </div>
 
-      <div
+      <strong
         style={{
-          fontSize: isDesktop
-            ? first
-              ? 42
-              : 34
-            : first
-            ? "clamp(22px, 6vw, 34px)"
-            : "clamp(19px, 5vw, 28px)",
-
-          fontWeight: 900,
+          display: "block",
+          marginTop: 10,
           color: "#22c55e",
+          fontSize: first ? 24 : 21,
+          lineHeight: 1,
           whiteSpace: "nowrap",
-          letterSpacing: "-0.5px",
         }}
       >
         {(row.total ?? row.score).toFixed(3)}
-      </div>
-
-      {isDesktop && (
-        <div
-          style={{
-            marginTop: 5,
-            color: "#64748b",
-            fontSize: 12,
-            fontWeight: 700,
-          }}
-        >
-          points
-        </div>
-      )}
+      </strong>
     </div>
   );
 }
 
 /* =========================================================
-   PROGRESSION DU CLASSEMENT
+   LIGNE DESKTOP
+   ========================================================= */
+
+function DesktopRankingRow({
+  row,
+  mode,
+  isLast = false,
+}) {
+  const movement =
+    row.movement > 0
+      ? `⬆️ +${row.movement}`
+      : row.movement < 0
+      ? `⬇️ ${row.movement}`
+      : "➖";
+
+  return (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "30px minmax(0, 1fr) auto",
+        gap: 10,
+        alignItems: "center",
+
+        padding: "10px 2px",
+
+        borderBottom: isLast
+          ? "none"
+          : "1px solid rgba(148,163,184,0.11)",
+      }}
+    >
+      <strong
+        style={{
+          textAlign: "center",
+          color: "#94a3b8",
+          fontSize: 14,
+        }}
+      >
+        {row.rank}
+      </strong>
+
+      <div
+        style={{
+          minWidth: 0,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 7,
+            flexWrap: "wrap",
+          }}
+        >
+          <strong
+            style={{
+              color: "#f8fafc",
+              fontSize: 14,
+              lineHeight: 1.15,
+            }}
+          >
+            {row.name}
+          </strong>
+
+          {mode === "season" && (
+            <span
+              style={{
+                color:
+                  row.movement > 0
+                    ? "#22c55e"
+                    : row.movement < 0
+                    ? "#ef4444"
+                    : "#64748b",
+
+                fontSize: 10,
+                fontWeight: 800,
+              }}
+            >
+              {movement}
+            </span>
+          )}
+        </div>
+
+        {row.realName && (
+          <div
+            style={{
+              marginTop: 2,
+              color: "#94a3b8",
+              fontSize: 10,
+            }}
+          >
+            {row.realName}
+          </div>
+        )}
+
+        {mode === "season" &&
+          row.badges?.length > 0 && (
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 4,
+                marginTop: 5,
+              }}
+            >
+              {row.badges.map((badge) => (
+                <span
+                  key={badge}
+                  style={{
+                    padding: "3px 6px",
+                    borderRadius: 999,
+                    background: "rgba(148,163,184,0.14)",
+                    color: "#e2e8f0",
+                    fontSize: 9,
+                    fontWeight: 800,
+                  }}
+                >
+                  {badge}
+                </span>
+              ))}
+            </div>
+          )}
+      </div>
+
+      <div
+        style={{
+          textAlign: "right",
+          minWidth: 100,
+        }}
+      >
+        <strong
+          style={{
+            display: "block",
+            color: "#f8fafc",
+            fontSize: 14,
+            whiteSpace: "nowrap",
+          }}
+        >
+          {(mode === "season"
+            ? row.total
+            : row.score
+          ).toFixed(3)}{" "}
+          pts
+        </strong>
+
+        {row.rank !== 1 && (
+          <span
+            style={{
+              display: "block",
+              marginTop: 2,
+              color: "#ef4444",
+              fontSize: 9,
+              whiteSpace: "nowrap",
+            }}
+          >
+            -{row.diff.toFixed(3)}
+          </span>
+        )}
+
+        {mode === "season" && (
+          <span
+            style={{
+              display: "block",
+              marginTop: 2,
+              color: "#64748b",
+              fontSize: 9,
+              whiteSpace: "nowrap",
+            }}
+          >
+            Moy. {row.average.toFixed(3)}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================
+   PANNEAU DESKTOP COMPLET
+   ========================================================= */
+
+function DesktopRankingPanel({
+  title,
+  subtitle,
+  rows,
+  mode,
+}) {
+  const topThree = rows.slice(0, 3);
+  const remaining = rows.slice(3);
+
+  return (
+    <section
+      className="card"
+      style={{
+        padding: "20px",
+        minWidth: 0,
+        height: "100%",
+      }}
+    >
+      {/* TITRE */}
+
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          gap: 12,
+          marginBottom: 16,
+        }}
+      >
+        <div>
+          <h2
+            style={{
+              margin: 0,
+              fontSize: 21,
+            }}
+          >
+            {title}
+          </h2>
+
+          <p
+            style={{
+              margin: "5px 0 0",
+              color: "#94a3b8",
+              fontSize: 12,
+            }}
+          >
+            {subtitle}
+          </p>
+        </div>
+
+        <span
+          style={{
+            fontSize: 24,
+            lineHeight: 1,
+          }}
+        >
+          {mode === "week" ? "📅" : "🏆"}
+        </span>
+      </div>
+
+      {rows.length === 0 ? (
+        <p
+          style={{
+            color: "#94a3b8",
+          }}
+        >
+          Aucun score pour le moment.
+        </p>
+      ) : (
+        <>
+          {/* PODIUM */}
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns:
+                "minmax(0, 1fr) minmax(0, 1.08fr) minmax(0, 1fr)",
+              gap: 8,
+              alignItems: "end",
+              marginBottom: 12,
+            }}
+          >
+            <DesktopPodiumCard
+              row={topThree[1]}
+            />
+
+            <DesktopPodiumCard
+              row={topThree[0]}
+              first
+            />
+
+            <DesktopPodiumCard
+              row={topThree[2]}
+            />
+          </div>
+
+          {/* POSITIONS 4+ */}
+
+          {remaining.length > 0 && (
+            <div
+              style={{
+                padding: "0 4px",
+              }}
+            >
+              {remaining.map(
+                (row, index) => (
+                  <DesktopRankingRow
+                    key={row.userId}
+                    row={row}
+                    mode={mode}
+                    isLast={
+                      index ===
+                      remaining.length - 1
+                    }
+                  />
+                )
+              )}
+            </div>
+          )}
+        </>
+      )}
+    </section>
+  );
+}
+
+/* =========================================================
+   PROGRESSION
    ========================================================= */
 
 function buildRankProgression(
@@ -420,10 +757,9 @@ function buildRankProgression(
           totalsByUser[score.user_id] = 0;
         }
 
-        totalsByUser[score.user_id] +=
-          Number(
-            score.final_score || 0
-          );
+        totalsByUser[score.user_id] += Number(
+          score.final_score || 0
+        );
       });
 
     const ranked = Object.entries(
@@ -459,9 +795,7 @@ function buildRankProgression(
         };
       }
 
-      progression[
-        row.userId
-      ].points.push({
+      progression[row.userId].points.push({
         week,
         rank: index + 1,
       });
@@ -475,12 +809,12 @@ function buildRankProgression(
 }
 
 /* =========================================================
-   GRAPHIQUE
+   GRAPHIQUE DE PROGRESSION
    ========================================================= */
 
 function RankProgressionChart({
   progression,
-  isDesktop = false,
+  isDesktop,
 }) {
   if (
     !progression?.weeks?.length ||
@@ -488,69 +822,40 @@ function RankProgressionChart({
   ) {
     return (
       <section className="card">
-        <h2
-          style={{
-            marginTop: 0,
-            lineHeight: 1.15,
-          }}
-        >
+        <h2 style={{ marginTop: 0 }}>
           Progression au classement 📈
         </h2>
 
-        <p
-          style={{
-            color: "#94a3b8",
-          }}
-        >
+        <p style={{ color: "#94a3b8" }}>
           Aucun classement historique pour le moment.
         </p>
       </section>
     );
   }
 
-  const weeks =
-    progression.weeks;
+  const weeks = progression.weeks;
 
   /*
-   * On garde les 8 premiers joueurs affichés,
-   * exactement comme dans la version actuelle.
+   * IMPORTANT :
+   * On affiche maintenant TOUS les joueurs.
+   * Plus aucun .slice(0, 8).
    */
-  const rows =
-    progression.rows.slice(0, 8);
+  const rows = progression.rows;
 
   const maxRank = Math.max(
+    rows.length,
     ...rows.flatMap((row) =>
-      row.points.map(
-        (p) => p.rank
-      )
+      row.points.map((p) => p.rank)
     )
   );
 
-  /*
-   * Desktop :
-   * viewBox plus large pour exploiter
-   * réellement le conteneur 1280 px.
-   *
-   * Mobile :
-   * dimensions originales conservées.
-   */
-  const width =
-    isDesktop ? 1180 : 760;
+  const width = isDesktop ? 1180 : 760;
+  const height = isDesktop ? 520 : 400;
 
-  const height =
-    isDesktop ? 400 : 340;
-
-  const paddingLeft =
-    isDesktop ? 58 : 48;
-
-  const paddingRight =
-    isDesktop ? 28 : 18;
-
-  const paddingTop =
-    isDesktop ? 30 : 24;
-
-  const paddingBottom =
-    isDesktop ? 52 : 48;
+  const paddingLeft = isDesktop ? 58 : 48;
+  const paddingRight = isDesktop ? 28 : 18;
+  const paddingTop = 30;
+  const paddingBottom = 52;
 
   const chartWidth =
     width -
@@ -562,6 +867,9 @@ function RankProgressionChart({
     paddingTop -
     paddingBottom;
 
+  /*
+   * 13 couleurs distinctes pour les 13 joueurs.
+   */
   const colors = [
     "#22c55e",
     "#3b82f6",
@@ -571,11 +879,15 @@ function RankProgressionChart({
     "#facc15",
     "#14b8a6",
     "#ec4899",
+    "#06b6d4",
+    "#84cc16",
+    "#8b5cf6",
+    "#fb7185",
+    "#f59e0b",
   ];
 
   const xForWeek = (week) => {
-    const index =
-      weeks.indexOf(week);
+    const index = weeks.indexOf(week);
 
     if (weeks.length === 1) {
       return (
@@ -608,13 +920,7 @@ function RankProgressionChart({
     );
   };
 
-  const shouldShowWeekLabel = (
-    index
-  ) => {
-    /*
-     * Sur desktop on peut afficher
-     * davantage de semaines.
-     */
+  const shouldShowWeekLabel = (index) => {
     if (
       weeks.length <=
       (isDesktop ? 18 : 10)
@@ -623,13 +929,7 @@ function RankProgressionChart({
     }
 
     if (index === 0) return true;
-
-    if (
-      index ===
-      weeks.length - 1
-    ) {
-      return true;
-    }
+    if (index === weeks.length - 1) return true;
 
     return index % 2 === 0;
   };
@@ -640,17 +940,12 @@ function RankProgressionChart({
       style={
         isDesktop
           ? {
-              padding: "24px 28px",
+              padding: "22px 26px",
             }
           : undefined
       }
     >
-      <h2
-        style={{
-          marginTop: 0,
-          lineHeight: 1.15,
-        }}
-      >
+      <h2 style={{ marginTop: 0 }}>
         Progression au classement 📈
       </h2>
 
@@ -660,7 +955,7 @@ function RankProgressionChart({
           color: "#94a3b8",
         }}
       >
-        Rang cumulatif par semaine
+        Rang cumulatif par semaine · {rows.length} joueurs
       </p>
 
       <div
@@ -677,31 +972,23 @@ function RankProgressionChart({
             display: "block",
             width: "100%",
             height: "auto",
-            maxWidth: "100%",
           }}
         >
+          {/* LIGNES HORIZONTALES */}
+
           {[...Array(maxRank)].map(
             (_, index) => {
-              const rank =
-                index + 1;
-
-              const y =
-                yForRank(rank);
+              const rank = index + 1;
+              const y = yForRank(rank);
 
               return (
                 <g key={rank}>
                   <text
-                    x={
-                      isDesktop
-                        ? 10
-                        : 8
-                    }
+                    x={8}
                     y={y + 5}
                     fill="#cbd5e1"
                     fontSize={
-                      isDesktop
-                        ? "16"
-                        : "15"
+                      isDesktop ? "14" : "13"
                     }
                     fontWeight="800"
                   >
@@ -724,181 +1011,141 @@ function RankProgressionChart({
             }
           )}
 
-          {weeks.map(
-            (week, index) => {
-              if (
-                !shouldShowWeekLabel(
-                  index
-                )
-              ) {
-                return null;
-              }
+          {/* SEMAINES */}
 
-              const x =
-                xForWeek(week);
-
-              return (
-                <text
-                  key={week}
-                  x={x}
-                  y={height - 16}
-                  textAnchor="middle"
-                  fill="#cbd5e1"
-                  fontSize={
-                    isDesktop
-                      ? "15"
-                      : "14"
-                  }
-                  fontWeight="800"
-                >
-                  S{week}
-                </text>
-              );
+          {weeks.map((week, index) => {
+            if (!shouldShowWeekLabel(index)) {
+              return null;
             }
-          )}
 
-          {rows.map(
-            (row, rowIndex) => {
-              const color =
-                colors[
-                  rowIndex %
-                    colors.length
-                ];
+            return (
+              <text
+                key={week}
+                x={xForWeek(week)}
+                y={height - 16}
+                textAnchor="middle"
+                fill="#cbd5e1"
+                fontSize={
+                  isDesktop ? "14" : "13"
+                }
+                fontWeight="800"
+              >
+                S{week}
+              </text>
+            );
+          })}
 
-              const points =
-                row.points
-                  .map(
-                    (point) =>
-                      `${xForWeek(
-                        point.week
-                      )},${yForRank(
-                        point.rank
-                      )}`
-                  )
-                  .join(" ");
+          {/* JOUEURS */}
 
-              return (
-                <g
-                  key={
-                    row.userId
-                  }
-                >
-                  {row.points
-                    .length > 1 && (
-                    <polyline
-                      points={
-                        points
-                      }
-                      fill="none"
-                      stroke={
-                        color
-                      }
-                      strokeWidth={
-                        isDesktop
-                          ? "4.5"
-                          : "4"
-                      }
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  )}
+          {rows.map((row, rowIndex) => {
+            const color =
+              colors[
+                rowIndex % colors.length
+              ];
 
-                  {row.points.map(
-                    (point) => (
-                      <circle
-                        key={`${row.userId}-${point.week}`}
-                        cx={xForWeek(
-                          point.week
-                        )}
-                        cy={yForRank(
-                          point.rank
-                        )}
-                        r={
-                          isDesktop
-                            ? "6.5"
-                            : "6"
-                        }
-                        fill={
-                          color
-                        }
-                        stroke="#020617"
-                        strokeWidth="2"
-                      />
-                    )
-                  )}
-                </g>
-              );
-            }
-          )}
+            const points = row.points
+              .map(
+                (point) =>
+                  `${xForWeek(
+                    point.week
+                  )},${yForRank(
+                    point.rank
+                  )}`
+              )
+              .join(" ");
+
+            return (
+              <g key={row.userId}>
+                {row.points.length > 1 && (
+                  <polyline
+                    points={points}
+                    fill="none"
+                    stroke={color}
+                    strokeWidth={
+                      isDesktop ? "3.5" : "3"
+                    }
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                )}
+
+                {row.points.map((point) => (
+                  <circle
+                    key={`${row.userId}-${point.week}`}
+                    cx={xForWeek(
+                      point.week
+                    )}
+                    cy={yForRank(
+                      point.rank
+                    )}
+                    r={isDesktop ? "5.5" : "5"}
+                    fill={color}
+                    stroke="#020617"
+                    strokeWidth="2"
+                  />
+                ))}
+              </g>
+            );
+          })}
         </svg>
       </div>
+
+      {/* LÉGENDE */}
 
       <div
         style={{
           display: "grid",
 
-          gridTemplateColumns:
-            isDesktop
-              ? "repeat(4, minmax(0, 1fr))"
-              : "repeat(2, minmax(0, 1fr))",
+          gridTemplateColumns: isDesktop
+            ? "repeat(4, minmax(0, 1fr))"
+            : "repeat(2, minmax(0, 1fr))",
 
           gap: isDesktop
-            ? "14px 22px"
+            ? "11px 18px"
             : "10px 14px",
 
-          marginTop:
-            isDesktop ? 18 : 14,
+          marginTop: 14,
         }}
       >
-        {rows.map(
-          (row, index) => (
-            <div
-              key={row.userId}
+        {rows.map((row, index) => (
+          <div
+            key={row.userId}
+            style={{
+              display: "flex",
+              alignItems: "flex-start",
+              gap: 7,
+              minWidth: 0,
+            }}
+          >
+            <span
               style={{
-                display: "flex",
-                alignItems:
-                  "flex-start",
-                gap: 7,
-                color: "#cbd5e1",
-                fontSize: 13,
-                minWidth: 0,
+                width: 10,
+                height: 10,
+                borderRadius: "50%",
+                background:
+                  colors[
+                    index % colors.length
+                  ],
+                display: "inline-block",
+                marginTop: 4,
+                flexShrink: 0,
               }}
-            >
-              <span
-                style={{
-                  width: 10,
-                  height: 10,
-                  borderRadius:
-                    "50%",
-                  background:
-                    colors[
-                      index %
-                        colors.length
-                    ],
-                  display:
-                    "inline-block",
-                  marginTop: 4,
-                  flexShrink: 0,
-                }}
-              />
+            />
 
-              <PlayerIdentity
-                name={row.name}
-                realName={
-                  row.realName
-                }
-                compact={true}
-              />
-            </div>
-          )
-        )}
+            <PlayerIdentity
+              name={row.name}
+              realName={row.realName}
+              compact
+            />
+          </div>
+        ))}
       </div>
     </section>
   );
 }
 
 /* =========================================================
-   PAGE CLASSEMENTS
+   PAGE
    ========================================================= */
 
 export default function ClassementsPage() {
@@ -990,12 +1237,9 @@ export default function ClassementsPage() {
       const safeScores =
         allScores || [];
 
-      const getUser = (
-        userId
-      ) =>
+      const getUser = (userId) =>
         safeUsers.find(
-          (u) =>
-            u.id === userId
+          (u) => u.id === userId
         );
 
       /* =====================================================
@@ -1004,82 +1248,55 @@ export default function ClassementsPage() {
 
       const weeklyRankings = {};
 
-      safeScores.forEach(
-        (score) => {
-          const scoreWeek =
-            Number(score.week);
+      safeScores.forEach((score) => {
+        const scoreWeek =
+          Number(score.week);
 
-          if (
-            !weeklyRankings[
-              scoreWeek
-            ]
-          ) {
-            weeklyRankings[
-              scoreWeek
-            ] = [];
-          }
-
-          weeklyRankings[
-            scoreWeek
-          ].push(score);
+        if (!weeklyRankings[scoreWeek]) {
+          weeklyRankings[scoreWeek] = [];
         }
-      );
+
+        weeklyRankings[scoreWeek].push(score);
+      });
 
       Object.keys(
         weeklyRankings
       ).forEach((weekKey) => {
-        weeklyRankings[
-          weekKey
-        ] =
-          weeklyRankings[
-            weekKey
-          ]
+        weeklyRankings[weekKey] =
+          weeklyRankings[weekKey]
             .sort(
               (a, b) =>
                 Number(
-                  b.final_score ||
-                    0
+                  b.final_score || 0
                 ) -
                 Number(
-                  a.final_score ||
-                    0
+                  a.final_score || 0
                 )
             )
-            .map(
-              (
-                score,
-                index
-              ) => ({
-                userId:
-                  score.user_id,
-                rank:
-                  index + 1,
-              })
-            );
+            .map((score, index) => ({
+              userId: score.user_id,
+              rank: index + 1,
+            }));
       });
 
       /* =====================================================
-         CLASSEMENT DE LA SEMAINE ACTIVE
+         SEMAINE ACTIVE
          ===================================================== */
 
       const weekScores =
         safeScores
           .filter(
             (score) =>
-              Number(
-                score.week
-              ) ===
+              Number(score.week) ===
               currentWeek
           )
           .sort(
             (a, b) =>
               Number(
-                b.final_score ||
-                  0
+                b.final_score || 0
               ) -
               Number(
-                a.final_score ||
-                  0
+                a.final_score || 0
               )
           );
 
@@ -1099,14 +1316,12 @@ export default function ClassementsPage() {
 
             const scoreValue =
               Number(
-                score.final_score ||
-                  0
+                score.final_score || 0
               );
 
             return {
               rank: index + 1,
-              userId:
-                score.user_id,
+              userId: score.user_id,
 
               name: displayName(
                 user,
@@ -1128,31 +1343,20 @@ export default function ClassementsPage() {
       );
 
       /* =====================================================
-         CLASSEMENT SAISON
+         SAISON
          ===================================================== */
 
-      function buildSeasonRows(
-        scores
-      ) {
+      function buildSeasonRows(scores) {
         const grouped = {};
 
-        for (
-          const score of
-          scores || []
-        ) {
-          if (
-            !grouped[
-              score.user_id
-            ]
-          ) {
+        for (const score of scores || []) {
+          if (!grouped[score.user_id]) {
             const user =
               getUser(
                 score.user_id
               );
 
-            grouped[
-              score.user_id
-            ] = {
+            grouped[score.user_id] = {
               userId:
                 score.user_id,
 
@@ -1172,8 +1376,7 @@ export default function ClassementsPage() {
           grouped[
             score.user_id
           ].total += Number(
-            score.final_score ||
-              0
+            score.final_score || 0
           );
 
           grouped[
@@ -1189,28 +1392,16 @@ export default function ClassementsPage() {
         );
       }
 
-      /*
-       * CLASSEMENT SAISON ACTUEL
-       */
-
       const seasonRows =
         buildSeasonRows(
           safeScores
         );
 
-      /*
-       * CLASSEMENT DE RÉFÉRENCE POUR LES FLÈCHES
-       *
-       * On exclut toujours la semaine active.
-       */
-
       const previousSeasonRows =
         buildSeasonRows(
           safeScores.filter(
             (score) =>
-              Number(
-                score.week
-              ) <
+              Number(score.week) <
               currentWeek
           )
         );
@@ -1243,11 +1434,6 @@ export default function ClassementsPage() {
             const currentRank =
               index + 1;
 
-            /*
-             * Semaine 1 :
-             * aucun classement précédent.
-             */
-
             const hasPreviousWeek =
               currentWeek > 1 &&
               previousRanks[
@@ -1273,23 +1459,18 @@ export default function ClassementsPage() {
               )
                 .map(Number)
                 .filter(
-                  (
-                    weekNumber
-                  ) =>
+                  (weekNumber) =>
                     weekNumber <=
                     currentWeek
                 )
                 .sort(
-                  (a, b) =>
-                    b - a
+                  (a, b) => b - a
                 )
                 .slice(0, 3);
 
             const recentRanks =
               recentWeeks.map(
-                (
-                  weekNumber
-                ) => {
+                (weekNumber) => {
                   const found =
                     weeklyRankings[
                       weekNumber
@@ -1307,8 +1488,7 @@ export default function ClassementsPage() {
               );
 
             if (
-              recentRanks.length ===
-              3
+              recentRanks.length === 3
             ) {
               if (
                 recentRanks.every(
@@ -1373,13 +1553,13 @@ export default function ClassementsPage() {
     loadData();
   }, []);
 
-  const rows =
+  const mobileRows =
     tab === "week"
       ? weekly
       : season;
 
-  const topThree =
-    rows.slice(0, 3);
+  const mobileTopThree =
+    mobileRows.slice(0, 3);
 
   /* =========================================================
      AFFICHAGE
@@ -1410,8 +1590,8 @@ export default function ClassementsPage() {
           isDesktop
             ? {
                 padding:
-                  "28px 32px",
-                marginBottom: 20,
+                  "24px 30px",
+                marginBottom: 18,
               }
             : undefined
         }
@@ -1420,41 +1600,22 @@ export default function ClassementsPage() {
           style={{
             display: "flex",
             alignItems: "center",
-            gap: isDesktop ? 12 : 10,
-            flexWrap: "nowrap",
+            gap: 10,
             width: "100%",
-            minWidth: 0,
           }}
         >
-          <div
+          <h1
             style={{
-              fontSize: isDesktop
-                ? 48
-                : "clamp(40px, 10vw, 64px)",
-
-              fontWeight: 900,
-              lineHeight: 1,
-              color: "#f8fafc",
-              letterSpacing:
-                "-1.5px",
-              whiteSpace:
-                "nowrap",
-              minWidth: 0,
+              margin: 0,
             }}
           >
             Classements
-          </div>
+          </h1>
 
           <span
             style={{
-              fontSize: isDesktop
-                ? 42
-                : "clamp(32px, 8vw, 48px)",
-
+              fontSize: 36,
               lineHeight: 1,
-              flexShrink: 0,
-              transform:
-                "translateY(1px)",
             }}
           >
             🏆
@@ -1463,8 +1624,6 @@ export default function ClassementsPage() {
 
         <p
           style={{
-            marginTop:
-              isDesktop ? 12 : 20,
             marginBottom: 0,
           }}
         >
@@ -1473,202 +1632,193 @@ export default function ClassementsPage() {
       </section>
 
       {/* =====================================================
-          ONGLETS
+          DESKTOP
           ===================================================== */}
 
-      <section
-        className="card"
-        style={{
-          padding: 8,
-          display: "grid",
-          gridTemplateColumns:
-            "1fr 1fr",
-          gap: 8,
-        }}
-      >
-        <button
-          className={
-            tab === "week"
-              ? "button"
-              : "button-secondary"
-          }
-          onClick={() =>
-            setTab("week")
-          }
-        >
-          Semaine {week}
-        </button>
+      {isDesktop ? (
+        <>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns:
+                "repeat(2, minmax(0, 1fr))",
+              gap: 18,
+              alignItems: "start",
+            }}
+          >
+            <DesktopRankingPanel
+              title={`Semaine ${week}`}
+              subtitle="Classement hebdomadaire"
+              rows={weekly}
+              mode="week"
+            />
 
-        <button
-          className={
-            tab === "season"
-              ? "button"
-              : "button-secondary"
-          }
-          onClick={() =>
-            setTab("season")
-          }
-        >
-          Saison complète
-        </button>
-      </section>
+            <DesktopRankingPanel
+              title="Saison complète"
+              subtitle="Classement cumulatif"
+              rows={season}
+              mode="season"
+            />
+          </div>
 
-      {/* =====================================================
-          CLASSEMENT
-          ===================================================== */}
-
-      {rows.length === 0 ? (
-        <section className="card">
-          <p>
-            Aucun score pour le moment.
-          </p>
-        </section>
+          {rankProgression && (
+            <RankProgressionChart
+              progression={
+                rankProgression
+              }
+              isDesktop
+            />
+          )}
+        </>
       ) : (
         <>
           {/* =================================================
-              PODIUM
+              MOBILE — ONGLETS
               ================================================= */}
 
           <section
             className="card"
-            style={
-              isDesktop
-                ? {
-                    padding:
-                      "24px 28px 28px",
-                  }
-                : undefined
-            }
+            style={{
+              padding: 8,
+              display: "grid",
+              gridTemplateColumns:
+                "1fr 1fr",
+              gap: 8,
+            }}
           >
-            <h2
-              style={{
-                marginTop: 0,
-                marginBottom:
-                  isDesktop
-                    ? 20
-                    : undefined,
-              }}
+            <button
+              className={
+                tab === "week"
+                  ? "button"
+                  : "button-secondary"
+              }
+              onClick={() =>
+                setTab("week")
+              }
             >
-              Podium{" "}
-              {tab === "week"
-                ? `semaine ${week}`
-                : "saison"}
-            </h2>
+              Semaine {week}
+            </button>
 
-            <div
-              style={{
-                display: "grid",
-
-                gridTemplateColumns:
-                  isDesktop
-                    ? "minmax(0, 1fr) minmax(0, 1.12fr) minmax(0, 1fr)"
-                    : "minmax(0, 1fr) minmax(0, 1.12fr) minmax(0, 1fr)",
-
-                gap: isDesktop
-                  ? 18
-                  : "clamp(4px, 1.5vw, 10px)",
-
-                alignItems: "end",
-                width: "100%",
-                maxWidth: "100%",
-                overflow: "hidden",
-              }}
+            <button
+              className={
+                tab === "season"
+                  ? "button"
+                  : "button-secondary"
+              }
+              onClick={() =>
+                setTab("season")
+              }
             >
-              <PodiumCard
-                row={
-                  topThree[1]
-                }
-                isDesktop={
-                  isDesktop
-                }
-              />
-
-              <PodiumCard
-                row={
-                  topThree[0]
-                }
-                first={true}
-                isDesktop={
-                  isDesktop
-                }
-              />
-
-              <PodiumCard
-                row={
-                  topThree[2]
-                }
-                isDesktop={
-                  isDesktop
-                }
-              />
-            </div>
+              Saison complète
+            </button>
           </section>
 
           {/* =================================================
-              RESTE DU CLASSEMENT
+              MOBILE — CLASSEMENT
               ================================================= */}
 
-          {rows.length > 3 && (
-            <section
-              className="card"
-              style={
-                isDesktop
-                  ? {
-                      padding:
-                        "10px 24px",
-                    }
-                  : undefined
-              }
-            >
-              {rows
-                .slice(3)
-                .map(
-                  (
-                    row,
-                    index
-                  ) => (
-                    <RankingRow
-                      key={
-                        row.userId
-                      }
-                      row={row}
-                      mode={
-                        tab ===
-                        "week"
-                          ? "week"
-                          : "season"
-                      }
-                      isDesktop={
-                        isDesktop
-                      }
-                      isLast={
-                        index ===
-                        rows.length -
-                          4
-                      }
-                    />
-                  )
-                )}
+          {mobileRows.length === 0 ? (
+            <section className="card">
+              <p>
+                Aucun score pour le moment.
+              </p>
             </section>
+          ) : (
+            <>
+              <section className="card">
+                <h2
+                  style={{
+                    marginTop: 0,
+                  }}
+                >
+                  Podium{" "}
+                  {tab === "week"
+                    ? `semaine ${week}`
+                    : "saison"}
+                </h2>
+
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns:
+                      "minmax(0, 1fr) minmax(0, 1.12fr) minmax(0, 1fr)",
+                    gap: "clamp(4px, 1.5vw, 10px)",
+                    alignItems: "end",
+                    width: "100%",
+                    overflow: "hidden",
+                  }}
+                >
+                  <PodiumCard
+                    row={
+                      mobileTopThree[1]
+                    }
+                  />
+
+                  <PodiumCard
+                    row={
+                      mobileTopThree[0]
+                    }
+                    first
+                  />
+
+                  <PodiumCard
+                    row={
+                      mobileTopThree[2]
+                    }
+                  />
+                </div>
+              </section>
+
+              {mobileRows.length >
+                3 && (
+                <section className="card">
+                  {mobileRows
+                    .slice(3)
+                    .map(
+                      (
+                        row,
+                        index
+                      ) => (
+                        <RankingRow
+                          key={
+                            row.userId
+                          }
+                          row={row}
+                          mode={
+                            tab ===
+                            "week"
+                              ? "week"
+                              : "season"
+                          }
+                          isLast={
+                            index ===
+                            mobileRows.length -
+                              4
+                          }
+                        />
+                      )
+                    )}
+                </section>
+              )}
+            </>
           )}
+
+          {/* Graphique mobile seulement dans Saison,
+              comme avant */}
+
+          {tab === "season" &&
+            rankProgression && (
+              <RankProgressionChart
+                progression={
+                  rankProgression
+                }
+                isDesktop={
+                  false
+                }
+              />
+            )}
         </>
       )}
-
-      {/* =====================================================
-          PROGRESSION SAISON
-          ===================================================== */}
-
-      {tab === "season" &&
-        rankProgression && (
-          <RankProgressionChart
-            progression={
-              rankProgression
-            }
-            isDesktop={
-              isDesktop
-            }
-          />
-        )}
 
       <BottomNav />
     </main>
