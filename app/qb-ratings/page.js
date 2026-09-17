@@ -37,6 +37,7 @@ function QBPhoto({ qb, size = 96 }) {
           justifyContent: "center",
           fontWeight: 900,
           color: "#f8fafc",
+          flexShrink: 0,
         }}
       >
         QB
@@ -53,6 +54,7 @@ function QBPhoto({ qb, size = 96 }) {
         width: size,
         height: size,
         objectFit: "contain",
+        flexShrink: 0,
       }}
     />
   );
@@ -74,6 +76,7 @@ function TeamLogo({ logo, name, size = 54 }) {
           justifyContent: "center",
           fontWeight: 900,
           color: "#f8fafc",
+          flexShrink: 0,
         }}
       >
         {name?.slice(0, 2)}
@@ -90,6 +93,7 @@ function TeamLogo({ logo, name, size = 54 }) {
         width: size,
         height: size,
         objectFit: "contain",
+        flexShrink: 0,
       }}
     />
   );
@@ -98,18 +102,15 @@ function TeamLogo({ logo, name, size = 54 }) {
 function PlayerIdentity({
   name,
   realName: secondaryName,
+  compact = false,
 }) {
   return (
-    <div
-      style={{
-        marginTop: 3,
-      }}
-    >
+    <div style={{ marginTop: compact ? 1 : 3 }}>
       <strong
         style={{
           display: "block",
           color: "#f8fafc",
-          fontSize: 14,
+          fontSize: compact ? 12 : 14,
           lineHeight: 1.15,
         }}
       >
@@ -122,7 +123,7 @@ function PlayerIdentity({
             display: "block",
             marginTop: 2,
             color: "#64748b",
-            fontSize: 12,
+            fontSize: compact ? 10 : 12,
             fontWeight: 400,
             lineHeight: 1.2,
           }}
@@ -134,18 +135,17 @@ function PlayerIdentity({
   );
 }
 
+/* =========================================================
+   CARTE RATING MOBILE / ORIGINALE
+   ========================================================= */
+
 function RatingMiniCard({
   label,
   type,
   rating,
+  isMobile,
 }) {
-  const isBest =
-    type === "best";
-
-  const isMobile =
-    typeof window !==
-      "undefined" &&
-    window.innerWidth < 700;
+  const isBest = type === "best";
 
   if (!rating) {
     return (
@@ -153,10 +153,8 @@ function RatingMiniCard({
         style={{
           padding: 14,
           borderRadius: 18,
-          background:
-            "rgba(148,163,184,0.08)",
-          border:
-            "1px solid rgba(148,163,184,0.14)",
+          background: "rgba(148,163,184,0.08)",
+          border: "1px solid rgba(148,163,184,0.14)",
         }}
       >
         <p
@@ -169,11 +167,7 @@ function RatingMiniCard({
           {label}
         </p>
 
-        <h3
-          style={{
-            margin: "8px 0 0 0",
-          }}
-        >
+        <h3 style={{ margin: "8px 0 0 0" }}>
           Aucun rating
         </h3>
       </div>
@@ -186,95 +180,55 @@ function RatingMiniCard({
         padding: 14,
         borderRadius: 18,
 
-        background:
-          isBest
-            ? "rgba(34,197,94,0.08)"
-            : "rgba(239,68,68,0.08)",
+        background: isBest
+          ? "rgba(34,197,94,0.08)"
+          : "rgba(239,68,68,0.08)",
 
-        border:
-          isBest
-            ? "1px solid rgba(34,197,94,0.22)"
-            : "1px solid rgba(239,68,68,0.22)",
+        border: isBest
+          ? "1px solid rgba(34,197,94,0.22)"
+          : "1px solid rgba(239,68,68,0.22)",
       }}
     >
-      {/* =====================================================
-          TITRE
-          ===================================================== */}
-
       <p
         style={{
           margin: 0,
-          color:
-            isBest
-              ? "#22c55e"
-              : "#ef4444",
+          color: isBest ? "#22c55e" : "#ef4444",
           fontWeight: 900,
         }}
       >
         {label}
       </p>
 
-      {/* =====================================================
-          MOBILE
-          Rating à gauche
-          Informations à droite
-          ===================================================== */}
-
       {isMobile ? (
         <div
           style={{
             display: "grid",
-
             gridTemplateColumns:
               "minmax(100px, 0.75fr) minmax(0, 1.25fr)",
-
             gap: 16,
-
             alignItems: "center",
-
             marginTop: 8,
           }}
         >
-          {/* RATING */}
-
-          <div
-            style={{
-              minWidth: 0,
-            }}
-          >
+          <div style={{ minWidth: 0 }}>
             <strong
               style={{
                 display: "block",
-
                 fontSize: 34,
-
                 lineHeight: 1,
-
-                color:
-                  isBest
-                    ? "#22c55e"
-                    : "#ef4444",
-
+                color: isBest ? "#22c55e" : "#ef4444",
                 fontWeight: 900,
-
-                whiteSpace:
-                  "nowrap",
+                whiteSpace: "nowrap",
               }}
             >
-              {Number(
-                rating.passer_rating
-              ).toFixed(1)}
+              {Number(rating.passer_rating).toFixed(1)}
             </strong>
           </div>
-
-          {/* INFORMATIONS */}
 
           <div
             style={{
               minWidth: 0,
-
               paddingLeft: 14,
-
               borderLeft:
                 "1px solid rgba(148,163,184,0.16)",
             }}
@@ -282,70 +236,42 @@ function RatingMiniCard({
             <p
               style={{
                 margin: 0,
-
-                color:
-                  "#94a3b8",
-
+                color: "#94a3b8",
                 fontSize: 13,
-
                 fontWeight: 700,
               }}
             >
-              Semaine{" "}
-              {rating.week}
+              Semaine {rating.week}
             </p>
 
-            <div
-              style={{
-                marginTop: 6,
-              }}
-            >
+            <div style={{ marginTop: 6 }}>
               <span
                 style={{
                   display: "block",
-
                   fontSize: 11,
-
-                  color:
-                    "#94a3b8",
+                  color: "#94a3b8",
                 }}
               >
                 Choisi par
               </span>
 
               <PlayerIdentity
-                name={
-                  rating.selected_by
-                }
-                realName={
-                  rating.selected_by_real_name
-                }
+                name={rating.selected_by}
+                realName={rating.selected_by_real_name}
               />
             </div>
           </div>
         </div>
       ) : (
-        /* =====================================================
-           DESKTOP
-           Affichage actuel inchangé
-           ===================================================== */
-
         <>
           <h2
             style={{
               margin: "6px 0",
-
               fontSize: 30,
-
-              color:
-                isBest
-                  ? "#22c55e"
-                  : "#ef4444",
+              color: isBest ? "#22c55e" : "#ef4444",
             }}
           >
-            {Number(
-              rating.passer_rating
-            ).toFixed(1)}
+            {Number(rating.passer_rating).toFixed(1)}
           </h2>
 
           <div
@@ -354,40 +280,24 @@ function RatingMiniCard({
               color: "#94a3b8",
             }}
           >
-            <p
-              style={{
-                margin: 0,
-              }}
-            >
-              Semaine{" "}
-              {rating.week}
+            <p style={{ margin: 0 }}>
+              Semaine {rating.week}
             </p>
 
-            <div
-              style={{
-                marginTop: 6,
-              }}
-            >
+            <div style={{ marginTop: 6 }}>
               <span
                 style={{
                   display: "block",
-
                   fontSize: 12,
-
-                  color:
-                    "#94a3b8",
+                  color: "#94a3b8",
                 }}
               >
                 Choisi par
               </span>
 
               <PlayerIdentity
-                name={
-                  rating.selected_by
-                }
-                realName={
-                  rating.selected_by_real_name
-                }
+                name={rating.selected_by}
+                realName={rating.selected_by_real_name}
               />
             </div>
           </div>
@@ -396,11 +306,615 @@ function RatingMiniCard({
     </div>
   );
 }
+
+/* =========================================================
+   BLOC RATING DESKTOP — PODIUM
+   ========================================================= */
+
+function DesktopPodiumRating({
+  label,
+  rating,
+  type,
+}) {
+  const isBest = type === "best";
+  const isWorst = type === "worst";
+
+  const accent = isBest
+    ? "#22c55e"
+    : isWorst
+    ? "#ef4444"
+    : "#e2e8f0";
+
+  const background = isBest
+    ? "rgba(34,197,94,0.07)"
+    : isWorst
+    ? "rgba(239,68,68,0.07)"
+    : "rgba(148,163,184,0.07)";
+
+  const border = isBest
+    ? "1px solid rgba(34,197,94,0.20)"
+    : isWorst
+    ? "1px solid rgba(239,68,68,0.20)"
+    : "1px solid rgba(148,163,184,0.14)";
+
+  return (
+    <div
+      style={{
+        height: "100%",
+        minWidth: 0,
+        padding: "14px 16px",
+        borderRadius: 16,
+        background,
+        border,
+      }}
+    >
+      <div
+        style={{
+          color:
+            type === "average"
+              ? "#94a3b8"
+              : accent,
+          fontSize: 12,
+          fontWeight: 900,
+          textTransform: "uppercase",
+          letterSpacing: ".03em",
+        }}
+      >
+        {label}
+      </div>
+
+      {type === "average" ? (
+        <>
+          <strong
+            style={{
+              display: "block",
+              marginTop: 7,
+              color: accent,
+              fontSize: 29,
+              lineHeight: 1,
+            }}
+          >
+            {rating != null
+              ? Number(rating).toFixed(1)
+              : "--"}
+          </strong>
+
+          <div
+            style={{
+              marginTop: 9,
+              color: "#94a3b8",
+              fontSize: 12,
+            }}
+          >
+            Toutes les semaines
+          </div>
+        </>
+      ) : !rating ? (
+        <>
+          <strong
+            style={{
+              display: "block",
+              marginTop: 7,
+              color: "#64748b",
+              fontSize: 29,
+              lineHeight: 1,
+            }}
+          >
+            --
+          </strong>
+
+          <div
+            style={{
+              marginTop: 9,
+              color: "#64748b",
+              fontSize: 12,
+            }}
+          >
+            Aucun rating
+          </div>
+        </>
+      ) : (
+        <>
+          <strong
+            style={{
+              display: "block",
+              marginTop: 7,
+              color: accent,
+              fontSize: 29,
+              lineHeight: 1,
+            }}
+          >
+            {Number(rating.passer_rating).toFixed(1)}
+          </strong>
+
+          <div
+            style={{
+              marginTop: 7,
+              color: "#94a3b8",
+              fontSize: 12,
+            }}
+          >
+            Semaine {rating.week}
+          </div>
+
+          <div style={{ marginTop: 6 }}>
+            <span
+              style={{
+                display: "block",
+                color: "#64748b",
+                fontSize: 10,
+              }}
+            >
+              Choisi par
+            </span>
+
+            <PlayerIdentity
+              name={rating.selected_by}
+              realName={rating.selected_by_real_name}
+              compact
+            />
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+/* =========================================================
+   TOP 3 — CARTE HORIZONTALE DESKTOP
+   ========================================================= */
+
+function DesktopPodiumQB({
+  row,
+  rank,
+  teamLogo,
+}) {
+  const rankDisplay =
+    rank === 1
+      ? "🥇"
+      : rank === 2
+      ? "🥈"
+      : "🥉";
+
+  return (
+    <section
+      className="card"
+      style={{
+        padding: "18px 20px",
+      }}
+    >
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns:
+            "58px 86px minmax(190px, 0.85fr) minmax(0, 2.15fr)",
+          gap: 16,
+          alignItems: "center",
+          minWidth: 0,
+        }}
+      >
+        {/* RANG */}
+
+        <div
+          style={{
+            alignSelf: "start",
+            paddingTop: 5,
+            textAlign: "center",
+          }}
+        >
+          <div
+            style={{
+              fontSize: 31,
+              lineHeight: 1,
+            }}
+          >
+            {rankDisplay}
+          </div>
+
+          <strong
+            style={{
+              display: "block",
+              marginTop: 5,
+              color: "#94a3b8",
+              fontSize: 12,
+            }}
+          >
+            #{rank}
+          </strong>
+        </div>
+
+        {/* PHOTO */}
+
+        <QBPhoto
+          qb={row.qb}
+          size={82}
+        />
+
+        {/* IDENTITÉ QB */}
+
+        <div
+          style={{
+            minWidth: 0,
+          }}
+        >
+          <h2
+            style={{
+              margin: 0,
+              color: "#f8fafc",
+              fontSize: 22,
+              lineHeight: 1.1,
+            }}
+          >
+            {row.qb.name}
+          </h2>
+
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              marginTop: 9,
+              color: "#94a3b8",
+            }}
+          >
+            <TeamLogo
+              logo={teamLogo}
+              name={row.qb.team}
+              size={34}
+            />
+
+            <strong
+              style={{
+                fontSize: 13,
+              }}
+            >
+              {row.qb.team}
+            </strong>
+          </div>
+        </div>
+
+        {/* 3 STATS */}
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns:
+              "repeat(3, minmax(0, 1fr))",
+            gap: 10,
+            minWidth: 0,
+          }}
+        >
+          <DesktopPodiumRating
+            label="Meilleur"
+            type="best"
+            rating={row.best}
+          />
+
+          <DesktopPodiumRating
+            label="Moyenne"
+            type="average"
+            rating={row.average}
+          />
+
+          <DesktopPodiumRating
+            label="Pire"
+            type="worst"
+            rating={row.worst}
+          />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* =========================================================
+   QB #4+ — LIGNE DESKTOP COMPACTE
+   ========================================================= */
+
+function CompactRating({
+  label,
+  rating,
+  type,
+}) {
+  const isBest = type === "best";
+  const isWorst = type === "worst";
+
+  const accent = isBest
+    ? "#22c55e"
+    : isWorst
+    ? "#ef4444"
+    : "#e2e8f0";
+
+  return (
+    <div
+      style={{
+        minWidth: 0,
+        paddingLeft: 14,
+        borderLeft:
+          "1px solid rgba(148,163,184,0.12)",
+      }}
+    >
+      <div
+        style={{
+          color:
+            type === "average"
+              ? "#64748b"
+              : accent,
+          fontSize: 9,
+          fontWeight: 900,
+          textTransform: "uppercase",
+          letterSpacing: ".04em",
+        }}
+      >
+        {label}
+      </div>
+
+      {type === "average" ? (
+        <>
+          <strong
+            style={{
+              display: "block",
+              marginTop: 3,
+              color: accent,
+              fontSize: 19,
+              lineHeight: 1.1,
+            }}
+          >
+            {rating != null
+              ? Number(rating).toFixed(1)
+              : "--"}
+          </strong>
+
+          <span
+            style={{
+              display: "block",
+              marginTop: 4,
+              color: "#64748b",
+              fontSize: 9,
+            }}
+          >
+            Saison
+          </span>
+        </>
+      ) : !rating ? (
+        <>
+          <strong
+            style={{
+              display: "block",
+              marginTop: 3,
+              color: "#64748b",
+              fontSize: 19,
+            }}
+          >
+            --
+          </strong>
+        </>
+      ) : (
+        <>
+          <strong
+            style={{
+              display: "block",
+              marginTop: 3,
+              color: accent,
+              fontSize: 19,
+              lineHeight: 1.1,
+            }}
+          >
+            {Number(rating.passer_rating).toFixed(1)}
+          </strong>
+
+          <div
+            style={{
+              marginTop: 3,
+              color: "#94a3b8",
+              fontSize: 9,
+            }}
+          >
+            S{rating.week}
+          </div>
+
+          <div
+            style={{
+              marginTop: 3,
+              minWidth: 0,
+            }}
+          >
+            <span
+              style={{
+                display: "block",
+                color: "#64748b",
+                fontSize: 8,
+              }}
+            >
+              Choisi par
+            </span>
+
+            <strong
+              style={{
+                display: "block",
+                marginTop: 1,
+                color: "#cbd5e1",
+                fontSize: 10,
+                lineHeight: 1.15,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {rating.selected_by || "—"}
+            </strong>
+
+            {rating.selected_by_real_name && (
+              <span
+                style={{
+                  display: "block",
+                  marginTop: 1,
+                  color: "#64748b",
+                  fontSize: 8,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
+                {rating.selected_by_real_name}
+              </span>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function DesktopCompactQB({
+  row,
+  rank,
+  teamLogo,
+  isLast,
+}) {
+  return (
+    <div
+      style={{
+        display: "grid",
+
+        gridTemplateColumns:
+          "42px 58px minmax(180px, 0.9fr) minmax(135px, 0.72fr) minmax(110px, 0.58fr) minmax(135px, 0.72fr)",
+
+        gap: 12,
+        alignItems: "center",
+
+        padding: "11px 4px",
+
+        borderBottom: isLast
+          ? "none"
+          : "1px solid rgba(148,163,184,0.11)",
+      }}
+    >
+      {/* RANG */}
+
+      <strong
+        style={{
+          color: "#94a3b8",
+          fontSize: 15,
+          textAlign: "center",
+        }}
+      >
+        #{rank}
+      </strong>
+
+      {/* PHOTO */}
+
+      <QBPhoto
+        qb={row.qb}
+        size={50}
+      />
+
+      {/* QB */}
+
+      <div
+        style={{
+          minWidth: 0,
+        }}
+      >
+        <strong
+          style={{
+            display: "block",
+            color: "#f8fafc",
+            fontSize: 15,
+            lineHeight: 1.15,
+          }}
+        >
+          {row.qb.name}
+        </strong>
+
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            marginTop: 5,
+            color: "#94a3b8",
+          }}
+        >
+          <TeamLogo
+            logo={teamLogo}
+            name={row.qb.team}
+            size={24}
+          />
+
+          <span
+            style={{
+              fontSize: 10,
+              fontWeight: 700,
+            }}
+          >
+            {row.qb.team}
+          </span>
+        </div>
+      </div>
+
+      {/* MEILLEUR */}
+
+      <CompactRating
+        label="Meilleur"
+        type="best"
+        rating={row.best}
+      />
+
+      {/* MOYENNE */}
+
+      <CompactRating
+        label="Moyenne"
+        type="average"
+        rating={row.average}
+      />
+
+      {/* PIRE */}
+
+      <CompactRating
+        label="Pire"
+        type="worst"
+        rating={row.worst}
+      />
+    </div>
+  );
+}
+
+/* =========================================================
+   PAGE
+   ========================================================= */
+
 export default function QBRatingsPage() {
   const [rows, setRows] = useState([]);
   const [teams, setTeams] = useState([]);
-  const [message, setMessage] =
-    useState("");
+  const [message, setMessage] = useState("");
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  /* =========================================================
+     RESPONSIVE
+     ========================================================= */
+
+  useEffect(() => {
+    const updateResponsive = () => {
+      setIsDesktop(window.innerWidth >= 900);
+    };
+
+    updateResponsive();
+
+    window.addEventListener(
+      "resize",
+      updateResponsive
+    );
+
+    return () => {
+      window.removeEventListener(
+        "resize",
+        updateResponsive
+      );
+    };
+  }, []);
+
+  /* =========================================================
+     DONNÉES — LOGIQUE EXISTANTE CONSERVÉE
+     ========================================================= */
 
   useEffect(() => {
     async function loadData() {
@@ -474,8 +988,7 @@ export default function QBRatingsPage() {
       (ratingsData || []).forEach(
         (rating) => {
           if (
-            rating.passer_rating ==
-            null
+            rating.passer_rating == null
           ) {
             return;
           }
@@ -496,23 +1009,17 @@ export default function QBRatingsPage() {
           }
 
           const key =
-            String(
-              actualAthleteId
-            );
+            String(actualAthleteId);
 
           if (
-            !ratingsByActualQb[
-              key
-            ]
+            !ratingsByActualQb[key]
           ) {
-            ratingsByActualQb[
-              key
-            ] = [];
+            ratingsByActualQb[key] = [];
           }
 
-          ratingsByActualQb[
-            key
-          ].push(rating);
+          ratingsByActualQb[key].push(
+            rating
+          );
         }
       );
 
@@ -541,9 +1048,7 @@ export default function QBRatingsPage() {
                     String(
                       qb.espn_athlete_id
                     ) ===
-                    String(
-                      athleteId
-                    )
+                    String(athleteId)
                 );
 
               const actualQb =
@@ -574,12 +1079,10 @@ export default function QBRatingsPage() {
                     Number(
                       a.passer_rating
                     )
-                )[0] ||
-                null;
+                )[0] || null;
 
               const worst =
-                qbRatings.length >
-                1
+                qbRatings.length > 1
                   ? [...qbRatings].sort(
                       (a, b) =>
                         Number(
@@ -598,10 +1101,7 @@ export default function QBRatingsPage() {
                   }
 
                   const pick =
-                    (
-                      qbPicksData ||
-                      []
-                    ).find(
+                    (qbPicksData || []).find(
                       (p) =>
                         p.qb_id ===
                           rating.qb_id &&
@@ -610,10 +1110,7 @@ export default function QBRatingsPage() {
                     );
 
                   const user =
-                    (
-                      usersData ||
-                      []
-                    ).find(
+                    (usersData || []).find(
                       (u) =>
                         u.id ===
                         pick?.user_id
@@ -623,20 +1120,15 @@ export default function QBRatingsPage() {
                     ...rating,
 
                     selected_by:
-                      displayName(
-                        user
-                      ),
+                      displayName(user),
 
                     selected_by_real_name:
-                      realName(
-                        user
-                      ),
+                      realName(user),
                   };
                 };
 
               const average =
-                qbRatings.length >
-                0
+                qbRatings.length > 0
                   ? qbRatings.reduce(
                       (
                         sum,
@@ -653,96 +1145,103 @@ export default function QBRatingsPage() {
                   : null;
 
               return {
-                qb:
-                  actualQb,
+                qb: actualQb,
 
                 best:
-                  attachSelector(
-                    best
-                  ),
+                  attachSelector(best),
 
                 worst:
-                  attachSelector(
-                    worst
-                  ),
+                  attachSelector(worst),
 
                 average,
               };
             }
           )
-          .sort(
-            (a, b) => {
-              const aBest =
-                Number(
-                  a.best
-                    ?.passer_rating ||
-                    0
-                );
-
-              const bBest =
-                Number(
-                  b.best
-                    ?.passer_rating ||
-                    0
-                );
-
-              return (
-                bBest -
-                aBest
+          .sort((a, b) => {
+            const aBest =
+              Number(
+                a.best?.passer_rating ||
+                  0
               );
-            }
-          );
 
-      setRows(
-        builtRows
-      );
+            const bBest =
+              Number(
+                b.best?.passer_rating ||
+                  0
+              );
+
+            return bBest - aBest;
+          });
+
+      setRows(builtRows);
     }
 
     loadData();
   }, []);
 
-  const getTeamLogo =
-    (teamName) => {
-      const team =
-        teams.find(
-          (t) =>
-            t.name
-              ?.toLowerCase()
-              .trim() ===
-            teamName
-              ?.toLowerCase()
-              .trim()
-        );
+  const getTeamLogo = (teamName) => {
+    const team =
+      teams.find(
+        (t) =>
+          t.name
+            ?.toLowerCase()
+            .trim() ===
+          teamName
+            ?.toLowerCase()
+            .trim()
+      );
 
-      return team?.espn_abbr
-        ? `https://a.espncdn.com/i/teamlogos/nfl/500/${team.espn_abbr.toLowerCase()}.png`
-        : team?.logo ||
-            null;
-    };
+    return team?.espn_abbr
+      ? `https://a.espncdn.com/i/teamlogos/nfl/500/${team.espn_abbr.toLowerCase()}.png`
+      : team?.logo || null;
+  };
+
+  /* =========================================================
+     AFFICHAGE
+     ========================================================= */
 
   return (
     <main
       className="page"
       style={{
-        maxWidth: 1100,
+        maxWidth: isDesktop ? 1280 : 1100,
+
+        width: isDesktop
+          ? "calc(100% - 48px)"
+          : undefined,
+
+        margin: isDesktop
+          ? "0 auto"
+          : undefined,
+
+        paddingTop: isDesktop
+          ? 112
+          : undefined,
       }}
     >
-      <section className="header-card">
+      {/* =====================================================
+          HEADER
+          ===================================================== */}
+
+      <section
+        className="header-card"
+        style={
+          isDesktop
+            ? {
+                padding: "26px 30px",
+                marginBottom: 18,
+              }
+            : undefined
+        }
+      >
         <h1
           style={{
-            fontSize:
-              typeof window !==
-                "undefined" &&
-              window.innerWidth <
-                700
-                ? 44
-                : undefined,
+            fontSize: !isDesktop
+              ? 44
+              : undefined,
 
-            lineHeight:
-              1.05,
-
-            whiteSpace:
-              "nowrap",
+            lineHeight: 1.05,
+            whiteSpace: "nowrap",
           }}
         >
           QB Ratings 📊
@@ -755,14 +1254,11 @@ export default function QBRatingsPage() {
 
       {message && (
         <section className="card">
-          <p>
-            {message}
-          </p>
+          <p>{message}</p>
         </section>
       )}
 
-      {rows.length ===
-        0 && (
+      {rows.length === 0 && (
         <section className="card">
           <p>
             Aucun rating QB pour le moment.
@@ -770,124 +1266,202 @@ export default function QBRatingsPage() {
         </section>
       )}
 
-      {rows.map(
-        (
-          row,
-          index
-        ) => (
+      {/* =====================================================
+          DESKTOP
+          ===================================================== */}
+
+      {isDesktop && rows.length > 0 && (
+        <>
+          {/* =================================================
+              PODIUM — TOP 3
+              ================================================= */}
+
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              margin: "4px 2px 12px",
+            }}
+          >
+            <h2
+              style={{
+                margin: 0,
+                fontSize: 20,
+                color: "#f8fafc",
+              }}
+            >
+              Podium
+            </h2>
+
+            <span style={{ fontSize: 20 }}>
+              🏆
+            </span>
+          </div>
+
+          {rows
+            .slice(0, 3)
+            .map((row, index) => (
+              <DesktopPodiumQB
+                key={row.qb.id}
+                row={row}
+                rank={index + 1}
+                teamLogo={getTeamLogo(
+                  row.qb.team
+                )}
+              />
+            ))}
+
+          {/* =================================================
+              AUTRES QB
+              ================================================= */}
+
+          {rows.length > 3 && (
+            <section
+              className="card"
+              style={{
+                padding: "16px 20px 8px",
+                marginTop: 18,
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: 12,
+                  padding: "0 4px 12px",
+                  borderBottom:
+                    "1px solid rgba(148,163,184,0.12)",
+                }}
+              >
+                <div>
+                  <h2
+                    style={{
+                      margin: 0,
+                      fontSize: 19,
+                    }}
+                  >
+                    Classement QB
+                  </h2>
+
+                  <p
+                    style={{
+                      margin: "4px 0 0",
+                      color: "#94a3b8",
+                      fontSize: 11,
+                    }}
+                  >
+                    Positions #4 à #{rows.length}
+                  </p>
+                </div>
+
+                <span
+                  style={{
+                    color: "#64748b",
+                    fontSize: 11,
+                  }}
+                >
+                  Classés par meilleur rating
+                </span>
+              </div>
+
+              {rows
+                .slice(3)
+                .map((row, index) => (
+                  <DesktopCompactQB
+                    key={row.qb.id}
+                    row={row}
+                    rank={index + 4}
+                    teamLogo={getTeamLogo(
+                      row.qb.team
+                    )}
+                    isLast={
+                      index ===
+                      rows.length - 4
+                    }
+                  />
+                ))}
+            </section>
+          )}
+        </>
+      )}
+
+      {/* =====================================================
+          MOBILE — AFFICHAGE ORIGINAL
+          ===================================================== */}
+
+      {!isDesktop &&
+        rows.map((row, index) => (
           <section
-            key={
-              row.qb.id
-            }
+            key={row.qb.id}
             className="card"
           >
             <div
               style={{
-                display:
-                  "grid",
-
+                display: "grid",
                 gridTemplateColumns:
                   "54px 110px 1fr",
-
                 gap: 16,
-
-                alignItems:
-                  "center",
-
-                marginBottom:
-                  16,
+                alignItems: "center",
+                marginBottom: 16,
               }}
             >
               <div
                 style={{
                   width: 42,
                   height: 42,
-
-                  borderRadius:
-                    14,
+                  borderRadius: 14,
 
                   background:
                     index < 3
                       ? "#166534"
                       : "#1e293b",
 
-                  color:
-                    "white",
+                  color: "white",
+                  fontWeight: 900,
 
-                  fontWeight:
-                    900,
-
-                  display:
-                    "flex",
-
-                  alignItems:
-                    "center",
-
-                  justifyContent:
-                    "center",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
                 }}
               >
                 #{index + 1}
               </div>
 
               <QBPhoto
-                qb={
-                  row.qb
-                }
-                size={
-                  104
-                }
+                qb={row.qb}
+                size={104}
               />
 
               <div>
                 <h2
                   style={{
-                    margin:
-                      0,
+                    margin: 0,
                   }}
                 >
-                  {
-                    row.qb
-                      .name
-                  }
+                  {row.qb.name}
                 </h2>
 
                 <div
                   style={{
-                    display:
-                      "flex",
-
-                    alignItems:
-                      "center",
-
+                    display: "flex",
+                    alignItems: "center",
                     gap: 10,
-
-                    marginTop:
-                      8,
-
-                    color:
-                      "#94a3b8",
+                    marginTop: 8,
+                    color: "#94a3b8",
                   }}
                 >
                   <TeamLogo
                     logo={getTeamLogo(
-                      row.qb
-                        .team
+                      row.qb.team
                     )}
-                    name={
-                      row.qb
-                        .team
-                    }
-                    size={
-                      42
-                    }
+                    name={row.qb.team}
+                    size={42}
                   />
 
                   <strong>
-                    {
-                      row.qb
-                        .team
-                    }
+                    {row.qb.team}
                   </strong>
                 </div>
               </div>
@@ -895,58 +1469,33 @@ export default function QBRatingsPage() {
 
             <div
               style={{
-                display:
-                  "grid",
-
-                gridTemplateColumns:
-                  typeof window !==
-                    "undefined" &&
-                  window.innerWidth <
-                    900
-                    ? "1fr"
-                    : "repeat(3, minmax(0, 1fr))",
-
+                display: "grid",
+                gridTemplateColumns: "1fr",
                 gap: 10,
               }}
             >
               <RatingMiniCard
                 label="Meilleur rating"
                 type="best"
-                rating={
-                  row.best
-                }
+                rating={row.best}
+                isMobile
               />
 
               <div
                 style={{
-                  padding:
-                    typeof window !==
-                      "undefined" &&
-                    window.innerWidth <
-                      900
-                      ? 12
-                      : 10,
-
-                  borderRadius:
-                    18,
-
+                  padding: 12,
+                  borderRadius: 18,
                   background:
                     "rgba(148,163,184,0.08)",
-
                   border:
                     "1px solid rgba(148,163,184,0.16)",
                 }}
               >
                 <p
                   style={{
-                    margin:
-                      0,
-
-                    color:
-                      "#94a3b8",
-
-                    fontWeight:
-                      900,
+                    margin: 0,
+                    color: "#94a3b8",
+                    fontWeight: 900,
                   }}
                 >
                   Moyenne saison
@@ -954,31 +1503,20 @@ export default function QBRatingsPage() {
 
                 <h2
                   style={{
-                    margin:
-                      "6px 0",
-
-                    fontSize:
-                      30,
-
-                    color:
-                      "#e2e8f0",
+                    margin: "6px 0",
+                    fontSize: 30,
+                    color: "#e2e8f0",
                   }}
                 >
-                  {row.average !=
-                  null
-                    ? row.average.toFixed(
-                        1
-                      )
+                  {row.average != null
+                    ? row.average.toFixed(1)
                     : "--"}
                 </h2>
 
                 <p
                   style={{
-                    margin:
-                      0,
-
-                    color:
-                      "#94a3b8",
+                    margin: 0,
+                    color: "#94a3b8",
                   }}
                 >
                   Toutes les semaines
@@ -988,14 +1526,12 @@ export default function QBRatingsPage() {
               <RatingMiniCard
                 label="Pire rating"
                 type="worst"
-                rating={
-                  row.worst
-                }
+                rating={row.worst}
+                isMobile
               />
             </div>
           </section>
-        )
-      )}
+        ))}
 
       <BottomNav />
     </main>
