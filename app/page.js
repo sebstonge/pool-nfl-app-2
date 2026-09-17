@@ -146,6 +146,53 @@ export default function HomePage() {
       return;
     }
   }
+  /*
+   * =========================================================
+   * NETTOYAGE DES PARAMÈTRES DE PARTAGE META
+   * =========================================================
+   */
+
+  useEffect(() => {
+    const url =
+      new URL(window.location.href);
+
+    const metaParams = [
+      "fbclid",
+    ];
+
+    let changed = false;
+
+    metaParams.forEach(
+      (param) => {
+        if (
+          url.searchParams.has(
+            param
+          )
+        ) {
+          url.searchParams.delete(
+            param
+          );
+
+          changed = true;
+        }
+      }
+    );
+
+    if (changed) {
+      const cleanUrl =
+        url.pathname +
+        (url.search
+          ? url.search
+          : "") +
+        url.hash;
+
+      window.history.replaceState(
+        {},
+        "",
+        cleanUrl
+      );
+    }
+  }, []);
 
   /*
    * =========================================================
