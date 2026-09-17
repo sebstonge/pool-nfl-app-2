@@ -248,25 +248,27 @@ export default function AdminPage() {
   const [selectionStatsError, setSelectionStatsError] =
     useState("");
 
-  const [isMobile, setIsMobile] = useState(false);
+ const [isMobile, setIsMobile] = useState(false);
+const [isDesktop, setIsDesktop] = useState(false);
 
   /* =========================================================
      RESPONSIVE
      ========================================================= */
 
   useEffect(() => {
-    function updateMobile() {
-      setIsMobile(window.innerWidth < 700);
-    }
+  function updateResponsive() {
+    setIsMobile(window.innerWidth < 700);
+    setIsDesktop(window.innerWidth >= 900);
+  }
 
-    updateMobile();
+  updateResponsive();
 
-    window.addEventListener("resize", updateMobile);
+  window.addEventListener("resize", updateResponsive);
 
-    return () => {
-      window.removeEventListener("resize", updateMobile);
-    };
-  }, []);
+  return () => {
+    window.removeEventListener("resize", updateResponsive);
+  };
+}, []);
 
   /* =========================================================
      CHARGEMENT INITIAL
@@ -2090,12 +2092,43 @@ await loadSelectionStats(newWeek);
   }
 
   /* =========================================================
-     PAGE ADMIN
-     ========================================================= */
+   PAGE ADMIN
+   ========================================================= */
 
   return (
-    <main className="page">
-      <section className="header-card">
+    <main
+      className="page"
+      style={{
+        maxWidth: isDesktop ? 1280 : undefined,
+
+        width: isDesktop
+          ? "calc(100% - 48px)"
+          : undefined,
+
+        margin: isDesktop
+          ? "0 auto"
+          : undefined,
+
+        paddingTop: isDesktop
+          ? 112
+          : undefined,
+      }}
+    >
+      {/* =====================================================
+          HEADER
+          ===================================================== */}
+
+      <section
+        className="header-card"
+        style={
+          isDesktop
+            ? {
+                padding: "26px 30px",
+                marginBottom: 18,
+              }
+            : undefined
+        }
+      >
         <h1>Admin ⚙️</h1>
 
         <p>
@@ -2108,8 +2141,21 @@ await loadSelectionStats(newWeek);
         </p>
       </section>
 
+      {/* =====================================================
+          MESSAGE ADMIN
+          ===================================================== */}
+
       {message && (
-        <section className="card">
+        <section
+          className="card"
+          style={
+            isDesktop
+              ? {
+                  marginBottom: 18,
+                }
+              : undefined
+          }
+        >
           <p style={{ margin: 0 }}>
             {message}
           </p>
@@ -2117,79 +2163,410 @@ await loadSelectionStats(newWeek);
       )}
 
       {/* =====================================================
-          MISE À JOUR ESPN
+          ACTIONS ADMIN
+          Desktop : 2 colonnes
+          Mobile : affichage actuel empilé
           ===================================================== */}
 
-      <section className="card">
-        <h2>
-          Mise à jour complète
-        </h2>
+      <div
+        style={{
+          display: isDesktop
+            ? "grid"
+            : "block",
 
-        <p
-          style={{
-            color: "#94a3b8",
-          }}
+          gridTemplateColumns: isDesktop
+            ? "repeat(2, minmax(0, 1fr))"
+            : undefined,
+
+          gap: isDesktop
+            ? 18
+            : undefined,
+
+          marginBottom: isDesktop
+            ? 18
+            : undefined,
+        }}
+      >
+        {/* ===================================================
+            MISE À JOUR ESPN
+            =================================================== */}
+
+        <section
+          className="card"
+          style={
+            isDesktop
+              ? {
+                  margin: 0,
+                  minHeight: 245,
+                  padding: "24px 26px",
+
+                  display: "flex",
+                  flexDirection: "column",
+                }
+              : undefined
+          }
         >
-          Met à jour les scores ESPN,
-          les fiches des équipes, les
-          passer ratings QB et les
-          classements pour la semaine
-          active.
-        </p>
+          <div>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+              }}
+            >
+              {isDesktop && (
+                <div
+                  style={{
+                    width: 38,
+                    height: 38,
+                    borderRadius: 12,
 
-        <button
-          className="button"
-          onClick={fullUpdate}
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+
+                    background:
+                      "rgba(59,130,246,0.12)",
+
+                    border:
+                      "1px solid rgba(59,130,246,0.18)",
+
+                    fontSize: 18,
+                    flexShrink: 0,
+                  }}
+                >
+                  🔄
+                </div>
+              )}
+
+              <h2
+                style={{
+                  margin: 0,
+                }}
+              >
+                Mise à jour complète
+              </h2>
+            </div>
+
+            <p
+              style={{
+                color: "#94a3b8",
+                marginTop: isDesktop
+                  ? 15
+                  : undefined,
+
+                lineHeight: 1.55,
+              }}
+            >
+              Met à jour les scores ESPN,
+              les fiches des équipes, les
+              passer ratings QB et les
+              classements pour la semaine
+              active.
+            </p>
+
+            {isDesktop && (
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: 7,
+                  marginTop: 14,
+                }}
+              >
+                {[
+                  "Scores ESPN",
+                  "Équipes NFL",
+                  "QB Ratings",
+                  "Classements",
+                ].map((item) => (
+                  <span
+                    key={item}
+                    style={{
+                      padding: "6px 9px",
+
+                      borderRadius: 9,
+
+                      background:
+                        "rgba(148,163,184,0.07)",
+
+                      border:
+                        "1px solid rgba(148,163,184,0.12)",
+
+                      color: "#94a3b8",
+
+                      fontSize: 10,
+                      fontWeight: 800,
+                    }}
+                  >
+                    {item}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div
+            style={{
+              marginTop: isDesktop
+                ? "auto"
+                : undefined,
+
+              paddingTop: isDesktop
+                ? 22
+                : undefined,
+            }}
+          >
+            <button
+              className="button"
+              onClick={fullUpdate}
+              style={
+                isDesktop
+                  ? {
+                      width: "100%",
+                    }
+                  : undefined
+              }
+            >
+              Mettre à jour ESPN +
+              classements
+            </button>
+          </div>
+        </section>
+
+        {/* ===================================================
+            SEMAINE ACTIVE
+            =================================================== */}
+
+        <section
+          className="card"
+          style={
+            isDesktop
+              ? {
+                  margin: 0,
+                  minHeight: 245,
+                  padding: "24px 26px",
+
+                  display: "flex",
+                  flexDirection: "column",
+                }
+              : undefined
+          }
         >
-          Mettre à jour ESPN +
-          classements
-        </button>
-      </section>
+          <div>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+              }}
+            >
+              {isDesktop && (
+                <div
+                  style={{
+                    width: 38,
+                    height: 38,
+                    borderRadius: 12,
 
-      {/* =====================================================
-          SEMAINE ACTIVE
-          ===================================================== */}
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
 
-      <section className="card">
-        <h2>
-          Semaine active
-        </h2>
+                    background:
+                      "rgba(168,85,247,0.12)",
 
-        <p
-          style={{
-            color: "#94a3b8",
-          }}
-        >
-          À utiliser quand la semaine
-          est terminée et validée.
-        </p>
+                    border:
+                      "1px solid rgba(168,85,247,0.18)",
 
-        <button
-          className="button-secondary"
-          onClick={nextWeek}
-        >
-          Passer à la semaine suivante
-        </button>
-      </section>
+                    fontSize: 18,
+                    flexShrink: 0,
+                  }}
+                >
+                  📅
+                </div>
+              )}
+
+              <h2
+                style={{
+                  margin: 0,
+                }}
+              >
+                Semaine active
+              </h2>
+            </div>
+
+            {isDesktop ? (
+              <>
+                <div
+                  style={{
+                    marginTop: 17,
+
+                    padding: "13px 16px",
+
+                    borderRadius: 14,
+
+                    background:
+                      "rgba(148,163,184,0.06)",
+
+                    border:
+                      "1px solid rgba(148,163,184,0.12)",
+
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 16,
+                  }}
+                >
+                  <span
+                    style={{
+                      color: "#94a3b8",
+                      fontSize: 12,
+                      fontWeight: 700,
+                    }}
+                  >
+                    Semaine actuelle
+                  </span>
+
+                  <strong
+                    style={{
+                      color: "#f8fafc",
+                      fontSize: 21,
+                      lineHeight: 1,
+                    }}
+                  >
+                    Semaine{" "}
+                    {settings?.current_week ||
+                      "..."}
+                  </strong>
+                </div>
+
+                <p
+                  style={{
+                    color: "#94a3b8",
+                    margin: "13px 0 0",
+                    lineHeight: 1.45,
+                    fontSize: 12,
+                  }}
+                >
+                  À utiliser quand la semaine
+                  est terminée et validée.
+                </p>
+              </>
+            ) : (
+              <p
+                style={{
+                  color: "#94a3b8",
+                }}
+              >
+                À utiliser quand la semaine
+                est terminée et validée.
+              </p>
+            )}
+          </div>
+
+          <div
+            style={{
+              marginTop: isDesktop
+                ? "auto"
+                : undefined,
+
+              paddingTop: isDesktop
+                ? 18
+                : undefined,
+            }}
+          >
+            <button
+              className="button-secondary"
+              onClick={nextWeek}
+              style={
+                isDesktop
+                  ? {
+                      width: "100%",
+                    }
+                  : undefined
+              }
+            >
+              Passer à la semaine suivante
+            </button>
+          </div>
+        </section>
+      </div>
 
       {/* =====================================================
           TEMPS DE SÉLECTION
           ===================================================== */}
 
-      <section className="card">
+      <section
+        className="card"
+        style={
+          isDesktop
+            ? {
+                padding: "22px 26px",
+                marginTop: 0,
+              }
+            : undefined
+        }
+      >
         <div
           style={{
             marginBottom: 18,
+
+            display: isDesktop
+              ? "flex"
+              : "block",
+
+            alignItems: isDesktop
+              ? "flex-end"
+              : undefined,
+
+            justifyContent: isDesktop
+              ? "space-between"
+              : undefined,
+
+            gap: isDesktop
+              ? 20
+              : undefined,
           }}
         >
-          <h2
-            style={{
-              margin: 0,
-              color: "#f8fafc",
-            }}
-          >
-            ⏱️ Temps de sélection
-          </h2>
+          <div>
+            <h2
+              style={{
+                margin: 0,
+                color: "#f8fafc",
+              }}
+            >
+              ⏱️ Temps de sélection
+            </h2>
+
+            {isDesktop && (
+              <p
+                style={{
+                  margin: "5px 0 0",
+                  color: "#64748b",
+                  fontSize: 11,
+                }}
+              >
+                Classement selon le temps
+                moyen de sélection QB.
+              </p>
+            )}
+          </div>
+
+          {isDesktop &&
+            selectionStats.length > 0 && (
+              <span
+                style={{
+                  color: "#64748b",
+                  fontSize: 10,
+                  fontWeight: 800,
+                }}
+              >
+                {
+                  selectionStats.length
+                }{" "}
+                joueurs
+              </span>
+            )}
         </div>
 
         {selectionStatsLoading ? (
@@ -2206,19 +2583,23 @@ await loadSelectionStats(newWeek);
             style={{
               padding: "14px 16px",
               borderRadius: 14,
+
               background:
                 "rgba(239,68,68,0.08)",
+
               border:
                 "1px solid rgba(239,68,68,0.25)",
+
               color: "#fca5a5",
             }}
           >
             {selectionStatsError}
           </div>
         ) : isMobile ? (
-          /*
-           * MOBILE
-           */
+          /* =================================================
+             MOBILE — INCHANGÉ
+             ================================================= */
+
           <div>
             {selectionStats.map(
               (row, index) => (
@@ -2226,6 +2607,7 @@ await loadSelectionStats(newWeek);
                   key={row.userId}
                   style={{
                     padding: "15px 0",
+
                     borderBottom:
                       index <
                       selectionStats.length -
@@ -2237,10 +2619,13 @@ await loadSelectionStats(newWeek);
                   <div
                     style={{
                       display: "flex",
+
                       justifyContent:
                         "space-between",
+
                       alignItems:
                         "flex-start",
+
                       gap: 12,
                     }}
                   >
@@ -2253,7 +2638,10 @@ await loadSelectionStats(newWeek);
                         style={{
                           color:
                             "#f8fafc",
-                          fontWeight: 900,
+
+                          fontWeight:
+                            900,
+
                           fontSize: 15,
                         }}
                       >
@@ -2266,7 +2654,9 @@ await loadSelectionStats(newWeek);
                         style={{
                           color:
                             "#64748b",
+
                           fontSize: 12,
+
                           marginTop: 2,
                         }}
                       >
@@ -2286,7 +2676,10 @@ await loadSelectionStats(newWeek);
                         style={{
                           color:
                             "#4ade80",
-                          fontWeight: 900,
+
+                          fontWeight:
+                            900,
+
                           fontSize: 16,
                         }}
                       >
@@ -2299,8 +2692,12 @@ await loadSelectionStats(newWeek);
                         style={{
                           color:
                             "#64748b",
+
                           fontSize: 10,
-                          fontWeight: 800,
+
+                          fontWeight:
+                            800,
+
                           marginTop: 2,
                         }}
                       >
@@ -2312,9 +2709,12 @@ await loadSelectionStats(newWeek);
                   <div
                     style={{
                       display: "grid",
+
                       gridTemplateColumns:
                         "repeat(3, minmax(0, 1fr))",
+
                       gap: 8,
+
                       marginTop: 12,
                     }}
                   >
@@ -2322,9 +2722,13 @@ await loadSelectionStats(newWeek);
                       style={{
                         padding:
                           "9px 8px",
-                        borderRadius: 11,
+
+                        borderRadius:
+                          11,
+
                         background:
                           "rgba(15,23,42,0.65)",
+
                         border:
                           "1px solid rgba(148,163,184,0.10)",
                       }}
@@ -2333,8 +2737,11 @@ await loadSelectionStats(newWeek);
                         style={{
                           color:
                             "#64748b",
+
                           fontSize: 9,
-                          fontWeight: 900,
+
+                          fontWeight:
+                            900,
                         }}
                       >
                         CETTE SEM.
@@ -2344,8 +2751,12 @@ await loadSelectionStats(newWeek);
                         style={{
                           color:
                             "#f8fafc",
+
                           fontSize: 12,
-                          fontWeight: 800,
+
+                          fontWeight:
+                            800,
+
                           marginTop: 4,
                         }}
                       >
@@ -2359,9 +2770,13 @@ await loadSelectionStats(newWeek);
                       style={{
                         padding:
                           "9px 8px",
-                        borderRadius: 11,
+
+                        borderRadius:
+                          11,
+
                         background:
                           "rgba(15,23,42,0.65)",
+
                         border:
                           "1px solid rgba(148,163,184,0.10)",
                       }}
@@ -2370,8 +2785,11 @@ await loadSelectionStats(newWeek);
                         style={{
                           color:
                             "#64748b",
+
                           fontSize: 9,
-                          fontWeight: 900,
+
+                          fontWeight:
+                            900,
                         }}
                       >
                         + RAPIDE
@@ -2381,8 +2799,12 @@ await loadSelectionStats(newWeek);
                         style={{
                           color:
                             "#f8fafc",
+
                           fontSize: 12,
-                          fontWeight: 800,
+
+                          fontWeight:
+                            800,
+
                           marginTop: 4,
                         }}
                       >
@@ -2396,9 +2818,13 @@ await loadSelectionStats(newWeek);
                       style={{
                         padding:
                           "9px 8px",
-                        borderRadius: 11,
+
+                        borderRadius:
+                          11,
+
                         background:
                           "rgba(15,23,42,0.65)",
+
                         border:
                           "1px solid rgba(148,163,184,0.10)",
                       }}
@@ -2407,8 +2833,11 @@ await loadSelectionStats(newWeek);
                         style={{
                           color:
                             "#64748b",
+
                           fontSize: 9,
-                          fontWeight: 900,
+
+                          fontWeight:
+                            900,
                         }}
                       >
                         + LONG
@@ -2418,8 +2847,12 @@ await loadSelectionStats(newWeek);
                         style={{
                           color:
                             "#f8fafc",
+
                           fontSize: 12,
-                          fontWeight: 800,
+
+                          fontWeight:
+                            800,
+
                           marginTop: 4,
                         }}
                       >
@@ -2451,9 +2884,10 @@ await loadSelectionStats(newWeek);
             )}
           </div>
         ) : (
-          /*
-           * DESKTOP
-           */
+          /* =================================================
+             DESKTOP / TABLETTE — TABLEAU
+             ================================================= */
+
           <div
             style={{
               overflowX: "auto",
@@ -2464,19 +2898,31 @@ await loadSelectionStats(newWeek);
                 minWidth: 760,
               }}
             >
+              {/* =============================================
+                  ENTÊTE TABLEAU
+                  ============================================= */}
+
               <div
                 style={{
                   display: "grid",
+
                   gridTemplateColumns:
                     "minmax(180px, 1.4fr) repeat(4, minmax(100px, 1fr)) 75px",
+
                   gap: 12,
+
                   padding:
                     "0 12px 10px",
+
                   color: "#64748b",
+
                   fontSize: 10,
+
                   fontWeight: 900,
+
                   textTransform:
                     "uppercase",
+
                   letterSpacing:
                     "0.35px",
                 }}
@@ -2489,21 +2935,33 @@ await loadSelectionStats(newWeek);
                 <div>Sem.</div>
               </div>
 
+              {/* =============================================
+                  JOUEURS
+                  ============================================= */}
+
               {selectionStats.map(
                 (row, index) => (
                   <div
                     key={row.userId}
                     style={{
                       display: "grid",
+
                       gridTemplateColumns:
                         "minmax(180px, 1.4fr) repeat(4, minmax(100px, 1fr)) 75px",
+
                       gap: 12,
+
                       alignItems:
                         "center",
+
                       padding:
-                        "13px 12px",
+                        isDesktop
+                          ? "12px 12px"
+                          : "13px 12px",
+
                       borderTop:
                         "1px solid rgba(148,163,184,0.10)",
+
                       background:
                         index === 0
                           ? "rgba(34,197,94,0.055)"
@@ -2515,8 +2973,11 @@ await loadSelectionStats(newWeek);
                         style={{
                           color:
                             "#f8fafc",
+
                           fontSize: 14,
-                          fontWeight: 900,
+
+                          fontWeight:
+                            900,
                         }}
                       >
                         {playerDisplayName(
@@ -2528,7 +2989,9 @@ await loadSelectionStats(newWeek);
                         style={{
                           color:
                             "#64748b",
+
                           fontSize: 11,
+
                           marginTop: 2,
                         }}
                       >
@@ -2542,7 +3005,9 @@ await loadSelectionStats(newWeek);
                       style={{
                         color:
                           "#4ade80",
-                        fontWeight: 900,
+
+                        fontWeight:
+                          900,
                       }}
                     >
                       {formatDuration(
@@ -2554,7 +3019,9 @@ await loadSelectionStats(newWeek);
                       style={{
                         color:
                           "#f8fafc",
-                        fontWeight: 800,
+
+                        fontWeight:
+                          800,
                       }}
                     >
                       {formatDuration(
@@ -2566,7 +3033,9 @@ await loadSelectionStats(newWeek);
                       style={{
                         color:
                           "#cbd5e1",
-                        fontWeight: 700,
+
+                        fontWeight:
+                          700,
                       }}
                     >
                       {formatDuration(
@@ -2578,7 +3047,9 @@ await loadSelectionStats(newWeek);
                       style={{
                         color:
                           "#cbd5e1",
-                        fontWeight: 700,
+
+                        fontWeight:
+                          700,
                       }}
                     >
                       {formatDuration(
@@ -2590,7 +3061,9 @@ await loadSelectionStats(newWeek);
                       style={{
                         color:
                           "#94a3b8",
-                        fontWeight: 800,
+
+                        fontWeight:
+                          800,
                       }}
                     >
                       {row.samples}
