@@ -1796,45 +1796,68 @@ export default function AnalyticsPage() {
                           </strong>
 
                           <div
-                            style={{
-                              minWidth:
-                                0,
-                            }}
-                          >
-                            <strong
-                              style={{
-                                display:
-                                  "block",
-                                color:
-                                  "#f8fafc",
-                              }}
-                            >
-                              {row.qbName}
-                            </strong>
+  style={{
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    minWidth: 0,
+  }}
+>
+  {(() => {
+    const team = teams.find(
+      (t) =>
+        t.name?.toLowerCase().trim() ===
+        row.team?.toLowerCase().trim()
+    );
 
-                            {row.actualQbName &&
-                              row.actualQbName !==
-                                row.qbName && (
-                                <span
-                                  style={{
-                                    display:
-                                      "block",
-                                    marginTop:
-                                      3,
-                                    color:
-                                      "#facc15",
-                                    fontSize:
-                                      12,
-                                  }}
-                                >
-                                  Rating obtenu
-                                  par{" "}
-                                  {
-                                    row.actualQbName
-                                  }
-                                </span>
-                              )}
-                          </div>
+    const logo = team?.espn_abbr
+      ? `https://a.espncdn.com/i/teamlogos/nfl/500/${team.espn_abbr.toLowerCase()}.png`
+      : team?.logo || null;
+
+    return logo ? (
+      <img
+        src={logo}
+        alt={row.team || row.qbName}
+        style={{
+          width: 34,
+          height: 34,
+          objectFit: "contain",
+          flexShrink: 0,
+        }}
+      />
+    ) : null;
+  })()}
+
+  <div
+    style={{
+      minWidth: 0,
+    }}
+  >
+    <strong
+      style={{
+        display: "block",
+        color: "#f8fafc",
+      }}
+    >
+      {row.qbName}
+    </strong>
+
+    {row.actualQbName &&
+      row.actualQbName !== row.qbName && (
+        <span
+          style={{
+            display: "block",
+            marginTop: 3,
+            color: "#facc15",
+            fontSize: 12,
+          }}
+        >
+          Rating obtenu par{" "}
+          {row.actualQbName}
+        </span>
+      )}
+  </div>
+</div>
 
                           <strong
                             style={{
