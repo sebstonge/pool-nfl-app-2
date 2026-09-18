@@ -246,9 +246,19 @@ export default function AdminPage() {
   const [selectionStatsLoading, setSelectionStatsLoading] =
     useState(false);
   const [selectionStatsError, setSelectionStatsError] =
-    useState("");
+  useState("");
 
- const [isMobile, setIsMobile] = useState(false);
+/* =========================================================
+   RESET MOT DE PASSE
+   ========================================================= */
+
+const [passwordUsers, setPasswordUsers] = useState([]);
+const [passwordUserId, setPasswordUserId] = useState("");
+const [temporaryPassword, setTemporaryPassword] = useState("");
+const [passwordResetLoading, setPasswordResetLoading] = useState(false);
+const [passwordResetMessage, setPasswordResetMessage] = useState("");
+
+const [isMobile, setIsMobile] = useState(false);
 const [isDesktop, setIsDesktop] = useState(false);
 
   /* =========================================================
@@ -306,10 +316,27 @@ const [isDesktop, setIsDesktop] = useState(false);
       setSettings(settingsData);
 
       if (currentUser && admin && settingsData) {
-        await loadSelectionStats(
-          Number(settingsData.current_week || 1)
-        );
-      }
+  await loadSelectionStats(
+    Number(settingsData.current_week || 1)
+  );
+
+  const { data: passwordUsersData, error: passwordUsersError } =
+    await supabase
+      .from("users")
+      .select("id, email, display_name, real_name, must_change_password")
+      .order("real_name", {
+        ascending: true,
+      });
+
+  if (passwordUsersError) {
+    console.error(
+      "Erreur chargement utilisateurs :",
+      passwordUsersError
+    );
+  } else {
+    setPasswordUsers(passwordUsersData || []);
+  }
+}
     }
 
     load();
@@ -2056,7 +2083,122 @@ await loadSelectionStats(newWeek);
     );
   }
 };
+/* =========================================================
+   RESET MOT DE PASSE UTILISATEUR
+   ========================================================= */
 
+async function resetUserPassword() {
+  setPasswordResetMessage("");
+
+  if (!passwordUserId) {
+    setPasswordResetMessage(
+      "❌ Sélectionne un utilisateur."
+    );
+    return;
+  }
+
+  if (!temporaryPassword || temporaryPassword.length < 8) {
+    setPasswordResetMessage(
+      "❌ Le mot de passe temporaire doit contenir au moins 8 caractères."
+    );
+    return;
+  }
+
+  const targetUser = passwordUsers.find(
+    (player) => player.id === passwordUserId
+  );
+
+  const targetName =
+    targetUser?.real_name ||
+    targetUser?.display_name ||
+    targetUser?.email ||
+    "cet utilisateur";
+
+  const confirmed = window.confirm(
+    `Réinitialiser le mot de passe de ${targetName} ?\n\n` +
+      `Il devra obligatoirement créer un nouveau mot de passe après sa connexion.`
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  try {
+    setPasswordResetLoading(true);
+
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    if (!session?.access_token) {
+      throw new Error(
+        "Session administrateur introuvable."
+      );
+    }
+
+    const response = await fetch(
+      "/api/admin/reset-password",
+      {
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+
+        body: JSON.stringify({
+          userId: passwordUserId,
+          temporaryPassword,
+        }),
+      }
+    );
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        result?.error ||
+          "Impossible de réinitialiser le mot de passe."
+      );
+    }
+
+    setPasswordUsers((current) =>
+      current.map((player) =>
+        player.id === passwordUserId
+          ? {
+              ...player,
+              must_change_password: true,
+            }
+          : player
+      )
+    );
+
+    setPasswordResetMessage(
+      `✅ Mot de passe temporaire activé pour ${targetName}.`
+    );
+
+    /*
+     * On vide volontairement le champ.
+     * Le mot de passe temporaire n'est jamais conservé
+     * dans l'interface.
+     */
+    setTemporaryPassword("");
+  } catch (error) {
+    console.error(
+      "Erreur reset mot de passe :",
+      error
+    );
+
+    setPasswordResetMessage(
+      `❌ ${
+        error?.message ||
+        "Impossible de réinitialiser le mot de passe."
+      }`
+    );
+  } finally {
+    setPasswordResetLoading(false);
+  }
+}
   /* =========================================================
      ACCÈS
      ========================================================= */
@@ -2491,7 +2633,248 @@ await loadSelectionStats(newWeek);
           </div>
         </section>
       </div>
+      {/* =====================================================
+          RÉINITIALISATION MOT DE PASSE
+          ===================================================== */}
 
+      <section
+        className="card"
+        style={
+          isDesktop
+            ? {
+                padding: "22px 26px",
+                marginTop: 0,
+                marginBottom: 18,
+              }
+            : undefined
+        }
+      >
+        <div
+          style={{
+            display: isDesktop ? "flex" : "block",
+            alignItems: isDesktop ? "flex-start" : undefined,
+            justifyContent: isDesktop ? "space-between" : undefined,
+            gap: isDesktop ? 30 : undefined,
+          }}
+        >
+          {/* =================================================
+              TITRE
+              ================================================= */}
+
+          <div
+            style={{
+              flex: isDesktop ? "0 0 300px" : undefined,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+              }}
+            >
+              {isDesktop && (
+                <div
+                  style={{
+                    width: 38,
+                    height: 38,
+                    borderRadius: 12,
+
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+
+                    background: "rgba(245,158,11,0.12)",
+                    border: "1px solid rgba(245,158,11,0.18)",
+
+                    fontSize: 18,
+                    flexShrink: 0,
+                  }}
+                >
+                  🔐
+                </div>
+              )}
+
+              <h2
+                style={{
+                  margin: 0,
+                  color: "#f8fafc",
+                }}
+              >
+                Réinitialiser un mot de passe
+              </h2>
+            </div>
+
+            <p
+              style={{
+                color: "#94a3b8",
+                margin: "12px 0 0",
+                lineHeight: 1.5,
+                fontSize: 12,
+              }}
+            >
+              Attribue un mot de passe temporaire à un joueur.
+              À sa prochaine connexion, il devra obligatoirement
+              choisir son nouveau mot de passe.
+            </p>
+          </div>
+
+          {/* =================================================
+              FORMULAIRE
+              ================================================= */}
+
+          <div
+            style={{
+              flex: isDesktop ? "1 1 auto" : undefined,
+              marginTop: isDesktop ? 0 : 18,
+
+              display: "grid",
+
+              gridTemplateColumns: isDesktop
+                ? "minmax(220px, 1fr) minmax(220px, 1fr) auto"
+                : "1fr",
+
+              gap: 10,
+              alignItems: "end",
+            }}
+          >
+            <div>
+              <div
+                style={{
+                  color: "#64748b",
+                  fontSize: 10,
+                  fontWeight: 900,
+                  textTransform: "uppercase",
+                  marginBottom: 6,
+                }}
+              >
+                Joueur
+              </div>
+
+              <select
+                value={passwordUserId}
+                onChange={(event) => {
+                  setPasswordUserId(event.target.value);
+                  setPasswordResetMessage("");
+                }}
+                style={{
+                  width: "100%",
+                  minHeight: 44,
+                  padding: "0 12px",
+
+                  borderRadius: 11,
+
+                  background: "#0f172a",
+                  border: "1px solid rgba(148,163,184,0.18)",
+
+                  color: "#f8fafc",
+                  fontWeight: 700,
+                }}
+              >
+                <option value="">
+                  Sélectionner un joueur
+                </option>
+
+                {passwordUsers.map((player) => (
+                  <option
+                    key={player.id}
+                    value={player.id}
+                  >
+                    {playerRealName(player)}
+                    {player.must_change_password
+                      ? " — changement en attente"
+                      : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <div
+                style={{
+                  color: "#64748b",
+                  fontSize: 10,
+                  fontWeight: 900,
+                  textTransform: "uppercase",
+                  marginBottom: 6,
+                }}
+              >
+                Mot de passe temporaire
+              </div>
+
+              <input
+                type="text"
+                value={temporaryPassword}
+                onChange={(event) => {
+                  setTemporaryPassword(event.target.value);
+                  setPasswordResetMessage("");
+                }}
+                placeholder="Minimum 8 caractères"
+                autoComplete="off"
+                style={{
+                  width: "100%",
+                  minHeight: 44,
+                  padding: "0 12px",
+
+                  boxSizing: "border-box",
+                  borderRadius: 11,
+
+                  background: "#0f172a",
+                  border: "1px solid rgba(148,163,184,0.18)",
+
+                  color: "#f8fafc",
+                  fontWeight: 700,
+                }}
+              />
+            </div>
+
+            <button
+              className="button-secondary"
+              onClick={resetUserPassword}
+              disabled={passwordResetLoading}
+              style={{
+                minHeight: 44,
+                whiteSpace: "nowrap",
+                opacity: passwordResetLoading ? 0.65 : 1,
+              }}
+            >
+              {passwordResetLoading
+                ? "Réinitialisation..."
+                : "Créer le temporaire"}
+            </button>
+          </div>
+        </div>
+
+        {passwordResetMessage && (
+          <div
+            style={{
+              marginTop: 15,
+              padding: "11px 13px",
+
+              borderRadius: 11,
+
+              background: passwordResetMessage.startsWith("✅")
+                ? "rgba(34,197,94,0.08)"
+                : "rgba(239,68,68,0.08)",
+
+              border: passwordResetMessage.startsWith("✅")
+                ? "1px solid rgba(34,197,94,0.20)"
+                : "1px solid rgba(239,68,68,0.20)",
+
+              color: passwordResetMessage.startsWith("✅")
+                ? "#86efac"
+                : "#fca5a5",
+
+              fontSize: 12,
+              fontWeight: 700,
+            }}
+          >
+            {passwordResetMessage}
+          </div>
+        )}
+      </section>
+
+   
       {/* =====================================================
           TEMPS DE SÉLECTION
           ===================================================== */}
