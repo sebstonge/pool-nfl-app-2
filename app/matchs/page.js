@@ -1077,6 +1077,7 @@ function SubmittedGameCard({
   getTeamLogo,
   formatTeamRecord,
   isMobile,
+  isDesktop,
 }) {
   const hasOfficialScore =
     game.home_score != null &&
@@ -1256,8 +1257,9 @@ function SubmittedGameCard({
         padding: isMobile
           ? "18px 0"
           : "20px 0",
-        borderBottom:
-          "1px solid rgba(148,163,184,0.12)",
+        borderBottom: isDesktop
+  ? "none"
+  : "1px solid rgba(148,163,184,0.12)",
       }}
     >
       {/* ================= STATUT / DATE ================= */}
@@ -1278,10 +1280,10 @@ function SubmittedGameCard({
       <div
         style={{
           display: "grid",
-          gridTemplateColumns:
-            isMobile
-              ? "minmax(0,1fr) auto minmax(0,1fr)"
-              : "minmax(0,1fr) 130px minmax(0,1fr) minmax(210px,0.9fr)",
+       gridTemplateColumns:
+  isMobile || isDesktop
+    ? "minmax(0,1fr) auto minmax(0,1fr)"
+    : "minmax(0,1fr) 130px minmax(0,1fr) minmax(210px,0.9fr)",
           gap: isMobile
             ? 8
             : 18,
@@ -1498,14 +1500,15 @@ function SubmittedGameCard({
 
         <div
           style={{
-            gridColumn:
-              isMobile
-                ? "1 / -1"
-                : "auto",
-            marginTop:
-              isMobile
-                ? 8
-                : 0,
+           gridColumn:
+  isMobile || isDesktop
+    ? "1 / -1"
+    : "auto",
+
+marginTop:
+  isMobile || isDesktop
+    ? 8
+    : 0,
             padding:
               isMobile
                 ? "11px 13px"
@@ -3554,7 +3557,7 @@ const liveQbData =
               maxWidth: 1280,
               width: "calc(100% - 48px)",
               margin: "0 auto",
-              paddingTop: 112,
+              paddingTop: 132,
               boxSizing: "border-box",
             }
           : undefined
@@ -6341,11 +6344,8 @@ const liveQbData =
                   formatTeamRecord={
                     formatTeamRecord
                   }
-                  isMobile={
-                    isDesktop
-                      ? true
-                      : isMobile
-                  }
+                 isMobile={isMobile}
+isDesktop={isDesktop}
                 />
               </div>
             ))}
