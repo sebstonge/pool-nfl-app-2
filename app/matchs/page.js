@@ -3557,7 +3557,7 @@ const liveQbData =
               maxWidth: 1280,
               width: "calc(100% - 48px)",
               margin: "0 auto",
-              paddingTop: 132,
+              paddingTop: 112,
               boxSizing: "border-box",
             }
           : undefined
