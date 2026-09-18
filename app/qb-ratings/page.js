@@ -435,8 +435,6 @@ function DesktopPodiumRating({
             minWidth: 0,
           }}
         >
-          {/* RATING */}
-
           <strong
             style={{
               color: accent,
@@ -449,8 +447,6 @@ function DesktopPodiumRating({
               rating.passer_rating
             ).toFixed(1)}
           </strong>
-
-          {/* SEMAINE + JOUEUR */}
 
           <div
             style={{
@@ -773,8 +769,6 @@ function CompactRating({
             minWidth: 0,
           }}
         >
-          {/* RATING */}
-
           <strong
             style={{
               color: accent,
@@ -787,8 +781,6 @@ function CompactRating({
               rating.passer_rating
             ).toFixed(1)}
           </strong>
-
-          {/* SEMAINE + JOUEUR */}
 
           <div
             style={{
@@ -1338,31 +1330,8 @@ export default function QBRatingsPage() {
       {isDesktop && rows.length > 0 && (
         <>
           {/* =================================================
-              PODIUM — TOP 3
+              TOP 3
               ================================================= */}
-
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              margin: "4px 2px 12px",
-            }}
-          >
-            <h2
-              style={{
-                margin: 0,
-                fontSize: 20,
-                color: "#f8fafc",
-              }}
-            >
-              Podium
-            </h2>
-
-            <span style={{ fontSize: 20 }}>
-              🏆
-            </span>
-          </div>
 
           {rows
             .slice(0, 3)
@@ -1378,7 +1347,7 @@ export default function QBRatingsPage() {
             ))}
 
           {/* =================================================
-              AUTRES QB
+              QB #4+
               ================================================= */}
 
           {rows.length > 3 && (
@@ -1389,48 +1358,6 @@ export default function QBRatingsPage() {
                 marginTop: 18,
               }}
             >
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  gap: 12,
-                  padding: "0 4px 12px",
-                  borderBottom:
-                    "1px solid rgba(148,163,184,0.12)",
-                }}
-              >
-                <div>
-                  <h2
-                    style={{
-                      margin: 0,
-                      fontSize: 19,
-                    }}
-                  >
-                    Classement QB
-                  </h2>
-
-                  <p
-                    style={{
-                      margin: "4px 0 0",
-                      color: "#94a3b8",
-                      fontSize: 11,
-                    }}
-                  >
-                    Positions #4 à #{rows.length}
-                  </p>
-                </div>
-
-                <span
-                  style={{
-                    color: "#64748b",
-                    fontSize: 11,
-                  }}
-                >
-                  Classés par meilleur rating
-                </span>
-              </div>
-
               {rows
                 .slice(3)
                 .map((row, index) => (
