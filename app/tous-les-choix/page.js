@@ -1333,6 +1333,7 @@ function QbWeekSection({
   qbSeasonAverages,
   getTeamLogo,
   isMobile,
+  isDesktop,
   liveGames,
 }) {
   /*
@@ -1344,50 +1345,49 @@ function QbWeekSection({
    * il revient ici automatiquement.
    */
   const visibleQbPicks =
-  qbPicks.filter(
-    (qbPick) => {
-      const data =
-        findQbGameData(
-          qbPick,
-          liveGames,
-          false
-        );
+    qbPicks.filter(
+      (qbPick) => {
+        const data =
+          findQbGameData(
+            qbPick,
+            liveGames,
+            false
+          );
 
-      /*
-       * Pas de match live :
-       * le QB reste en haut.
-       */
-      if (
-        data?.game?.status
-          ?.state !== "in"
-      ) {
+        /*
+         * Pas de match live :
+         * le QB reste en haut.
+         */
+        if (
+          data?.game?.status
+            ?.state !== "in"
+        ) {
+          return true;
+        }
+
+        /*
+         * Match LIVE admissible :
+         * le QB disparaît du haut,
+         * puisqu'il sera affiché
+         * directement dans la carte
+         * de ce match.
+         */
+        if (
+          data?.game
+            ?.isPoolEligible ===
+          true
+        ) {
+          return false;
+        }
+
+        /*
+         * Match LIVE NON admissible :
+         * le QB reste dans le bloc
+         * général du haut.
+         */
         return true;
       }
-
-      /*
-       * Match LIVE admissible :
-       * le QB disparaît du haut,
-       * puisqu'il sera affiché
-       * directement dans la carte
-       * de ce match.
-       */
-      if (
-        data?.game
-          ?.isPoolEligible ===
-        true
-      ) {
-        return false;
-      }
-
-      /*
-       * Match LIVE NON admissible :
-       *
-       * le QB reste dans le bloc
-       * général du haut.
-       */
-      return true;
-    }
-  );
+    );
 
   return (
     <section className="card">
@@ -1442,10 +1442,12 @@ function QbWeekSection({
         <div
           style={{
             display: "grid",
-         gridTemplateColumns:
-  isMobile
-    ? "repeat(2, minmax(0, 1fr))"
-    : "repeat(3, minmax(0, 1fr))",
+            gridTemplateColumns:
+              isMobile
+                ? "repeat(2, minmax(0, 1fr))"
+                : isDesktop
+                ? "repeat(4, minmax(0, 1fr))"
+                : "repeat(3, minmax(0, 1fr))",
             gap:
               isMobile
                 ? 8
@@ -1483,7 +1485,6 @@ function QbWeekSection({
     </section>
   );
 }
-
 /* =========================================================
    QB AFFICHÉ SOUS SON ÉQUIPE PENDANT LE LIVE
    ========================================================= */
@@ -1674,6 +1675,7 @@ function PickRow({
   players,
   getTeamLogo,
   isMobile,
+  isDesktop = false,
   showBottomBorder = true,
 }) {
   const player =
@@ -1700,6 +1702,8 @@ function PickRow({
         padding:
           isMobile
             ? "11px 0"
+            : isDesktop
+            ? "8px 2px"
             : "11px 4px",
         borderBottom:
           showBottomBorder
@@ -1722,28 +1726,35 @@ function PickRow({
           minWidth: 0,
         }}
       >
-        <TeamLogo
+             <TeamLogo
           logo={getTeamLogo(
             pick.picked_team
           )}
           name={
             pick.picked_team
           }
-          size={26}
+          size={
+            isDesktop
+              ? 22
+              : 26
+          }
         />
 
-        <strong
+               <strong
           style={{
             color: "#f8fafc",
             fontSize:
               isMobile
                 ? 12
+                : isDesktop
+                ? 12
                 : 13,
             whiteSpace: "nowrap",
           }}
         >
-          {pick.picked_team} par{" "}
-          {pick.predicted_spread}
+          {isDesktop
+            ? `par ${pick.predicted_spread}`
+            : `${pick.picked_team} par ${pick.predicted_spread}`}
         </strong>
 
         <span
@@ -1771,6 +1782,7 @@ function GamePicksCard({
   getTeamLogo,
   formatTeamRecord,
   isMobile,
+  isDesktop,
   liveGame,
   qbPicks,
   qbRatings,
@@ -1935,7 +1947,7 @@ function GamePicksCard({
           SCOREBOARD
           ===================================================== */}
 
-      <div
+          <div
         style={{
           display: "grid",
           gridTemplateColumns:
@@ -1943,9 +1955,14 @@ function GamePicksCard({
           gap:
             isMobile
               ? 8
+              : isDesktop
+              ? 10
               : 20,
           alignItems: "start",
-          marginTop: 18,
+          marginTop:
+            isDesktop
+              ? 12
+              : 18,
         }}
       >
         {/* ÉQUIPE VISITEUSE */}
@@ -1970,9 +1987,11 @@ function GamePicksCard({
               name={
                 game.away_team
               }
-              size={
+                            size={
                 isMobile
                   ? 62
+                  : isDesktop
+                  ? 64
                   : 86
               }
             />
@@ -1983,9 +2002,11 @@ function GamePicksCard({
               display: "block",
               marginTop: 6,
               color: "#f8fafc",
-              fontSize:
+                            fontSize:
                 isMobile
                   ? 14
+                  : isDesktop
+                  ? 15
                   : 19,
               fontWeight: 900,
             }}
@@ -2037,11 +2058,16 @@ function GamePicksCard({
         <div
           style={{
             textAlign: "center",
-            minWidth:
+                       minWidth:
               isMobile
                 ? 72
+                : isDesktop
+                ? 82
                 : 125,
-            paddingTop: 18,
+            paddingTop:
+              isDesktop
+                ? 12
+                : 18,
           }}
         >
           {displayedScore ? (
@@ -2050,9 +2076,11 @@ function GamePicksCard({
                 style={{
                   display: "block",
                   color: "#f8fafc",
-                  fontSize:
+                                    fontSize:
                     isMobile
                       ? 23
+                      : isDesktop
+                      ? 27
                       : 34,
                   fontWeight: 900,
                   whiteSpace:
@@ -2139,9 +2167,11 @@ function GamePicksCard({
               name={
                 game.home_team
               }
-              size={
+                            size={
                 isMobile
                   ? 62
+                  : isDesktop
+                  ? 64
                   : 86
               }
             />
@@ -2152,9 +2182,11 @@ function GamePicksCard({
               display: "block",
               marginTop: 6,
               color: "#f8fafc",
-              fontSize:
+                            fontSize:
                 isMobile
                   ? 14
+                  : isDesktop
+                  ? 15
                   : 19,
               fontWeight: 900,
             }}
@@ -2317,7 +2349,7 @@ function GamePicksCard({
           </div>
         )}
 
-      {/* =====================================================
+          {/* =====================================================
           PICKS DESKTOP
           ===================================================== */}
 
@@ -2328,12 +2360,20 @@ function GamePicksCard({
               display: "grid",
               gridTemplateColumns:
                 "minmax(0,1fr) minmax(0,1fr)",
-              marginTop: 14,
+              marginTop:
+                isDesktop
+                  ? 10
+                  : 14,
             }}
           >
+            {/* COLONNE GAUCHE */}
+
             <div
               style={{
-                paddingRight: 14,
+                paddingRight:
+                  isDesktop
+                    ? 7
+                    : 14,
               }}
             >
               {leftPicks.map(
@@ -2351,6 +2391,9 @@ function GamePicksCard({
                     isMobile={
                       false
                     }
+                    isDesktop={
+                      isDesktop
+                    }
                     showBottomBorder={
                       index <
                       leftPicks.length -
@@ -2361,9 +2404,14 @@ function GamePicksCard({
               )}
             </div>
 
+            {/* COLONNE DROITE */}
+
             <div
               style={{
-                paddingLeft: 14,
+                paddingLeft:
+                  isDesktop
+                    ? 7
+                    : 14,
                 borderLeft:
                   "1px solid rgba(148,163,184,0.12)",
               }}
@@ -2383,6 +2431,9 @@ function GamePicksCard({
                     isMobile={
                       false
                     }
+                    isDesktop={
+                      isDesktop
+                    }
                     showBottomBorder={
                       index <
                       rightPicks.length -
@@ -2393,7 +2444,7 @@ function GamePicksCard({
               )}
             </div>
           </div>
-        )}
+                )}
     </section>
   );
 }
@@ -2466,9 +2517,14 @@ const [
     setLoading,
   ] = useState(true);
 
-  const [
+   const [
     isMobile,
     setIsMobile,
+  ] = useState(false);
+
+  const [
+    isDesktop,
+    setIsDesktop,
   ] = useState(false);
 
   /*
@@ -2482,29 +2538,35 @@ const [
     setLiveGames,
   ] = useState({});
 
-  /* =========================================================
+    /* =========================================================
      RESPONSIVE
      ========================================================= */
 
   useEffect(() => {
-    const updateMobile = () => {
+    const updateResponsive = () => {
+      const width =
+        window.innerWidth;
+
       setIsMobile(
-        window.innerWidth <
-          700
+        width < 700
+      );
+
+      setIsDesktop(
+        width >= 900
       );
     };
 
-    updateMobile();
+    updateResponsive();
 
     window.addEventListener(
       "resize",
-      updateMobile
+      updateResponsive
     );
 
     return () => {
       window.removeEventListener(
         "resize",
-        updateMobile
+        updateResponsive
       );
     };
   }, []);
@@ -3295,68 +3357,83 @@ const [
     return record;
   };
 
-  /* =========================================================
+    /* =========================================================
      RENDER
      ========================================================= */
 
   return (
-    <main className="page">
+    <main
+      className="page"
+      style={
+        isDesktop
+          ? {
+              maxWidth: 1280,
+              width: "calc(100% - 48px)",
+              margin: "0 auto",
+              paddingTop: 112,
+              boxSizing: "border-box",
+            }
+          : undefined
+      }
+    >
       <section className="header-card">
         <h1>
-          Tous les choix 👀
+          Tous les choix
         </h1>
 
         <p>
-          Compare les choix du pool,
-          match par match.
+          Choix de tous les joueurs
+          pour la semaine{" "}
+          {viewedWeek || "..."}.
         </p>
       </section>
 
-      {currentWeek != null &&
-        viewedWeek != null && (
-          <WeekNavigator
-            viewedWeek={
-              viewedWeek
-            }
-            currentWeek={
-              currentWeek
-            }
-            availableWeeks={
-              availableWeeks
-            }
-            onChange={
-              setViewedWeek
-            }
-          />
-        )}
+      <WeekNavigator
+        viewedWeek={
+          viewedWeek
+        }
+        availableWeeks={
+          availableWeeks
+        }
+        currentWeek={
+          currentWeek
+        }
+        onChange={
+          setViewedWeek
+        }
+        isMobile={
+          isMobile
+        }
+      />
 
       {message && (
-        <section className="card">
-          <p
-            style={{
-              margin: 0,
-            }}
-          >
-            {message}
-          </p>
-        </section>
+        <p
+          style={{
+            color: "#f87171",
+            marginTop: 12,
+          }}
+        >
+          {message}
+        </p>
       )}
 
       {loading && (
-        <section className="card">
-          <p
-            style={{
-              margin: 0,
-              color: "#94a3b8",
-            }}
-          >
-            Chargement des choix...
-          </p>
-        </section>
+        <p
+          style={{
+            color: "#94a3b8",
+            marginTop: 16,
+          }}
+        >
+          Chargement...
+        </p>
       )}
 
       {!loading && (
         <>
+          {/* =================================================
+              QB DE LA SEMAINE
+              ================================================= */}
+
           <QbWeekSection
             qbPicks={
               qbPicks
@@ -3376,10 +3453,19 @@ const [
             isMobile={
               isMobile
             }
+            isDesktop={
+              isDesktop
+            }
             liveGames={
               liveGames
             }
           />
+
+          {/* =================================================
+              MATCHS
+              Desktop : 2 cartes par rangée
+              Mobile/tablette : 1 carte par rangée
+              ================================================= */}
 
           {weekGames.length ===
           0 ? (
@@ -3387,46 +3473,78 @@ const [
               <p
                 style={{
                   margin: 0,
-                  color:
-                    "#94a3b8",
+                  color: "#94a3b8",
                 }}
               >
-                Aucun match du pool
+                Aucun match admissible
                 pour cette semaine.
               </p>
             </section>
           ) : (
-            weekGames.map(
-              (game) => {
-                const gamePicks =
-                  picks.filter(
-                    (pick) =>
-                      pick.game_id ===
-                      game.id
-                  );
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns:
+                  isDesktop
+                    ? "repeat(2, minmax(0, 1fr))"
+                    : "1fr",
+                gap:
+                  isDesktop
+                    ? 18
+                    : 0,
+                alignItems: "start",
+              }}
+            >
+              {weekGames.map(
+                (game) => {
+                  const gamePicks =
+                    picks.filter(
+                      (pick) =>
+                        pick.game_id ===
+                        game.id
+                    );
 
-                return (
-                 <GamePicksCard
-  key={game.id}
-  game={game}
-  gamePicks={gamePicks}
-  players={players}
-  getTeamLogo={getTeamLogo}
-  formatTeamRecord={
-    formatTeamRecord
-  }
-  isMobile={isMobile}
-  liveGame={
-    liveGames[game.id] ||
-    null
-  }
-  qbPicks={qbPicks}
-  qbRatings={qbRatings}
-  liveGames={liveGames}
-/>
-                );
-              }
-            )
+                  return (
+                    <GamePicksCard
+                      key={game.id}
+                      game={game}
+                      gamePicks={
+                        gamePicks
+                      }
+                      players={
+                        players
+                      }
+                      getTeamLogo={
+                        getTeamLogo
+                      }
+                      formatTeamRecord={
+                        formatTeamRecord
+                      }
+                      isMobile={
+                        isMobile
+                      }
+                      isDesktop={
+                        isDesktop
+                      }
+                      liveGame={
+                        liveGames[
+                          game.id
+                        ] || null
+                      }
+                      qbPicks={
+                        qbPicks
+                      }
+                      qbRatings={
+                        qbRatings
+                      }
+                      liveGames={
+                        liveGames
+                      }
+                    />
+                  );
+                }
+              )}
+            </div>
           )}
         </>
       )}
