@@ -24,7 +24,7 @@ const supabaseAdmin = createClient(
 export async function POST(request) {
   try {
     /* =========================================================
-       1. VÉRIFIER LA SESSION
+       1. VÉRIFIER LA SESSION ACTUELLE
        ========================================================= */
 
     const authHeader =
@@ -44,29 +44,11 @@ export async function POST(request) {
     const accessToken =
       authHeader.replace("Bearer ", "");
 
-    const supabaseAuth = createClient(
-      supabaseUrl,
-      supabaseAnonKey,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false,
-        },
-
-        global: {
-          headers: {
-            Authorization:
-              `Bearer ${accessToken}`,
-          },
-        },
-      }
-    );
-
     const {
       data: { user },
       error: userError,
     } =
-      await supabaseAuth.auth.getUser(
+      await supabaseAdmin.auth.getUser(
         accessToken
       );
 
@@ -82,27 +64,219 @@ export async function POST(request) {
     }
 
     /* =========================================================
-       2. ENLEVER L'OBLIGATION
+       2. LIRE LES MOTS DE PASSE
        ========================================================= */
 
-    const { error: updateError } =
+    const body =
+      await request.json();
+
+    const temporaryPassword =
+      body?.temporaryPassword;
+
+    const newPassword =
+      body?.newPassword;
+
+    if (!temporaryPassword) {
+      return NextResponse.json(
+        {
+          error:
+            "Entre ton mot de passe temporaire.",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    if (
+      !newPassword ||
+      newPassword.length < 8
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Le nouveau mot de passe doit contenir au moins 8 caractères.",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    if (
+      temporaryPassword ===
+      newPassword
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Ton nouveau mot de passe doit être différent du mot de passe temporaire.",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    if (!user.email) {
+      return NextResponse.json(
+        {
+          error:
+            "Adresse courriel introuvable.",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    /* =========================================================
+       3. VÉRIFIER QUE LE CHANGEMENT EST BIEN OBLIGATOIRE
+       ========================================================= */
+
+    const {
+      data: profile,
+      error: profileError,
+    } =
       await supabaseAdmin
         .from("users")
-        .update({
-          must_change_password: false,
-        })
-        .eq("id", user.id);
+        .select(`
+          id,
+          must_change_password
+        `)
+        .eq("id", user.id)
+        .maybeSingle();
 
-    if (updateError) {
+    if (
+      profileError ||
+      !profile
+    ) {
       console.error(
-        "Erreur must_change_password :",
-        updateError
+        "Erreur profil password change :",
+        profileError
       );
 
       return NextResponse.json(
         {
           error:
-            "Impossible de confirmer le changement de mot de passe.",
+            "Profil utilisateur introuvable.",
+        },
+        {
+          status: 404,
+        }
+      );
+    }
+
+    if (
+      profile.must_change_password !==
+      true
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Aucun changement obligatoire de mot de passe n'est en attente.",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    /* =========================================================
+       4. VÉRIFIER LE MOT DE PASSE TEMPORAIRE
+
+       IMPORTANT :
+       on crée un client Auth séparé.
+       Le service role ne sert PAS à cette vérification.
+       ========================================================= */
+
+    const verificationClient =
+      createClient(
+        supabaseUrl,
+        supabaseAnonKey,
+        {
+          auth: {
+            autoRefreshToken: false,
+            persistSession: false,
+          },
+        }
+      );
+
+    const {
+      data: verificationData,
+      error: verificationError,
+    } =
+      await verificationClient.auth.signInWithPassword({
+        email:
+          user.email
+            .trim()
+            .toLowerCase(),
+
+        password:
+          temporaryPassword,
+      });
+
+    if (
+      verificationError ||
+      !verificationData?.user
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Le mot de passe temporaire est invalide.",
+        },
+        {
+          status: 401,
+        }
+      );
+    }
+
+    /*
+     * Protection supplémentaire :
+     * le compte authentifié avec le temporaire
+     * doit être exactement le compte de la session.
+     */
+
+    if (
+      verificationData.user.id !==
+      user.id
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Le mot de passe temporaire ne correspond pas à ce compte.",
+        },
+        {
+          status: 403,
+        }
+      );
+    }
+
+    /* =========================================================
+       5. REMPLACER LE MOT DE PASSE CÔTÉ SERVEUR
+       ========================================================= */
+
+    const {
+      error: passwordError,
+    } =
+      await supabaseAdmin.auth.admin.updateUserById(
+        user.id,
+        {
+          password:
+            newPassword,
+        }
+      );
+
+    if (passwordError) {
+      console.error(
+        "Erreur changement mot de passe permanent :",
+        passwordError
+      );
+
+      return NextResponse.json(
+        {
+          error:
+            "Impossible d'enregistrer le nouveau mot de passe.",
         },
         {
           status: 500,
@@ -111,7 +285,45 @@ export async function POST(request) {
     }
 
     /* =========================================================
-       3. TERMINÉ
+       6. RETIRER LE VERROU TEMPORAIRE
+       ========================================================= */
+
+    const {
+      error: flagError,
+    } =
+      await supabaseAdmin
+        .from("users")
+        .update({
+          must_change_password:
+            false,
+        })
+        .eq("id", user.id);
+
+    if (flagError) {
+      console.error(
+        "Erreur désactivation must_change_password :",
+        flagError
+      );
+
+      /*
+       * Le mot de passe a déjà été changé.
+       * On retourne donc une erreur explicite
+       * plutôt que de prétendre que tout est terminé.
+       */
+
+      return NextResponse.json(
+        {
+          error:
+            "Le mot de passe a été changé, mais le compte n'a pas pu être déverrouillé. Contacte l'administrateur.",
+        },
+        {
+          status: 500,
+        }
+      );
+    }
+
+    /* =========================================================
+       7. SUCCÈS
        ========================================================= */
 
     return NextResponse.json({
