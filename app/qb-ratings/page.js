@@ -428,13 +428,15 @@ function DesktopPodiumRating({
           style={{
             display: "grid",
             gridTemplateColumns:
-              "auto auto minmax(0, 1fr)",
-            gap: 12,
+              "auto minmax(0, 1fr)",
+            gap: 14,
             alignItems: "center",
             marginTop: 10,
             minWidth: 0,
           }}
         >
+          {/* RATING */}
+
           <strong
             style={{
               color: accent,
@@ -443,19 +445,12 @@ function DesktopPodiumRating({
               whiteSpace: "nowrap",
             }}
           >
-            {Number(rating.passer_rating).toFixed(1)}
+            {Number(
+              rating.passer_rating
+            ).toFixed(1)}
           </strong>
 
-          <div
-            style={{
-              color: "#94a3b8",
-              fontSize: 11,
-              fontWeight: 700,
-              whiteSpace: "nowrap",
-            }}
-          >
-            Semaine {rating.week}
-          </div>
+          {/* SEMAINE + JOUEUR */}
 
           <div
             style={{
@@ -465,9 +460,21 @@ function DesktopPodiumRating({
                 "1px solid rgba(148,163,184,0.16)",
             }}
           >
+            <div
+              style={{
+                color: "#94a3b8",
+                fontSize: 10,
+                fontWeight: 700,
+                lineHeight: 1.1,
+              }}
+            >
+              Semaine {rating.week}
+            </div>
+
             <span
               style={{
                 display: "block",
+                marginTop: 5,
                 color: "#64748b",
                 fontSize: 9,
                 lineHeight: 1.1,
@@ -759,13 +766,15 @@ function CompactRating({
           style={{
             display: "grid",
             gridTemplateColumns:
-              "auto auto minmax(0, 1fr)",
-            gap: 8,
+              "auto minmax(0, 1fr)",
+            gap: 9,
             alignItems: "center",
             marginTop: 5,
             minWidth: 0,
           }}
         >
+          {/* RATING */}
+
           <strong
             style={{
               color: accent,
@@ -774,19 +783,12 @@ function CompactRating({
               whiteSpace: "nowrap",
             }}
           >
-            {Number(rating.passer_rating).toFixed(1)}
+            {Number(
+              rating.passer_rating
+            ).toFixed(1)}
           </strong>
 
-          <span
-            style={{
-              color: "#94a3b8",
-              fontSize: 9,
-              fontWeight: 700,
-              whiteSpace: "nowrap",
-            }}
-          >
-            S{rating.week}
-          </span>
+          {/* SEMAINE + JOUEUR */}
 
           <div
             style={{
@@ -796,21 +798,21 @@ function CompactRating({
                 "1px solid rgba(148,163,184,0.14)",
             }}
           >
-            <span
+            <div
               style={{
-                display: "block",
-                color: "#64748b",
+                color: "#94a3b8",
                 fontSize: 8,
+                fontWeight: 700,
                 lineHeight: 1.05,
               }}
             >
-              Choisi par
-            </span>
+              S{rating.week} · Choisi par
+            </div>
 
             <strong
               style={{
                 display: "block",
-                marginTop: 1,
+                marginTop: 2,
                 color: "#cbd5e1",
                 fontSize: 10,
                 lineHeight: 1.1,
