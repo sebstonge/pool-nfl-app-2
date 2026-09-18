@@ -607,9 +607,21 @@ function DesktopRankingPanel({
   subtitle,
   rows,
   mode,
+  selectedWeek,
+  currentWeek,
+  onPreviousWeek,
+  onNextWeek,
 }) {
   const topThree = rows.slice(0, 3);
   const remaining = rows.slice(3);
+
+  const canGoPrevious =
+    mode === "week" &&
+    selectedWeek > 1;
+
+  const canGoNext =
+    mode === "week" &&
+    selectedWeek < currentWeek;
 
   return (
     <section
@@ -631,15 +643,121 @@ function DesktopRankingPanel({
           marginBottom: 16,
         }}
       >
-        <div>
-          <h2
-            style={{
-              margin: 0,
-              fontSize: 21,
-            }}
-          >
-            {title}
-          </h2>
+        <div
+          style={{
+            minWidth: 0,
+          }}
+        >
+          {mode === "week" ? (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+              }}
+            >
+              <button
+                type="button"
+                onClick={onPreviousWeek}
+                disabled={!canGoPrevious}
+                aria-label="Semaine précédente"
+                style={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: 10,
+
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+
+                  border:
+                    "1px solid rgba(148,163,184,0.18)",
+
+                  background:
+                    canGoPrevious
+                      ? "rgba(148,163,184,0.08)"
+                      : "rgba(148,163,184,0.03)",
+
+                  color:
+                    canGoPrevious
+                      ? "#f8fafc"
+                      : "#475569",
+
+                  fontSize: 18,
+                  fontWeight: 900,
+
+                  cursor:
+                    canGoPrevious
+                      ? "pointer"
+                      : "default",
+
+                  flexShrink: 0,
+                }}
+              >
+                ←
+              </button>
+
+              <h2
+                style={{
+                  margin: 0,
+                  fontSize: 21,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {title}
+              </h2>
+
+              <button
+                type="button"
+                onClick={onNextWeek}
+                disabled={!canGoNext}
+                aria-label="Semaine suivante"
+                style={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: 10,
+
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+
+                  border:
+                    "1px solid rgba(148,163,184,0.18)",
+
+                  background:
+                    canGoNext
+                      ? "rgba(148,163,184,0.08)"
+                      : "rgba(148,163,184,0.03)",
+
+                  color:
+                    canGoNext
+                      ? "#f8fafc"
+                      : "#475569",
+
+                  fontSize: 18,
+                  fontWeight: 900,
+
+                  cursor:
+                    canGoNext
+                      ? "pointer"
+                      : "default",
+
+                  flexShrink: 0,
+                }}
+              >
+                →
+              </button>
+            </div>
+          ) : (
+            <h2
+              style={{
+                margin: 0,
+                fontSize: 21,
+              }}
+            >
+              {title}
+            </h2>
+          )}
 
           <p
             style={{
@@ -835,11 +953,6 @@ function RankProgressionChart({
 
   const weeks = progression.weeks;
 
-  /*
-   * IMPORTANT :
-   * On affiche maintenant TOUS les joueurs.
-   * Plus aucun .slice(0, 8).
-   */
   const rows = progression.rows;
 
   const maxRank = Math.max(
@@ -867,9 +980,6 @@ function RankProgressionChart({
     paddingTop -
     paddingBottom;
 
-  /*
-   * 13 couleurs distinctes pour les 13 joueurs.
-   */
   const colors = [
     "#22c55e",
     "#3b82f6",
@@ -974,8 +1084,6 @@ function RankProgressionChart({
             height: "auto",
           }}
         >
-          {/* LIGNES HORIZONTALES */}
-
           {[...Array(maxRank)].map(
             (_, index) => {
               const rank = index + 1;
@@ -1011,8 +1119,6 @@ function RankProgressionChart({
             }
           )}
 
-          {/* SEMAINES */}
-
           {weeks.map((week, index) => {
             if (!shouldShowWeekLabel(index)) {
               return null;
@@ -1034,8 +1140,6 @@ function RankProgressionChart({
               </text>
             );
           })}
-
-          {/* JOUEURS */}
 
           {rows.map((row, rowIndex) => {
             const color =
@@ -1089,8 +1193,6 @@ function RankProgressionChart({
           })}
         </svg>
       </div>
-
-      {/* LÉGENDE */}
 
       <div
         style={{
@@ -1152,8 +1254,32 @@ export default function ClassementsPage() {
   const [tab, setTab] =
     useState("week");
 
-  const [week, setWeek] =
-    useState(1);
+  /*
+   * Semaine réellement active dans le pool.
+   * Celle-ci ne change jamais avec les flèches.
+   */
+  const [
+    currentWeek,
+    setCurrentWeek,
+  ] = useState(1);
+
+  /*
+   * Semaine consultée dans le classement hebdomadaire.
+   */
+  const [
+    selectedWeek,
+    setSelectedWeek,
+  ] = useState(1);
+
+  const [
+    allScores,
+    setAllScores,
+  ] = useState([]);
+
+  const [
+    users,
+    setUsers,
+  ] = useState([]);
 
   const [weekly, setWeekly] =
     useState([]);
@@ -1198,6 +1324,78 @@ export default function ClassementsPage() {
   }, []);
 
   /* =========================================================
+     CONSTRUCTION D'UNE SEMAINE
+     ========================================================= */
+
+  function buildWeeklyRows(
+    scores,
+    safeUsers,
+    weekNumber
+  ) {
+    const getUser = (userId) =>
+      safeUsers.find(
+        (u) => u.id === userId
+      );
+
+    const weekScores =
+      scores
+        .filter(
+          (score) =>
+            Number(score.week) ===
+            Number(weekNumber)
+        )
+        .sort(
+          (a, b) =>
+            Number(
+              b.final_score || 0
+            ) -
+            Number(
+              a.final_score || 0
+            )
+        );
+
+    const weekLeader =
+      Number(
+        weekScores?.[0]
+          ?.final_score || 0
+      );
+
+    return weekScores.map(
+      (score, index) => {
+        const user =
+          getUser(
+            score.user_id
+          );
+
+        const scoreValue =
+          Number(
+            score.final_score || 0
+          );
+
+        return {
+          rank: index + 1,
+          userId: score.user_id,
+
+          name: displayName(
+            user,
+            score.user_id
+          ),
+
+          realName:
+            realName(user),
+
+          score:
+            scoreValue,
+
+          diff:
+            weekLeader -
+            scoreValue,
+        };
+      }
+    );
+  }
+
+  /* =========================================================
      DONNÉES
      ========================================================= */
 
@@ -1209,21 +1407,27 @@ export default function ClassementsPage() {
           .select("*")
           .single();
 
-      const currentWeek =
+      const activeWeek =
         Number(
           settings?.current_week
         ) || 1;
 
-      setWeek(currentWeek);
+      setCurrentWeek(
+        activeWeek
+      );
 
-      const { data: users } =
+      setSelectedWeek(
+        activeWeek
+      );
+
+      const { data: usersData } =
         await supabase
           .from("users")
           .select(
             "id, email, display_name, real_name"
           );
 
-      const { data: allScores } =
+      const { data: scoresData } =
         await supabase
           .from("weekly_scores")
           .select("*")
@@ -1232,15 +1436,30 @@ export default function ClassementsPage() {
           });
 
       const safeUsers =
-        users || [];
+        usersData || [];
 
       const safeScores =
-        allScores || [];
+        scoresData || [];
 
-      const getUser = (userId) =>
-        safeUsers.find(
-          (u) => u.id === userId
-        );
+      setUsers(
+        safeUsers
+      );
+
+      setAllScores(
+        safeScores
+      );
+
+      /* =====================================================
+         SEMAINE ACTIVE AU CHARGEMENT
+         ===================================================== */
+
+      setWeekly(
+        buildWeeklyRows(
+          safeScores,
+          safeUsers,
+          activeWeek
+        )
+      );
 
       /* =====================================================
          CLASSEMENTS HEBDOMADAIRES
@@ -1280,71 +1499,13 @@ export default function ClassementsPage() {
       });
 
       /* =====================================================
-         SEMAINE ACTIVE
-         ===================================================== */
-
-      const weekScores =
-        safeScores
-          .filter(
-            (score) =>
-              Number(score.week) ===
-              currentWeek
-          )
-          .sort(
-            (a, b) =>
-              Number(
-                b.final_score || 0
-              ) -
-              Number(
-                a.final_score || 0
-              )
-          );
-
-      const weekLeader =
-        Number(
-          weekScores?.[0]
-            ?.final_score || 0
-        );
-
-      setWeekly(
-        weekScores.map(
-          (score, index) => {
-            const user =
-              getUser(
-                score.user_id
-              );
-
-            const scoreValue =
-              Number(
-                score.final_score || 0
-              );
-
-            return {
-              rank: index + 1,
-              userId: score.user_id,
-
-              name: displayName(
-                user,
-                score.user_id
-              ),
-
-              realName:
-                realName(user),
-
-              score:
-                scoreValue,
-
-              diff:
-                weekLeader -
-                scoreValue,
-            };
-          }
-        )
-      );
-
-      /* =====================================================
          SAISON
          ===================================================== */
+
+      const getUser = (userId) =>
+        safeUsers.find(
+          (u) => u.id === userId
+        );
 
       function buildSeasonRows(scores) {
         const grouped = {};
@@ -1402,7 +1563,7 @@ export default function ClassementsPage() {
           safeScores.filter(
             (score) =>
               Number(score.week) <
-              currentWeek
+              activeWeek
           )
         );
 
@@ -1435,7 +1596,7 @@ export default function ClassementsPage() {
               index + 1;
 
             const hasPreviousWeek =
-              currentWeek > 1 &&
+              activeWeek > 1 &&
               previousRanks[
                 row.userId
               ] != null;
@@ -1461,7 +1622,7 @@ export default function ClassementsPage() {
                 .filter(
                   (weekNumber) =>
                     weekNumber <=
-                    currentWeek
+                    activeWeek
                 )
                 .sort(
                   (a, b) => b - a
@@ -1553,6 +1714,51 @@ export default function ClassementsPage() {
     loadData();
   }, []);
 
+  /* =========================================================
+     CHANGEMENT DE SEMAINE CONSULTÉE
+     ========================================================= */
+
+  useEffect(() => {
+    if (
+      !allScores.length ||
+      !users.length
+    ) {
+      return;
+    }
+
+    setWeekly(
+      buildWeeklyRows(
+        allScores,
+        users,
+        selectedWeek
+      )
+    );
+  }, [
+    selectedWeek,
+    allScores,
+    users,
+  ]);
+
+  function goToPreviousWeek() {
+    setSelectedWeek(
+      (current) =>
+        Math.max(
+          1,
+          current - 1
+        )
+    );
+  }
+
+  function goToNextWeek() {
+    setSelectedWeek(
+      (current) =>
+        Math.min(
+          currentWeek,
+          current + 1
+        )
+    );
+  }
+
   const mobileRows =
     tab === "week"
       ? weekly
@@ -1627,7 +1833,7 @@ export default function ClassementsPage() {
             marginBottom: 0,
           }}
         >
-          Semaine {week} et saison complète
+          Semaine {currentWeek} et saison complète
         </p>
       </section>
 
@@ -1647,10 +1853,27 @@ export default function ClassementsPage() {
             }}
           >
             <DesktopRankingPanel
-              title={`Semaine ${week}`}
-              subtitle="Classement hebdomadaire"
+              title={`Semaine ${selectedWeek}`}
+              subtitle={
+                selectedWeek ===
+                currentWeek
+                  ? "Classement hebdomadaire · semaine active"
+                  : "Classement hebdomadaire"
+              }
               rows={weekly}
               mode="week"
+              selectedWeek={
+                selectedWeek
+              }
+              currentWeek={
+                currentWeek
+              }
+              onPreviousWeek={
+                goToPreviousWeek
+              }
+              onNextWeek={
+                goToNextWeek
+              }
             />
 
             <DesktopRankingPanel
@@ -1696,7 +1919,7 @@ export default function ClassementsPage() {
                 setTab("week")
               }
             >
-              Semaine {week}
+              Semaine {selectedWeek}
             </button>
 
             <button
@@ -1712,6 +1935,135 @@ export default function ClassementsPage() {
               Saison complète
             </button>
           </section>
+
+          {/* =================================================
+              MOBILE — NAVIGATION SEMAINE
+              ================================================= */}
+
+          {tab === "week" && (
+            <section
+              className="card"
+              style={{
+                padding:
+                  "10px 12px",
+
+                display:
+                  "grid",
+
+                gridTemplateColumns:
+                  "44px minmax(0, 1fr) 44px",
+
+                gap: 10,
+
+                alignItems:
+                  "center",
+              }}
+            >
+              <button
+                type="button"
+                className="button-secondary"
+                onClick={
+                  goToPreviousWeek
+                }
+                disabled={
+                  selectedWeek <= 1
+                }
+                aria-label="Semaine précédente"
+                style={{
+                  width: 44,
+                  minWidth: 44,
+                  height: 40,
+                  margin: 0,
+                  padding: 0,
+
+                  opacity:
+                    selectedWeek <= 1
+                      ? 0.35
+                      : 1,
+                }}
+              >
+                ←
+              </button>
+
+              <div
+                style={{
+                  textAlign:
+                    "center",
+                }}
+              >
+                <strong
+                  style={{
+                    display:
+                      "block",
+
+                    color:
+                      "#f8fafc",
+
+                    fontSize:
+                      16,
+                  }}
+                >
+                  Semaine{" "}
+                  {selectedWeek}
+                </strong>
+
+                {selectedWeek ===
+                  currentWeek && (
+                  <span
+                    style={{
+                      display:
+                        "block",
+
+                      marginTop:
+                        2,
+
+                      color:
+                        "#22c55e",
+
+                      fontSize:
+                        10,
+
+                      fontWeight:
+                        800,
+
+                      textTransform:
+                        "uppercase",
+                    }}
+                  >
+                    Semaine active
+                  </span>
+                )}
+              </div>
+
+              <button
+                type="button"
+                className="button-secondary"
+                onClick={
+                  goToNextWeek
+                }
+                disabled={
+                  selectedWeek >=
+                  currentWeek
+                }
+                aria-label="Semaine suivante"
+                style={{
+                  width: 44,
+                  minWidth: 44,
+                  height: 40,
+                  margin: 0,
+                  padding: 0,
+
+                  opacity:
+                    selectedWeek >=
+                    currentWeek
+                      ? 0.35
+                      : 1,
+                }}
+              >
+                →
+              </button>
+            </section>
+          )}
 
           {/* =================================================
               MOBILE — CLASSEMENT
@@ -1733,7 +2085,7 @@ export default function ClassementsPage() {
                 >
                   Podium{" "}
                   {tab === "week"
-                    ? `semaine ${week}`
+                    ? `semaine ${selectedWeek}`
                     : "saison"}
                 </h2>
 
@@ -1803,8 +2155,7 @@ export default function ClassementsPage() {
             </>
           )}
 
-          {/* Graphique mobile seulement dans Saison,
-              comme avant */}
+          {/* Graphique mobile seulement dans Saison */}
 
           {tab === "season" &&
             rankProgression && (
