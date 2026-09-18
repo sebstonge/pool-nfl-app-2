@@ -77,6 +77,37 @@ export default function HomePage() {
 
   /*
    * =========================================================
+   * CHANGEMENT OBLIGATOIRE DE MOT DE PASSE
+   * =========================================================
+   */
+
+  const [
+    mustChangePassword,
+    setMustChangePassword,
+  ] = useState(false);
+
+  const [
+    newPassword,
+    setNewPassword,
+  ] = useState("");
+
+  const [
+    newPasswordConfirm,
+    setNewPasswordConfirm,
+  ] = useState("");
+
+  const [
+    passwordChangeLoading,
+    setPasswordChangeLoading,
+  ] = useState(false);
+
+  const [
+    passwordChangeMessage,
+    setPasswordChangeMessage,
+  ] = useState("");
+
+  /*
+   * =========================================================
    * AFFICHAGE RESPONSIVE
    * =========================================================
    */
@@ -102,6 +133,7 @@ export default function HomePage() {
   ) {
     if (!currentUser) {
       setProfile(null);
+      setMustChangePassword(false);
       return;
     }
 
@@ -115,7 +147,8 @@ export default function HomePage() {
         email,
         display_name,
         real_name,
-        is_admin
+        is_admin,
+        must_change_password
       `)
       .eq(
         "id",
@@ -133,6 +166,23 @@ export default function HomePage() {
     setProfile(
       profileData || null
     );
+
+    setMustChangePassword(
+      profileData?.must_change_password === true
+    );
+
+    /*
+     * Si le joueur doit changer son mot de passe,
+     * on NE le redirige nulle part.
+     *
+     * La boîte obligatoire sera affichée avant
+     * tout le reste de l'application.
+     */
+    if (
+      profileData?.must_change_password === true
+    ) {
+      return;
+    }
 
     /*
      * Le profil doit contenir :
@@ -248,6 +298,10 @@ export default function HomePage() {
           } else {
             setProfile(
               null
+            );
+
+            setMustChangePassword(
+              false
             );
           }
         }
@@ -524,6 +578,161 @@ export default function HomePage() {
 
   /*
    * =========================================================
+   * CHANGER LE MOT DE PASSE OBLIGATOIRE
+   * =========================================================
+   */
+
+  async function handleMandatoryPasswordChange() {
+    setPasswordChangeMessage("");
+
+    if (
+      !newPassword ||
+      newPassword.length < 8
+    ) {
+      setPasswordChangeMessage(
+        "Le nouveau mot de passe doit contenir au moins 8 caractères."
+      );
+
+      return;
+    }
+
+    if (
+      newPassword !==
+      newPasswordConfirm
+    ) {
+      setPasswordChangeMessage(
+        "Les deux mots de passe ne correspondent pas."
+      );
+
+      return;
+    }
+
+    setPasswordChangeLoading(
+      true
+    );
+
+    try {
+      /*
+       * =====================================================
+       * 1. MODIFIER LE MOT DE PASSE DANS SUPABASE AUTH
+       * =====================================================
+       */
+
+      const {
+        error:
+          passwordUpdateError,
+      } =
+        await supabase.auth.updateUser({
+          password:
+            newPassword,
+        });
+
+      if (
+        passwordUpdateError
+      ) {
+        throw new Error(
+          passwordUpdateError.message ||
+            "Impossible de modifier le mot de passe."
+        );
+      }
+
+      /*
+       * =====================================================
+       * 2. RÉCUPÉRER LA SESSION ACTUELLE
+       * =====================================================
+       */
+
+      const {
+        data: sessionData,
+      } =
+        await supabase.auth.getSession();
+
+      const accessToken =
+        sessionData.session
+          ?.access_token;
+
+      if (!accessToken) {
+        throw new Error(
+          "Session introuvable après le changement de mot de passe."
+        );
+      }
+
+      /*
+       * =====================================================
+       * 3. CONFIRMER AU SERVEUR QUE LE CHANGEMENT EST FAIT
+       * =====================================================
+       */
+
+      const response =
+        await fetch(
+          "/api/auth/password-changed",
+          {
+            method:
+              "POST",
+
+            headers: {
+              Authorization:
+                `Bearer ${accessToken}`,
+            },
+          }
+        );
+
+      const result =
+        await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          result?.error ||
+            "Impossible de confirmer le changement de mot de passe."
+        );
+      }
+
+      /*
+       * =====================================================
+       * 4. DÉVERROUILLER L'APPLICATION
+       * =====================================================
+       */
+
+      setNewPassword("");
+      setNewPasswordConfirm("");
+
+      setPasswordChangeMessage(
+        ""
+      );
+
+      setMustChangePassword(
+        false
+      );
+
+      setProfile(
+        (currentProfile) =>
+          currentProfile
+            ? {
+                ...currentProfile,
+                must_change_password:
+                  false,
+              }
+            : currentProfile
+      );
+    } catch (error) {
+      console.error(
+        "Erreur changement mot de passe :",
+        error
+      );
+
+      setPasswordChangeMessage(
+        error?.message ||
+          "Impossible de modifier le mot de passe."
+      );
+    } finally {
+      setPasswordChangeLoading(
+        false
+      );
+    }
+  }
+
+  /*
+   * =========================================================
    * DÉCONNEXION
    * =========================================================
    */
@@ -565,6 +774,14 @@ export default function HomePage() {
 
     setUser(null);
     setProfile(null);
+
+    setMustChangePassword(
+      false
+    );
+
+    setNewPassword("");
+    setNewPasswordConfirm("");
+    setPasswordChangeMessage("");
 
     setTimeout(() => {
       window.location.href =
@@ -863,339 +1080,597 @@ export default function HomePage() {
 
       {user ? (
         <>
-          {/* ================================
-              UTILISATEUR CONNECTÉ
-              ================================ */}
+          {/* =================================================
+              CHANGEMENT OBLIGATOIRE DU MOT DE PASSE
+              ================================================= */}
 
-          <section className="card">
-            <div
+          {mustChangePassword ? (
+            <section
+              className="card"
               style={{
-                display:
-                  "grid",
-
-                gridTemplateColumns:
-                  isMobile
-                    ? "1fr"
-                    : isDesktop
-                    ? "minmax(0, 1fr) 300px"
-                    : "minmax(0, 1fr) auto",
-
-                gap:
-                  isMobile
-                    ? 14
-                    : isDesktop
-                    ? 24
-                    : 16,
-
-                alignItems:
-                  "center",
+                maxWidth: 620,
+                marginLeft: "auto",
+                marginRight: "auto",
+                padding: isDesktop
+                  ? "30px 32px"
+                  : undefined,
               }}
             >
-              {/* =================================================
-                  IDENTITÉ UTILISATEUR
-                  ================================================= */}
+              <div
+                style={{
+                  width: 54,
+                  height: 54,
+                  borderRadius: 16,
+
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+
+                  marginBottom: 18,
+
+                  background:
+                    "rgba(245,158,11,0.12)",
+
+                  border:
+                    "1px solid rgba(245,158,11,0.22)",
+
+                  fontSize: 25,
+                }}
+              >
+                🔐
+              </div>
+
+              <h2
+                style={{
+                  margin:
+                    "0 0 8px",
+
+                  color:
+                    "#f8fafc",
+
+                  fontSize:
+                    isDesktop
+                      ? 25
+                      : 22,
+                }}
+              >
+                Crée ton nouveau mot de passe
+              </h2>
+
+              <p
+                style={{
+                  margin:
+                    "0 0 22px",
+
+                  color:
+                    "#94a3b8",
+
+                  lineHeight:
+                    1.55,
+
+                  fontSize:
+                    13,
+                }}
+              >
+                Tu es connecté avec un mot de passe temporaire.
+                Choisis maintenant ton nouveau mot de passe pour
+                continuer vers le pool.
+              </p>
 
               <div
                 style={{
-                  minWidth:
-                    0,
+                  marginBottom:
+                    8,
+
+                  color:
+                    "#64748b",
+
+                  fontSize:
+                    10,
+
+                  fontWeight:
+                    900,
+
+                  textTransform:
+                    "uppercase",
                 }}
               >
-                <span
+                Nouveau mot de passe
+              </div>
+
+              <input
+                className="input"
+                type="password"
+                autoComplete="new-password"
+                placeholder="Minimum 8 caractères"
+                value={
+                  newPassword
+                }
+                onChange={(event) => {
+                  setNewPassword(
+                    event.target.value
+                  );
+
+                  setPasswordChangeMessage(
+                    ""
+                  );
+                }}
+                disabled={
+                  passwordChangeLoading
+                }
+              />
+
+              <div
+                style={{
+                  marginTop:
+                    14,
+
+                  marginBottom:
+                    8,
+
+                  color:
+                    "#64748b",
+
+                  fontSize:
+                    10,
+
+                  fontWeight:
+                    900,
+
+                  textTransform:
+                    "uppercase",
+                }}
+              >
+                Confirmer le nouveau mot de passe
+              </div>
+
+              <input
+                className="input"
+                type="password"
+                autoComplete="new-password"
+                placeholder="Confirmer le mot de passe"
+                value={
+                  newPasswordConfirm
+                }
+                onChange={(event) => {
+                  setNewPasswordConfirm(
+                    event.target.value
+                  );
+
+                  setPasswordChangeMessage(
+                    ""
+                  );
+                }}
+                disabled={
+                  passwordChangeLoading
+                }
+                onKeyDown={(event) => {
+                  if (
+                    event.key ===
+                      "Enter" &&
+                    !passwordChangeLoading
+                  ) {
+                    handleMandatoryPasswordChange();
+                  }
+                }}
+              />
+
+              <button
+                type="button"
+                className="button"
+                onClick={
+                  handleMandatoryPasswordChange
+                }
+                disabled={
+                  passwordChangeLoading
+                }
+                style={{
+                  width:
+                    "100%",
+
+                  marginTop:
+                    18,
+                }}
+              >
+                {passwordChangeLoading
+                  ? "Enregistrement..."
+                  : "Enregistrer mon nouveau mot de passe"}
+              </button>
+
+              {passwordChangeMessage && (
+                <div
                   style={{
-                    display:
-                      "block",
+                    marginTop:
+                      14,
+
+                    padding:
+                      "11px 13px",
+
+                    borderRadius:
+                      11,
+
+                    background:
+                      "rgba(239,68,68,0.08)",
+
+                    border:
+                      "1px solid rgba(239,68,68,0.20)",
 
                     color:
-                      "#94a3b8",
+                      "#fca5a5",
 
                     fontSize:
-                      13,
+                      12,
 
                     fontWeight:
                       700,
 
-                    marginBottom:
-                      3,
-                  }}
-                >
-                  Connecté sous
-                </span>
-
-                <strong
-                  style={{
-                    display:
-                      "block",
-
-                    color:
-                      "#f8fafc",
-
-                    fontSize:
-                      isMobile
-                        ? 18
-                        : isDesktop
-                        ? 22
-                        : 20,
-
-                    fontWeight:
-                      900,
-
                     lineHeight:
-                      1.15,
-
-                    overflowWrap:
-                      "break-word",
+                      1.45,
                   }}
                 >
-                  {profile?.display_name ||
-                    user.email?.split(
-                      "@"
-                    )[0]}
-                </strong>
+                  {
+                    passwordChangeMessage
+                  }
+                </div>
+              )}
 
-                {profile?.real_name && (
-                  <span
-                    style={{
-                      display:
-                        "block",
-
-                      marginTop:
-                        3,
-
-                      color:
-                        "#94a3b8",
-
-                      fontSize:
-                        14,
-
-                      fontWeight:
-                        400,
-
-                      lineHeight:
-                        1.2,
-                    }}
-                  >
-                    {
-                      profile.real_name
-                    }
-                  </span>
-                )}
-              </div>
-
-              {/* =================================================
-                  ACTIONS UTILISATEUR
-                  ================================================= */}
-
-              <div
+              <p
                 style={{
-                  display:
-                    "flex",
+                  margin:
+                    "16px 0 0",
 
-                  flexDirection:
-                    "column",
+                  color:
+                    "#64748b",
 
-                  gap:
-                    8,
+                  fontSize:
+                    11,
 
-                  alignItems:
-                    "stretch",
+                  lineHeight:
+                    1.45,
                 }}
               >
-                <button
-                  type="button"
-                  className="button"
-                  onClick={
-                    notificationStatus.includes(
-                      "✅"
-                    )
-                      ? undefined
-                      : handleEnableNotifications
-                  }
-                  disabled={
-                    notificationLoading ||
-                    notificationStatus.includes(
-                      "✅"
-                    )
-                  }
+                Après l’enregistrement, le mot de passe temporaire
+                ne fonctionnera plus. Utilise ton nouveau mot de
+                passe lors de tes prochaines connexions.
+              </p>
+            </section>
+          ) : (
+            <>
+              {/* ================================
+                  UTILISATEUR CONNECTÉ
+                  ================================ */}
+
+              <section className="card">
+                <div
                   style={{
-                    width:
-                      isDesktop
-                        ? "100%"
-                        : "auto",
+                    display:
+                      "grid",
 
-                    minWidth:
-                      180,
+                    gridTemplateColumns:
+                      isMobile
+                        ? "1fr"
+                        : isDesktop
+                        ? "minmax(0, 1fr) 300px"
+                        : "minmax(0, 1fr) auto",
 
-                    whiteSpace:
-                      "nowrap",
+                    gap:
+                      isMobile
+                        ? 14
+                        : isDesktop
+                        ? 24
+                        : 16,
 
-                    margin:
-                      0,
-
-                    background:
-                      notificationStatus.includes(
-                        "✅"
-                      )
-                        ? "#475569"
-                        : undefined,
-
-                    borderColor:
-                      notificationStatus.includes(
-                        "✅"
-                      )
-                        ? "#64748b"
-                        : undefined,
-
-                    color:
-                      "#f8fafc",
-
-                    cursor:
-                      notificationStatus.includes(
-                        "✅"
-                      )
-                        ? "default"
-                        : "pointer",
-
-                    opacity:
-                      1,
+                    alignItems:
+                      "center",
                   }}
                 >
-                  {notificationLoading
-                    ? "Activation..."
-                    : notificationStatus.includes(
-                        "✅"
-                      )
-                    ? "✅ Notifications activées"
-                    : "🔔 Activer les notifications"}
-                </button>
+                  {/* =================================================
+                      IDENTITÉ UTILISATEUR
+                      ================================================= */}
 
-                <button
-                  type="button"
-                  className="button-secondary"
-                  onClick={
-                    handleLogout
-                  }
-                  style={{
-                    width:
-                      isDesktop
-                        ? "100%"
-                        : "auto",
-
-                    minWidth:
-                      140,
-
-                    whiteSpace:
-                      "nowrap",
-
-                    margin:
-                      0,
-                  }}
-                >
-                  Se déconnecter
-                </button>
-              </div>
-
-              {notificationStatus &&
-                !notificationStatus.includes(
-                  "✅"
-                ) && (
-                  <p
+                  <div
                     style={{
-                      marginTop:
-                        12,
-
-                      marginBottom:
+                      minWidth:
                         0,
-
-                      color:
-                        "#fca5a5",
-
-                      fontSize:
-                        13,
-
-                      fontWeight:
-                        700,
                     }}
                   >
-                    {
-                      notificationStatus
-                    }
-                  </p>
-                )}
-            </div>
-          </section>
+                    <span
+                      style={{
+                        display:
+                          "block",
 
-          {/* ================================
-              NAVIGATION
-              ================================ */}
+                        color:
+                          "#94a3b8",
 
-          <section
-            className="nav-grid"
-            style={{
-              display:
-                "grid",
+                        fontSize:
+                          13,
 
-              gridTemplateColumns:
-                isDesktop
-                  ? "repeat(3, minmax(0, 1fr))"
-                  : "repeat(2, minmax(0, 1fr))",
+                        fontWeight:
+                          700,
 
-              gap:
-                isDesktop
-                  ? 18
-                  : 14,
-            }}
-          >
-            <NavItem
-              href="/matchs"
-              icon="✅"
-              title="Mes choix"
-              subtitle="Faire mes prédictions"
-              color="rgba(34,197,94,0.18)"
-            />
+                        marginBottom:
+                          3,
+                      }}
+                    >
+                      Connecté sous
+                    </span>
 
-            <NavItem
-              href="/tous-les-choix"
-              icon="👀"
-              title="Tous les choix"
-              subtitle="Voir les prédictions de tous"
-              color="rgba(59,130,246,0.20)"
-            />
+                    <strong
+                      style={{
+                        display:
+                          "block",
 
-            <NavItem
-              href="/qb-ratings"
-              icon="📊"
-              title="QB Ratings"
-              subtitle="Ratings et moyennes"
-              color="rgba(236,72,153,0.20)"
-            />
+                        color:
+                          "#f8fafc",
 
-            <NavItem
-              href="/classements"
-              icon="🏆"
-              title="Classements"
-              subtitle="Hebdo et saison"
-              color="rgba(234,179,8,0.20)"
-            />
+                        fontSize:
+                          isMobile
+                            ? 18
+                            : isDesktop
+                            ? 22
+                            : 20,
 
-            <NavItem
-              href="/analytics"
-              icon="📈"
-              title="Statistiques"
-              subtitle="Records et statistiques"
-              color="rgba(59,130,246,0.20)"
-            />
+                        fontWeight:
+                          900,
 
-            <NavItem
-              href="/admin"
-              icon="⚙️"
-              title="Admin"
-              subtitle="Scores, stats et calculs"
-              color="rgba(148,163,184,0.18)"
-            />
-          </section>
+                        lineHeight:
+                          1.15,
 
-          <BottomNav />
+                        overflowWrap:
+                          "break-word",
+                      }}
+                    >
+                      {profile?.display_name ||
+                        user.email?.split(
+                          "@"
+                        )[0]}
+                    </strong>
+
+                    {profile?.real_name && (
+                      <span
+                        style={{
+                          display:
+                            "block",
+
+                          marginTop:
+                            3,
+
+                          color:
+                            "#94a3b8",
+
+                          fontSize:
+                            14,
+
+                          fontWeight:
+                            400,
+
+                          lineHeight:
+                            1.2,
+                        }}
+                      >
+                        {
+                          profile.real_name
+                        }
+                      </span>
+                    )}
+                  </div>
+
+                  {/* =================================================
+                      ACTIONS UTILISATEUR
+                      ================================================= */}
+
+                  <div
+                    style={{
+                      display:
+                        "flex",
+
+                      flexDirection:
+                        "column",
+
+                      gap:
+                        8,
+
+                      alignItems:
+                        "stretch",
+                    }}
+                  >
+                    <button
+                      type="button"
+                      className="button"
+                      onClick={
+                        notificationStatus.includes(
+                          "✅"
+                        )
+                          ? undefined
+                          : handleEnableNotifications
+                      }
+                      disabled={
+                        notificationLoading ||
+                        notificationStatus.includes(
+                          "✅"
+                        )
+                      }
+                      style={{
+                        width:
+                          isDesktop
+                            ? "100%"
+                            : "auto",
+
+                        minWidth:
+                          180,
+
+                        whiteSpace:
+                          "nowrap",
+
+                        margin:
+                          0,
+
+                        background:
+                          notificationStatus.includes(
+                            "✅"
+                          )
+                            ? "#475569"
+                            : undefined,
+
+                        borderColor:
+                          notificationStatus.includes(
+                            "✅"
+                          )
+                            ? "#64748b"
+                            : undefined,
+
+                        color:
+                          "#f8fafc",
+
+                        cursor:
+                          notificationStatus.includes(
+                            "✅"
+                          )
+                            ? "default"
+                            : "pointer",
+
+                        opacity:
+                          1,
+                      }}
+                    >
+                      {notificationLoading
+                        ? "Activation..."
+                        : notificationStatus.includes(
+                            "✅"
+                          )
+                        ? "✅ Notifications activées"
+                        : "🔔 Activer les notifications"}
+                    </button>
+
+                    <button
+                      type="button"
+                      className="button-secondary"
+                      onClick={
+                        handleLogout
+                      }
+                      style={{
+                        width:
+                          isDesktop
+                            ? "100%"
+                            : "auto",
+
+                        minWidth:
+                          140,
+
+                        whiteSpace:
+                          "nowrap",
+
+                        margin:
+                          0,
+                      }}
+                    >
+                      Se déconnecter
+                    </button>
+                  </div>
+
+                  {notificationStatus &&
+                    !notificationStatus.includes(
+                      "✅"
+                    ) && (
+                      <p
+                        style={{
+                          marginTop:
+                            12,
+
+                          marginBottom:
+                            0,
+
+                          color:
+                            "#fca5a5",
+
+                          fontSize:
+                            13,
+
+                          fontWeight:
+                            700,
+                        }}
+                      >
+                        {
+                          notificationStatus
+                        }
+                      </p>
+                    )}
+                </div>
+              </section>
+
+              {/* ================================
+                  NAVIGATION
+                  ================================ */}
+
+              <section
+                className="nav-grid"
+                style={{
+                  display:
+                    "grid",
+
+                  gridTemplateColumns:
+                    isDesktop
+                      ? "repeat(3, minmax(0, 1fr))"
+                      : "repeat(2, minmax(0, 1fr))",
+
+                  gap:
+                    isDesktop
+                      ? 18
+                      : 14,
+                }}
+              >
+                <NavItem
+                  href="/matchs"
+                  icon="✅"
+                  title="Mes choix"
+                  subtitle="Faire mes prédictions"
+                  color="rgba(34,197,94,0.18)"
+                />
+
+                <NavItem
+                  href="/tous-les-choix"
+                  icon="👀"
+                  title="Tous les choix"
+                  subtitle="Voir les prédictions de tous"
+                  color="rgba(59,130,246,0.20)"
+                />
+
+                <NavItem
+                  href="/qb-ratings"
+                  icon="📊"
+                  title="QB Ratings"
+                  subtitle="Ratings et moyennes"
+                  color="rgba(236,72,153,0.20)"
+                />
+
+                <NavItem
+                  href="/classements"
+                  icon="🏆"
+                  title="Classements"
+                  subtitle="Hebdo et saison"
+                  color="rgba(234,179,8,0.20)"
+                />
+
+                <NavItem
+                  href="/analytics"
+                  icon="📈"
+                  title="Statistiques"
+                  subtitle="Records et statistiques"
+                  color="rgba(59,130,246,0.20)"
+                />
+
+                <NavItem
+                  href="/admin"
+                  icon="⚙️"
+                  title="Admin"
+                  subtitle="Scores, stats et calculs"
+                  color="rgba(148,163,184,0.18)"
+                />
+              </section>
+
+              <BottomNav />
+            </>
+          )}
         </>
       ) : (
         /*
