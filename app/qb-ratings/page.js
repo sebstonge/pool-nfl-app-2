@@ -486,8 +486,15 @@ function DesktopPodiumQB({
       <div
         style={{
           display: "grid",
+
+          /*
+           * Photo agrandie :
+           * colonne 110px pour accueillir
+           * confortablement la photo 105px.
+           */
           gridTemplateColumns:
-            "58px 86px minmax(190px, 0.85fr) minmax(0, 2.15fr)",
+            "58px 110px minmax(190px, 0.85fr) minmax(0, 2.15fr)",
+
           gap: 16,
           alignItems: "center",
           minWidth: 0,
@@ -527,7 +534,7 @@ function DesktopPodiumQB({
 
         <QBPhoto
           qb={row.qb}
-          size={82}
+          size={105}
         />
 
         {/* IDENTITÉ QB */}
@@ -775,8 +782,12 @@ function DesktopCompactQB({
       style={{
         display: "grid",
 
+        /*
+         * Photo #4+ agrandie à 68px.
+         * La colonne passe à 72px.
+         */
         gridTemplateColumns:
-          "42px 58px minmax(180px, 0.9fr) minmax(135px, 0.72fr) minmax(110px, 0.58fr) minmax(135px, 0.72fr)",
+          "42px 72px minmax(180px, 0.9fr) minmax(135px, 0.72fr) minmax(110px, 0.58fr) minmax(135px, 0.72fr)",
 
         gap: 12,
         alignItems: "center",
@@ -804,7 +815,7 @@ function DesktopCompactQB({
 
       <QBPhoto
         qb={row.qb}
-        size={50}
+        size={68}
       />
 
       {/* QB */}
@@ -1011,9 +1022,7 @@ export default function QBRatingsPage() {
           const key =
             String(actualAthleteId);
 
-          if (
-            !ratingsByActualQb[key]
-          ) {
+          if (!ratingsByActualQb[key]) {
             ratingsByActualQb[key] = [];
           }
 
