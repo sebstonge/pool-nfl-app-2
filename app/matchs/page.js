@@ -3957,7 +3957,7 @@ const liveQbData =
                           Prochain match
                         </div>
 
-                        <div
+                                               <div
                           style={{
                             display:
                               "flex",
@@ -3990,10 +3990,7 @@ const liveQbData =
                           >
                             {qbIsHome
                               ? "vs"
-                              : "@"}{" "}
-                            {
-                              qbOpponent
-                            }
+                              : "@"}
                           </strong>
 
                           <img
@@ -4021,6 +4018,28 @@ const liveQbData =
                                 0,
                             }}
                           />
+
+                          <strong
+                            style={{
+                              color:
+                                "#f8fafc",
+
+                              fontSize:
+                                isMobile
+                                  ? 18
+                                  : 22,
+
+                              lineHeight:
+                                1.2,
+
+                              whiteSpace:
+                                "nowrap",
+                            }}
+                          >
+                            {
+                              qbOpponent
+                            }
+                          </strong>
                         </div>
 
                         <div
