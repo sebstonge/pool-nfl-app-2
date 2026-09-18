@@ -87,6 +87,11 @@ export default function HomePage() {
   ] = useState(false);
 
   const [
+    temporaryPassword,
+    setTemporaryPassword,
+  ] = useState("");
+
+  const [
     newPassword,
     setNewPassword,
   ] = useState("");
@@ -174,9 +179,6 @@ export default function HomePage() {
     /*
      * Si le joueur doit changer son mot de passe,
      * on NE le redirige nulle part.
-     *
-     * La boîte obligatoire sera affichée avant
-     * tout le reste de l'application.
      */
     if (
       profileData?.must_change_password === true
@@ -585,6 +587,14 @@ export default function HomePage() {
   async function handleMandatoryPasswordChange() {
     setPasswordChangeMessage("");
 
+    if (!temporaryPassword) {
+      setPasswordChangeMessage(
+        "Entre d'abord ton mot de passe temporaire."
+      );
+
+      return;
+    }
+
     if (
       !newPassword ||
       newPassword.length < 8
@@ -601,7 +611,18 @@ export default function HomePage() {
       newPasswordConfirm
     ) {
       setPasswordChangeMessage(
-        "Les deux mots de passe ne correspondent pas."
+        "Les deux nouveaux mots de passe ne correspondent pas."
+      );
+
+      return;
+    }
+
+    if (
+      temporaryPassword ===
+      newPassword
+    ) {
+      setPasswordChangeMessage(
+        "Ton nouveau mot de passe doit être différent du mot de passe temporaire."
       );
 
       return;
@@ -614,7 +635,50 @@ export default function HomePage() {
     try {
       /*
        * =====================================================
-       * 1. MODIFIER LE MOT DE PASSE DANS SUPABASE AUTH
+       * 1. RÉCUPÉRER LE COURRIEL DU JOUEUR
+       * =====================================================
+       */
+
+      const currentEmail =
+        user?.email
+          ?.trim()
+          .toLowerCase();
+
+      if (!currentEmail) {
+        throw new Error(
+          "Impossible de retrouver ton adresse courriel."
+        );
+      }
+
+      /*
+       * =====================================================
+       * 2. RÉAUTHENTIFIER AVEC LE MOT DE PASSE TEMPORAIRE
+       * =====================================================
+       */
+
+      const {
+        error:
+          reauthenticationError,
+      } =
+        await supabase.auth.signInWithPassword({
+          email:
+            currentEmail,
+
+          password:
+            temporaryPassword,
+        });
+
+      if (
+        reauthenticationError
+      ) {
+        throw new Error(
+          "Le mot de passe temporaire est invalide."
+        );
+      }
+
+      /*
+       * =====================================================
+       * 3. MODIFIER LE MOT DE PASSE DANS SUPABASE AUTH
        * =====================================================
        */
 
@@ -638,7 +702,7 @@ export default function HomePage() {
 
       /*
        * =====================================================
-       * 2. RÉCUPÉRER LA SESSION ACTUELLE
+       * 4. RÉCUPÉRER LA SESSION ACTUELLE
        * =====================================================
        */
 
@@ -659,7 +723,7 @@ export default function HomePage() {
 
       /*
        * =====================================================
-       * 3. CONFIRMER AU SERVEUR QUE LE CHANGEMENT EST FAIT
+       * 5. CONFIRMER AU SERVEUR QUE LE CHANGEMENT EST FAIT
        * =====================================================
        */
 
@@ -689,12 +753,21 @@ export default function HomePage() {
 
       /*
        * =====================================================
-       * 4. DÉVERROUILLER L'APPLICATION
+       * 6. DÉVERROUILLER L'APPLICATION
        * =====================================================
        */
 
-      setNewPassword("");
-      setNewPasswordConfirm("");
+      setTemporaryPassword(
+        ""
+      );
+
+      setNewPassword(
+        ""
+      );
+
+      setNewPasswordConfirm(
+        ""
+      );
 
       setPasswordChangeMessage(
         ""
@@ -779,6 +852,7 @@ export default function HomePage() {
       false
     );
 
+    setTemporaryPassword("");
     setNewPassword("");
     setNewPasswordConfirm("");
     setPasswordChangeMessage("");
@@ -1153,12 +1227,66 @@ export default function HomePage() {
                 }}
               >
                 Tu es connecté avec un mot de passe temporaire.
-                Choisis maintenant ton nouveau mot de passe pour
-                continuer vers le pool.
+                Entre-le une dernière fois, puis choisis ton nouveau
+                mot de passe pour continuer vers le pool.
               </p>
+
+              {/* =================================================
+                  MOT DE PASSE TEMPORAIRE
+                  ================================================= */}
 
               <div
                 style={{
+                  marginBottom:
+                    8,
+
+                  color:
+                    "#64748b",
+
+                  fontSize:
+                    10,
+
+                  fontWeight:
+                    900,
+
+                  textTransform:
+                    "uppercase",
+                }}
+              >
+                Mot de passe temporaire
+              </div>
+
+              <input
+                className="input"
+                type="password"
+                autoComplete="current-password"
+                placeholder="Mot de passe temporaire"
+                value={
+                  temporaryPassword
+                }
+                onChange={(event) => {
+                  setTemporaryPassword(
+                    event.target.value
+                  );
+
+                  setPasswordChangeMessage(
+                    ""
+                  );
+                }}
+                disabled={
+                  passwordChangeLoading
+                }
+              />
+
+              {/* =================================================
+                  NOUVEAU MOT DE PASSE
+                  ================================================= */}
+
+              <div
+                style={{
+                  marginTop:
+                    14,
+
                   marginBottom:
                     8,
 
@@ -1199,6 +1327,10 @@ export default function HomePage() {
                   passwordChangeLoading
                 }
               />
+
+              {/* =================================================
+                  CONFIRMATION
+                  ================================================= */}
 
               <div
                 style={{
@@ -1364,10 +1496,6 @@ export default function HomePage() {
                       "center",
                   }}
                 >
-                  {/* =================================================
-                      IDENTITÉ UTILISATEUR
-                      ================================================= */}
-
                   <div
                     style={{
                       minWidth:
@@ -1454,10 +1582,6 @@ export default function HomePage() {
                       </span>
                     )}
                   </div>
-
-                  {/* =================================================
-                      ACTIONS UTILISATEUR
-                      ================================================= */}
 
                   <div
                     style={{
@@ -1691,10 +1815,6 @@ export default function HomePage() {
               : undefined
           }
         >
-          {/* =====================================================
-              IDENTIFICATION DU SITE
-              ===================================================== */}
-
           <div
             style={{
               marginBottom:
@@ -1751,10 +1871,6 @@ export default function HomePage() {
               accéder à tes choix, statistiques et classements.
             </p>
           </div>
-
-          {/* =====================================================
-              MODES CONNEXION / INSCRIPTION
-              ===================================================== */}
 
           <div
             style={{
@@ -1883,10 +1999,6 @@ export default function HomePage() {
               : "Crée ton compte. Tu choisiras ensuite ton nom d’utilisateur et ton nom réel."}
           </p>
 
-          {/* =====================================================
-              COURRIEL
-              ===================================================== */}
-
           <input
             className="input"
             type="email"
@@ -1902,10 +2014,6 @@ export default function HomePage() {
               loading
             }
           />
-
-          {/* =====================================================
-              MOT DE PASSE
-              ===================================================== */}
 
           <input
             className="input"
@@ -1928,10 +2036,6 @@ export default function HomePage() {
             }
           />
 
-          {/* =====================================================
-              CONFIRMATION
-              ===================================================== */}
-
           {authMode ===
             "signup" && (
             <input
@@ -1952,10 +2056,6 @@ export default function HomePage() {
               }
             />
           )}
-
-          {/* =====================================================
-              ACTION
-              ===================================================== */}
 
           <button
             type="button"
@@ -1981,10 +2081,6 @@ export default function HomePage() {
               ? "Se connecter"
               : "Créer mon compte"}
           </button>
-
-          {/* =====================================================
-              MESSAGE
-              ===================================================== */}
 
           {message && (
             <p
