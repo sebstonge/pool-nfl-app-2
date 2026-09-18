@@ -179,11 +179,9 @@ function RatingMiniCard({
       style={{
         padding: 14,
         borderRadius: 18,
-
         background: isBest
           ? "rgba(34,197,94,0.08)"
           : "rgba(239,68,68,0.08)",
-
         border: isBest
           ? "1px solid rgba(34,197,94,0.22)"
           : "1px solid rgba(239,68,68,0.22)",
@@ -346,6 +344,7 @@ function DesktopPodiumRating({
         borderRadius: 16,
         background,
         border,
+        boxSizing: "border-box",
       }}
     >
       <div
@@ -364,14 +363,21 @@ function DesktopPodiumRating({
       </div>
 
       {type === "average" ? (
-        <>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 14,
+            marginTop: 10,
+            minWidth: 0,
+          }}
+        >
           <strong
             style={{
-              display: "block",
-              marginTop: 7,
               color: accent,
               fontSize: 29,
               lineHeight: 1,
+              whiteSpace: "nowrap",
             }}
           >
             {rating != null
@@ -379,22 +385,27 @@ function DesktopPodiumRating({
               : "--"}
           </strong>
 
-          <div
+          <span
             style={{
-              marginTop: 9,
               color: "#94a3b8",
-              fontSize: 12,
+              fontSize: 11,
+              lineHeight: 1.2,
             }}
           >
             Toutes les semaines
-          </div>
-        </>
+          </span>
+        </div>
       ) : !rating ? (
-        <>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            marginTop: 10,
+          }}
+        >
           <strong
             style={{
-              display: "block",
-              marginTop: 7,
               color: "#64748b",
               fontSize: 29,
               lineHeight: 1,
@@ -403,25 +414,33 @@ function DesktopPodiumRating({
             --
           </strong>
 
-          <div
+          <span
             style={{
-              marginTop: 9,
               color: "#64748b",
-              fontSize: 12,
+              fontSize: 11,
             }}
           >
             Aucun rating
-          </div>
-        </>
+          </span>
+        </div>
       ) : (
-        <>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns:
+              "auto auto minmax(0, 1fr)",
+            gap: 12,
+            alignItems: "center",
+            marginTop: 10,
+            minWidth: 0,
+          }}
+        >
           <strong
             style={{
-              display: "block",
-              marginTop: 7,
               color: accent,
               fontSize: 29,
               lineHeight: 1,
+              whiteSpace: "nowrap",
             }}
           >
             {Number(rating.passer_rating).toFixed(1)}
@@ -429,32 +448,65 @@ function DesktopPodiumRating({
 
           <div
             style={{
-              marginTop: 7,
               color: "#94a3b8",
-              fontSize: 12,
+              fontSize: 11,
+              fontWeight: 700,
+              whiteSpace: "nowrap",
             }}
           >
             Semaine {rating.week}
           </div>
 
-          <div style={{ marginTop: 6 }}>
+          <div
+            style={{
+              minWidth: 0,
+              paddingLeft: 12,
+              borderLeft:
+                "1px solid rgba(148,163,184,0.16)",
+            }}
+          >
             <span
               style={{
                 display: "block",
                 color: "#64748b",
-                fontSize: 10,
+                fontSize: 9,
+                lineHeight: 1.1,
               }}
             >
               Choisi par
             </span>
 
-            <PlayerIdentity
-              name={rating.selected_by}
-              realName={rating.selected_by_real_name}
-              compact
-            />
+            <strong
+              style={{
+                display: "block",
+                marginTop: 2,
+                color: "#f8fafc",
+                fontSize: 11,
+                lineHeight: 1.15,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {rating.selected_by || "—"}
+            </strong>
+
+            {rating.selected_by_real_name && (
+              <span
+                style={{
+                  display: "block",
+                  marginTop: 2,
+                  color: "#64748b",
+                  fontSize: 9,
+                  lineHeight: 1.15,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
+                {rating.selected_by_real_name}
+              </span>
+            )}
           </div>
-        </>
+        </div>
       )}
     </div>
   );
@@ -486,22 +538,13 @@ function DesktopPodiumQB({
       <div
         style={{
           display: "grid",
-
-          /*
-           * Photo agrandie :
-           * colonne 110px pour accueillir
-           * confortablement la photo 105px.
-           */
           gridTemplateColumns:
             "58px 110px minmax(190px, 0.85fr) minmax(0, 2.15fr)",
-
           gap: 16,
           alignItems: "center",
           minWidth: 0,
         }}
       >
-        {/* RANG */}
-
         <div
           style={{
             alignSelf: "start",
@@ -530,14 +573,10 @@ function DesktopPodiumQB({
           </strong>
         </div>
 
-        {/* PHOTO */}
-
         <QBPhoto
           qb={row.qb}
           size={105}
         />
-
-        {/* IDENTITÉ QB */}
 
         <div
           style={{
@@ -579,8 +618,6 @@ function DesktopPodiumQB({
             </strong>
           </div>
         </div>
-
-        {/* 3 STATS */}
 
         <div
           style={{
@@ -657,14 +694,21 @@ function CompactRating({
       </div>
 
       {type === "average" ? (
-        <>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 9,
+            marginTop: 5,
+            minWidth: 0,
+          }}
+        >
           <strong
             style={{
-              display: "block",
-              marginTop: 3,
               color: accent,
               fontSize: 19,
               lineHeight: 1.1,
+              whiteSpace: "nowrap",
             }}
           >
             {rating != null
@@ -674,56 +718,82 @@ function CompactRating({
 
           <span
             style={{
-              display: "block",
-              marginTop: 4,
               color: "#64748b",
               fontSize: 9,
+              whiteSpace: "nowrap",
             }}
           >
             Saison
           </span>
-        </>
+        </div>
       ) : !rating ? (
-        <>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 7,
+            marginTop: 5,
+          }}
+        >
           <strong
             style={{
-              display: "block",
-              marginTop: 3,
               color: "#64748b",
               fontSize: 19,
+              lineHeight: 1.1,
             }}
           >
             --
           </strong>
-        </>
+
+          <span
+            style={{
+              color: "#64748b",
+              fontSize: 8,
+            }}
+          >
+            Aucun rating
+          </span>
+        </div>
       ) : (
-        <>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns:
+              "auto auto minmax(0, 1fr)",
+            gap: 8,
+            alignItems: "center",
+            marginTop: 5,
+            minWidth: 0,
+          }}
+        >
           <strong
             style={{
-              display: "block",
-              marginTop: 3,
               color: accent,
               fontSize: 19,
               lineHeight: 1.1,
+              whiteSpace: "nowrap",
             }}
           >
             {Number(rating.passer_rating).toFixed(1)}
           </strong>
 
-          <div
+          <span
             style={{
-              marginTop: 3,
               color: "#94a3b8",
               fontSize: 9,
+              fontWeight: 700,
+              whiteSpace: "nowrap",
             }}
           >
             S{rating.week}
-          </div>
+          </span>
 
           <div
             style={{
-              marginTop: 3,
               minWidth: 0,
+              paddingLeft: 8,
+              borderLeft:
+                "1px solid rgba(148,163,184,0.14)",
             }}
           >
             <span
@@ -731,6 +801,7 @@ function CompactRating({
                 display: "block",
                 color: "#64748b",
                 fontSize: 8,
+                lineHeight: 1.05,
               }}
             >
               Choisi par
@@ -742,9 +813,10 @@ function CompactRating({
                 marginTop: 1,
                 color: "#cbd5e1",
                 fontSize: 10,
-                lineHeight: 1.15,
+                lineHeight: 1.1,
                 overflow: "hidden",
                 textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
               }}
             >
               {rating.selected_by || "—"}
@@ -757,15 +829,17 @@ function CompactRating({
                   marginTop: 1,
                   color: "#64748b",
                   fontSize: 8,
+                  lineHeight: 1.05,
                   overflow: "hidden",
                   textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
                 }}
               >
                 {rating.selected_by_real_name}
               </span>
             )}
           </div>
-        </>
+        </div>
       )}
     </div>
   );
@@ -781,26 +855,16 @@ function DesktopCompactQB({
     <div
       style={{
         display: "grid",
-
-        /*
-         * Photo #4+ agrandie à 68px.
-         * La colonne passe à 72px.
-         */
         gridTemplateColumns:
           "42px 72px minmax(180px, 0.9fr) minmax(135px, 0.72fr) minmax(110px, 0.58fr) minmax(135px, 0.72fr)",
-
         gap: 12,
         alignItems: "center",
-
         padding: "11px 4px",
-
         borderBottom: isLast
           ? "none"
           : "1px solid rgba(148,163,184,0.11)",
       }}
     >
-      {/* RANG */}
-
       <strong
         style={{
           color: "#94a3b8",
@@ -811,14 +875,10 @@ function DesktopCompactQB({
         #{rank}
       </strong>
 
-      {/* PHOTO */}
-
       <QBPhoto
         qb={row.qb}
         size={68}
       />
-
-      {/* QB */}
 
       <div
         style={{
@@ -862,23 +922,17 @@ function DesktopCompactQB({
         </div>
       </div>
 
-      {/* MEILLEUR */}
-
       <CompactRating
         label="Meilleur"
         type="best"
         rating={row.best}
       />
 
-      {/* MOYENNE */}
-
       <CompactRating
         label="Moyenne"
         type="average"
         rating={row.average}
       />
-
-      {/* PIRE */}
 
       <CompactRating
         label="Pire"
