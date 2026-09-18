@@ -579,230 +579,193 @@ export default function HomePage() {
   }
 
   /*
-   * =========================================================
-   * CHANGER LE MOT DE PASSE OBLIGATOIRE
-   * =========================================================
-   */
+ * =========================================================
+ * CHANGER LE MOT DE PASSE OBLIGATOIRE
+ * =========================================================
+ */
 
-  async function handleMandatoryPasswordChange() {
-    setPasswordChangeMessage("");
+async function handleMandatoryPasswordChange() {
+  setPasswordChangeMessage("");
 
-    if (!temporaryPassword) {
-      setPasswordChangeMessage(
-        "Entre d'abord ton mot de passe temporaire."
-      );
-
-      return;
-    }
-
-    if (
-      !newPassword ||
-      newPassword.length < 8
-    ) {
-      setPasswordChangeMessage(
-        "Le nouveau mot de passe doit contenir au moins 8 caractères."
-      );
-
-      return;
-    }
-
-    if (
-      newPassword !==
-      newPasswordConfirm
-    ) {
-      setPasswordChangeMessage(
-        "Les deux nouveaux mots de passe ne correspondent pas."
-      );
-
-      return;
-    }
-
-    if (
-      temporaryPassword ===
-      newPassword
-    ) {
-      setPasswordChangeMessage(
-        "Ton nouveau mot de passe doit être différent du mot de passe temporaire."
-      );
-
-      return;
-    }
-
-    setPasswordChangeLoading(
-      true
+  if (!temporaryPassword) {
+    setPasswordChangeMessage(
+      "Entre d'abord ton mot de passe temporaire."
     );
 
-    try {
-      /*
-       * =====================================================
-       * 1. RÉCUPÉRER LE COURRIEL DU JOUEUR
-       * =====================================================
-       */
+    return;
+  }
 
-      const currentEmail =
-        user?.email
-          ?.trim()
-          .toLowerCase();
+  if (
+    !newPassword ||
+    newPassword.length < 8
+  ) {
+    setPasswordChangeMessage(
+      "Le nouveau mot de passe doit contenir au moins 8 caractères."
+    );
 
-      if (!currentEmail) {
-        throw new Error(
-          "Impossible de retrouver ton adresse courriel."
-        );
-      }
+    return;
+  }
 
-      /*
-       * =====================================================
-       * 2. RÉAUTHENTIFIER AVEC LE MOT DE PASSE TEMPORAIRE
-       * =====================================================
-       */
+  if (
+    newPassword !==
+    newPasswordConfirm
+  ) {
+    setPasswordChangeMessage(
+      "Les deux nouveaux mots de passe ne correspondent pas."
+    );
 
-      const {
-        error:
-          reauthenticationError,
-      } =
-        await supabase.auth.signInWithPassword({
-          email:
-            currentEmail,
+    return;
+  }
 
-          password:
-            temporaryPassword,
-        });
+  if (
+    temporaryPassword ===
+    newPassword
+  ) {
+    setPasswordChangeMessage(
+      "Ton nouveau mot de passe doit être différent du mot de passe temporaire."
+    );
 
-      if (
-        reauthenticationError
-      ) {
-        throw new Error(
-          "Le mot de passe temporaire est invalide."
-        );
-      }
+    return;
+  }
 
-      /*
-       * =====================================================
-       * 3. MODIFIER LE MOT DE PASSE DANS SUPABASE AUTH
-       * =====================================================
-       */
+  setPasswordChangeLoading(true);
 
-      const {
-        error:
-          passwordUpdateError,
-      } =
-        await supabase.auth.updateUser({
-          password:
-            newPassword,
-        });
+  try {
+    /* =====================================================
+       1. RÉCUPÉRER LA SESSION
+       ===================================================== */
 
-      if (
-        passwordUpdateError
-      ) {
-        throw new Error(
-          passwordUpdateError.message ||
-            "Impossible de modifier le mot de passe."
-        );
-      }
+    const {
+      data: sessionData,
+      error: sessionError,
+    } =
+      await supabase.auth.getSession();
 
-      /*
-       * =====================================================
-       * 4. RÉCUPÉRER LA SESSION ACTUELLE
-       * =====================================================
-       */
+    const accessToken =
+      sessionData?.session?.access_token;
 
-      const {
-        data: sessionData,
-      } =
-        await supabase.auth.getSession();
-
-      const accessToken =
-        sessionData.session
-          ?.access_token;
-
-      if (!accessToken) {
-        throw new Error(
-          "Session introuvable après le changement de mot de passe."
-        );
-      }
-
-      /*
-       * =====================================================
-       * 5. CONFIRMER AU SERVEUR QUE LE CHANGEMENT EST FAIT
-       * =====================================================
-       */
-
-      const response =
-        await fetch(
-          "/api/auth/password-changed",
-          {
-            method:
-              "POST",
-
-            headers: {
-              Authorization:
-                `Bearer ${accessToken}`,
-            },
-          }
-        );
-
-      const result =
-        await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          result?.error ||
-            "Impossible de confirmer le changement de mot de passe."
-        );
-      }
-
-      /*
-       * =====================================================
-       * 6. DÉVERROUILLER L'APPLICATION
-       * =====================================================
-       */
-
-      setTemporaryPassword(
-        ""
-      );
-
-      setNewPassword(
-        ""
-      );
-
-      setNewPasswordConfirm(
-        ""
-      );
-
-      setPasswordChangeMessage(
-        ""
-      );
-
-      setMustChangePassword(
-        false
-      );
-
-      setProfile(
-        (currentProfile) =>
-          currentProfile
-            ? {
-                ...currentProfile,
-                must_change_password:
-                  false,
-              }
-            : currentProfile
-      );
-    } catch (error) {
-      console.error(
-        "Erreur changement mot de passe :",
-        error
-      );
-
-      setPasswordChangeMessage(
-        error?.message ||
-          "Impossible de modifier le mot de passe."
-      );
-    } finally {
-      setPasswordChangeLoading(
-        false
+    if (
+      sessionError ||
+      !accessToken
+    ) {
+      throw new Error(
+        "Session introuvable. Reconnecte-toi avec ton mot de passe temporaire."
       );
     }
+
+    /* =====================================================
+       2. DEMANDER AU SERVEUR DE FAIRE LE CHANGEMENT
+       ===================================================== */
+
+    const response =
+      await fetch(
+        "/api/auth/password-changed",
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json",
+
+            Authorization:
+              `Bearer ${accessToken}`,
+          },
+
+          body: JSON.stringify({
+            temporaryPassword,
+            newPassword,
+          }),
+        }
+      );
+
+    let result = null;
+
+    try {
+      result =
+        await response.json();
+    } catch {
+      throw new Error(
+        "Réponse invalide du serveur."
+      );
+    }
+
+    if (!response.ok) {
+      throw new Error(
+        result?.error ||
+          "Impossible de modifier le mot de passe."
+      );
+    }
+
+    /* =====================================================
+       3. SUCCÈS
+       ===================================================== */
+
+    setTemporaryPassword("");
+    setNewPassword("");
+    setNewPasswordConfirm("");
+    setPasswordChangeMessage("");
+
+    setMustChangePassword(false);
+
+    setProfile(
+      (currentProfile) =>
+        currentProfile
+          ? {
+              ...currentProfile,
+              must_change_password:
+                false,
+            }
+          : currentProfile
+    );
+
+    /*
+     * Le mot de passe Auth a changé côté serveur.
+     * On déconnecte proprement l'ancienne session.
+     *
+     * Le joueur pourra immédiatement vérifier
+     * son nouveau mot de passe en se reconnectant.
+     */
+
+    try {
+      await supabase.auth.signOut({
+        scope: "local",
+      });
+    } catch (logoutError) {
+      console.error(
+        "Erreur déconnexion après changement :",
+        logoutError
+      );
+    }
+
+    setUser(null);
+    setProfile(null);
+    setMustChangePassword(false);
+
+    setMessage(
+      "✅ Mot de passe enregistré. Connecte-toi maintenant avec ton nouveau mot de passe."
+    );
+
+    setAuthMode("login");
+    setPassword("");
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  } catch (error) {
+    console.error(
+      "Erreur changement mot de passe :",
+      error
+    );
+
+    setPasswordChangeMessage(
+      error?.message ||
+        "Impossible de modifier le mot de passe."
+    );
+  } finally {
+    setPasswordChangeLoading(false);
   }
+}
 
   /*
    * =========================================================
