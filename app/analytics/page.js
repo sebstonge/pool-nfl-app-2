@@ -211,7 +211,7 @@ function QBRecordCard({
   qb,
   teams,
   color = "#22c55e",
-  isAverage = false,
+  isDesktop = false,
 }) {
   const team = teams.find(
     (t) =>
@@ -223,123 +223,417 @@ function QBRecordCard({
     ? `https://a.espncdn.com/i/teamlogos/nfl/500/${team.espn_abbr.toLowerCase()}.png`
     : team?.logo || null;
 
+  const qbHeadshot =
+    qb?.espn_athlete_id
+      ? `https://a.espncdn.com/i/headshots/nfl/players/full/${qb.espn_athlete_id}.png`
+      : null;
+
   return (
     <div
       style={{
-        padding: 18,
+        padding: isDesktop
+          ? "18px 22px"
+          : 18,
+
         borderRadius: 22,
-        background: "rgba(15,23,42,0.82)",
-        border: "1px solid rgba(148,163,184,0.16)",
+
+        background:
+          "rgba(15,23,42,0.82)",
+
+        border:
+          "1px solid rgba(148,163,184,0.16)",
+
         minWidth: 0,
-        height: "100%",
       }}
     >
-      <div
-        style={{
-          fontSize: 30,
-          marginBottom: 10,
-        }}
-      >
-        {icon}
-      </div>
-
-      <p
-        style={{
-          margin: "0 0 12px 0",
-          color: "#cbd5e1",
-          fontWeight: 800,
-        }}
-      >
-        {title}
-      </p>
-
       {!qb ? (
-        <p style={{ color: "#94a3b8" }}>
-          Aucune donnée
-        </p>
-      ) : (
+        <>
+          <div
+            style={{
+              fontSize: 30,
+              marginBottom: 10,
+            }}
+          >
+            {icon}
+          </div>
+
+          <p
+            style={{
+              margin: "0 0 12px 0",
+              color: "#cbd5e1",
+              fontWeight: 800,
+            }}
+          >
+            {title}
+          </p>
+
+          <p
+            style={{
+              color: "#94a3b8",
+              marginBottom: 0,
+            }}
+          >
+            Aucune donnée
+          </p>
+        </>
+      ) : isDesktop ? (
+        /* =====================================================
+           DESKTOP — CARTE HORIZONTALE
+           ===================================================== */
+
         <>
           <div
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 8,
-              marginBottom: 8,
+              gap: 10,
+              marginBottom: 14,
             }}
           >
-            <strong
+            <span
               style={{
-                fontSize: 20,
-                color: "#f8fafc",
+                fontSize: 27,
+                lineHeight: 1,
               }}
             >
-              {qb.name}
-            </strong>
+              {icon}
+            </span>
 
-            {logo && (
-              <img
-                src={logo}
-                alt={qb.team}
-                style={{
-                  width: 34,
-                  height: 34,
-                  objectFit: "contain",
-                }}
-              />
-            )}
+            <strong
+              style={{
+                color: "#cbd5e1",
+                fontSize: 16,
+                fontWeight: 800,
+              }}
+            >
+              {title}
+            </strong>
           </div>
 
           <div
             style={{
-              fontSize: 34,
-              fontWeight: 900,
-              color,
-              marginBottom: 8,
+              display: "grid",
+
+              gridTemplateColumns:
+                "145px minmax(0, 1fr) minmax(175px, 0.7fr)",
+
+              gap: 20,
+
+              alignItems: "center",
             }}
           >
-            {qb.rating.toFixed(1)}
-          </div>
+            {/* ===============================================
+                PHOTO QB
+                =============================================== */}
 
-          {isAverage ? (
-            <p
+            <div
               style={{
-                margin: "3px 0",
-                color: "#94a3b8",
+                height: 150,
+                display: "flex",
+                alignItems: "flex-end",
+                justifyContent: "center",
+                overflow: "hidden",
               }}
             >
-              {qb.detail}
-            </p>
-          ) : (
-            <>
+              {qbHeadshot ? (
+                <img
+                  src={qbHeadshot}
+                  alt={qb.name}
+                  style={{
+                    width: 145,
+                    height: 150,
+                    objectFit: "contain",
+                    objectPosition: "center bottom",
+                    display: "block",
+                  }}
+                />
+              ) : (
+                <div
+                  style={{
+                    width: 120,
+                    height: 120,
+                    borderRadius: 20,
+                    background:
+                      "rgba(148,163,184,0.12)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#94a3b8",
+                    fontWeight: 900,
+                    fontSize: 22,
+                  }}
+                >
+                  QB
+                </div>
+              )}
+            </div>
+
+            {/* ===============================================
+                QB + RATING
+                =============================================== */}
+
+            <div
+              style={{
+                minWidth: 0,
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  minWidth: 0,
+                }}
+              >
+                <strong
+                  style={{
+                    color: "#f8fafc",
+                    fontSize: 23,
+                    lineHeight: 1.1,
+                    fontWeight: 900,
+                    overflowWrap: "anywhere",
+                  }}
+                >
+                  {qb.name}
+                </strong>
+
+                {logo && (
+                  <img
+                    src={logo}
+                    alt={qb.team}
+                    style={{
+                      width: 42,
+                      height: 42,
+                      objectFit: "contain",
+                      flexShrink: 0,
+                    }}
+                  />
+                )}
+              </div>
+
+              <div
+                style={{
+                  marginTop: 10,
+                  color,
+                  fontSize: 40,
+                  lineHeight: 1,
+                  fontWeight: 900,
+                }}
+              >
+                {qb.rating.toFixed(1)}
+              </div>
+
+              <div
+                style={{
+                  marginTop: 9,
+                  color: "#94a3b8",
+                  fontSize: 16,
+                  fontWeight: 700,
+                }}
+              >
+                Semaine {qb.week}
+              </div>
+            </div>
+
+            {/* ===============================================
+                JOUEUR DU POOL
+                =============================================== */}
+
+            <div
+              style={{
+                minWidth: 0,
+                paddingLeft: 20,
+                borderLeft:
+                  "1px solid rgba(148,163,184,0.18)",
+              }}
+            >
+              <span
+                style={{
+                  display: "block",
+                  marginBottom: 6,
+                  color: "#94a3b8",
+                  fontSize: 14,
+                }}
+              >
+                Choisi par
+              </span>
+
+              <PlayerIdentity
+                name={qb.selectedBy}
+                realName={
+                  qb.selectedByRealName
+                }
+              />
+            </div>
+          </div>
+        </>
+      ) : (
+        /* =====================================================
+           MOBILE — VERSION VERTICALE
+           ===================================================== */
+
+        <>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 9,
+              marginBottom: 14,
+            }}
+          >
+            <span
+              style={{
+                fontSize: 28,
+              }}
+            >
+              {icon}
+            </span>
+
+            <strong
+              style={{
+                color: "#cbd5e1",
+                fontWeight: 800,
+              }}
+            >
+              {title}
+            </strong>
+          </div>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns:
+                "100px minmax(0, 1fr)",
+              gap: 14,
+              alignItems: "center",
+            }}
+          >
+            <div
+              style={{
+                height: 110,
+                display: "flex",
+                alignItems: "flex-end",
+                justifyContent: "center",
+                overflow: "hidden",
+              }}
+            >
+              {qbHeadshot ? (
+                <img
+                  src={qbHeadshot}
+                  alt={qb.name}
+                  style={{
+                    width: 100,
+                    height: 110,
+                    objectFit: "contain",
+                    objectPosition:
+                      "center bottom",
+                    display: "block",
+                  }}
+                />
+              ) : (
+                <div
+                  style={{
+                    width: 90,
+                    height: 90,
+                    borderRadius: 18,
+                    background:
+                      "rgba(148,163,184,0.12)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#94a3b8",
+                    fontWeight: 900,
+                  }}
+                >
+                  QB
+                </div>
+              )}
+            </div>
+
+            <div
+              style={{
+                minWidth: 0,
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 7,
+                }}
+              >
+                <strong
+                  style={{
+                    fontSize: 19,
+                    color: "#f8fafc",
+                  }}
+                >
+                  {qb.name}
+                </strong>
+
+                {logo && (
+                  <img
+                    src={logo}
+                    alt={qb.team}
+                    style={{
+                      width: 32,
+                      height: 32,
+                      objectFit: "contain",
+                    }}
+                  />
+                )}
+              </div>
+
+              <div
+                style={{
+                  marginTop: 7,
+                  fontSize: 32,
+                  lineHeight: 1,
+                  fontWeight: 900,
+                  color,
+                }}
+              >
+                {qb.rating.toFixed(1)}
+              </div>
+
               <p
                 style={{
-                  margin: "3px 0",
+                  margin: "8px 0 0",
                   color: "#94a3b8",
                 }}
               >
                 Semaine {qb.week}
               </p>
+            </div>
+          </div>
 
-              <div style={{ marginTop: 6 }}>
-                <span
-                  style={{
-                    display: "block",
-                    color: "#94a3b8",
-                    fontSize: 13,
-                    marginBottom: 2,
-                  }}
-                >
-                  Choisi par
-                </span>
+          <div
+            style={{
+              marginTop: 12,
+              paddingTop: 10,
+              borderTop:
+                "1px solid rgba(148,163,184,0.12)",
+            }}
+          >
+            <span
+              style={{
+                display: "block",
+                color: "#94a3b8",
+                fontSize: 12,
+                marginBottom: 3,
+              }}
+            >
+              Choisi par
+            </span>
 
-                <PlayerIdentity
-                  name={qb.selectedBy}
-                  realName={qb.selectedByRealName}
-                  compact
-                />
-              </div>
-            </>
-          )}
+            <PlayerIdentity
+              name={qb.selectedBy}
+              realName={
+                qb.selectedByRealName
+              }
+              compact
+            />
+          </div>
         </>
       )}
     </div>
