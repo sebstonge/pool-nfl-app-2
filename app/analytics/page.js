@@ -232,7 +232,7 @@ function QBRecordCard({
     <div
       style={{
         padding: isDesktop
-          ? "20px 24px"
+          ? "18px 20px"
           : 18,
 
         borderRadius: 22,
@@ -244,6 +244,8 @@ function QBRecordCard({
           "1px solid rgba(148,163,184,0.16)",
 
         minWidth: 0,
+
+        overflow: "hidden",
       }}
     >
       {!qb ? (
@@ -292,13 +294,13 @@ function QBRecordCard({
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 12,
-              marginBottom: 16,
+              gap: 10,
+              marginBottom: 14,
             }}
           >
             <span
               style={{
-                fontSize: 30,
+                fontSize: 28,
                 lineHeight: 1,
               }}
             >
@@ -308,7 +310,7 @@ function QBRecordCard({
             <strong
               style={{
                 color: "#cbd5e1",
-                fontSize: 17,
+                fontSize: 16,
                 fontWeight: 800,
               }}
             >
@@ -317,7 +319,6 @@ function QBRecordCard({
           </div>
 
           {/* =================================================
-              CONTENU HORIZONTAL
               PHOTO | QB | CHOISI PAR
               ================================================= */}
 
@@ -326,13 +327,13 @@ function QBRecordCard({
               display: "grid",
 
               gridTemplateColumns:
-                "180px minmax(260px, 1fr) minmax(220px, 0.8fr)",
+                "125px minmax(0, 1fr) 155px",
 
-              gap: 22,
+              gap: 16,
 
               alignItems: "center",
 
-              minHeight: 170,
+              minHeight: 140,
             }}
           >
             {/* =================================================
@@ -341,7 +342,7 @@ function QBRecordCard({
 
             <div
               style={{
-                height: 170,
+                height: 140,
 
                 display: "flex",
 
@@ -357,8 +358,9 @@ function QBRecordCard({
                   src={qbHeadshot}
                   alt={qb.name}
                   style={{
-                    width: 180,
-                    height: 170,
+                    width: 125,
+
+                    height: 140,
 
                     objectFit: "contain",
 
@@ -371,10 +373,11 @@ function QBRecordCard({
               ) : (
                 <div
                   style={{
-                    width: 160,
-                    height: 160,
+                    width: 115,
 
-                    borderRadius: 22,
+                    height: 125,
+
+                    borderRadius: 18,
 
                     background:
                       "rgba(148,163,184,0.12)",
@@ -389,7 +392,7 @@ function QBRecordCard({
 
                     fontWeight: 900,
 
-                    fontSize: 24,
+                    fontSize: 22,
                   }}
                 >
                   QB
@@ -398,7 +401,7 @@ function QBRecordCard({
             </div>
 
             {/* =================================================
-                NOM + LOGO + RATING
+                QB + RATING + SEMAINE
                 ================================================= */}
 
             <div
@@ -412,24 +415,22 @@ function QBRecordCard({
 
                   alignItems: "center",
 
-                  gap: 12,
+                  gap: 9,
 
                   minWidth: 0,
-
-                  flexWrap: "nowrap",
                 }}
               >
                 <strong
                   style={{
                     color: "#f8fafc",
 
-                    fontSize: 25,
+                    fontSize: 20,
 
-                    lineHeight: 1.1,
+                    lineHeight: 1.08,
 
                     fontWeight: 900,
 
-                    whiteSpace: "nowrap",
+                    minWidth: 0,
                   }}
                 >
                   {qb.name}
@@ -440,9 +441,9 @@ function QBRecordCard({
                     src={logo}
                     alt={qb.team}
                     style={{
-                      width: 48,
+                      width: 38,
 
-                      height: 48,
+                      height: 38,
 
                       objectFit: "contain",
 
@@ -454,11 +455,11 @@ function QBRecordCard({
 
               <div
                 style={{
-                  marginTop: 10,
+                  marginTop: 9,
 
                   color,
 
-                  fontSize: 42,
+                  fontSize: 36,
 
                   lineHeight: 1,
 
@@ -470,11 +471,11 @@ function QBRecordCard({
 
               <div
                 style={{
-                  marginTop: 10,
+                  marginTop: 8,
 
                   color: "#94a3b8",
 
-                  fontSize: 17,
+                  fontSize: 15,
 
                   fontWeight: 700,
                 }}
@@ -491,7 +492,7 @@ function QBRecordCard({
               style={{
                 minWidth: 0,
 
-                paddingLeft: 24,
+                paddingLeft: 16,
 
                 borderLeft:
                   "1px solid rgba(148,163,184,0.20)",
@@ -503,9 +504,9 @@ function QBRecordCard({
 
                   color: "#94a3b8",
 
-                  fontSize: 15,
+                  fontSize: 13,
 
-                  marginBottom: 6,
+                  marginBottom: 5,
                 }}
               >
                 Choisi par
@@ -516,6 +517,7 @@ function QBRecordCard({
                 realName={
                   qb.selectedByRealName
                 }
+                compact
               />
             </div>
           </div>
@@ -561,7 +563,7 @@ function QBRecordCard({
               display: "grid",
 
               gridTemplateColumns:
-                "110px minmax(0,1fr)",
+                "100px minmax(0,1fr)",
 
               gap: 14,
 
@@ -570,7 +572,7 @@ function QBRecordCard({
           >
             <div
               style={{
-                height: 120,
+                height: 115,
 
                 display: "flex",
 
@@ -586,20 +588,22 @@ function QBRecordCard({
                   src={qbHeadshot}
                   alt={qb.name}
                   style={{
-                    width: 110,
+                    width: 100,
 
-                    height: 120,
+                    height: 115,
 
                     objectFit: "contain",
 
                     objectPosition:
                       "center bottom",
+
+                    display: "block",
                   }}
                 />
               ) : (
                 <div
                   style={{
-                    width: 100,
+                    width: 90,
 
                     height: 100,
 
@@ -657,9 +661,9 @@ function QBRecordCard({
                     src={logo}
                     alt={qb.team}
                     style={{
-                      width: 34,
+                      width: 32,
 
-                      height: 34,
+                      height: 32,
 
                       objectFit: "contain",
                     }}
@@ -1408,16 +1412,35 @@ export default function AnalyticsPage() {
 
         return {
           name: qbName,
+
           team:
             actualQb?.team ||
             selectedQb?.team ||
             "",
+
+          /*
+           * IMPORTANT :
+           * QBRecordCard utilise cet ID pour
+           * charger la photo officielle ESPN.
+           *
+           * En cas de remplacement, on privilégie
+           * le QB qui a réellement joué.
+           */
+          espn_athlete_id:
+            rating.actual_espn_athlete_id ||
+            actualQb?.espn_athlete_id ||
+            selectedQb?.espn_athlete_id ||
+            null,
+
           rating: Number(
             rating.passer_rating
           ),
+
           week: rating.week,
+
           selectedBy:
             displayName(user),
+
           selectedByRealName:
             realName(user),
         };
