@@ -1042,6 +1042,37 @@ export default function QBRatingsPage() {
         return;
       }
 
+      /*
+       * =====================================================
+       * VRAIES STATS NFL — TOUS LES MATCHS DES QB
+       * =====================================================
+       *
+       * qb_ratings :
+       *   utilisé pour les choix du pool,
+       *   meilleur/pire rating et "Choisi par".
+       *
+       * qb_weekly_stats :
+       *   utilisé pour calculer la vraie moyenne
+       *   saison NFL, indépendamment des choix du pool.
+       */
+      const {
+        data: weeklyStatsData,
+        error: weeklyStatsError,
+      } = await supabase
+        .from("qb_weekly_stats")
+        .select(
+          "week, espn_athlete_id, qb_name, team, passer_rating"
+        );
+
+      if (weeklyStatsError) {
+        setMessage(
+          "Erreur stats QB NFL : " +
+            weeklyStatsError.message
+        );
+
+        return;
+      }
+
       const ratingsByActualQb = {};
 
       (ratingsData || []).forEach(
@@ -1184,21 +1215,45 @@ export default function QBRatingsPage() {
                   };
                 };
 
+                         /*
+               * =================================================
+               * MOYENNE SAISON NFL RÉELLE
+               * =================================================
+               *
+               * On associe le QB grâce à son ESPN athlete ID.
+               *
+               * La moyenne ne dépend donc plus du nombre de fois
+               * où le QB a été sélectionné dans notre pool.
+               */
+              const nflWeeklyStats =
+                (weeklyStatsData || []).filter(
+                  (stat) =>
+                    String(
+                      stat.espn_athlete_id
+                    ) ===
+                    String(athleteId) &&
+                    stat.passer_rating != null &&
+                    Number.isFinite(
+                      Number(
+                        stat.passer_rating
+                      )
+                    )
+                );
+
               const average =
-                qbRatings.length > 0
-                  ? qbRatings.reduce(
+                nflWeeklyStats.length > 0
+                  ? nflWeeklyStats.reduce(
                       (
                         sum,
-                        rating
+                        stat
                       ) =>
                         sum +
                         Number(
-                          rating.passer_rating ||
-                            0
+                          stat.passer_rating
                         ),
                       0
                     ) /
-                    qbRatings.length
+                    nflWeeklyStats.length
                   : null;
 
               return {
