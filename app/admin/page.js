@@ -1996,7 +1996,55 @@ async function updateAllQBWeeklyStatsFromEspn(
 
     return rows.length;
   }
+/* =========================================================
+   IMPORT MANUEL — STATS DE TOUS LES QB NFL
+   ========================================================= */
 
+const importAllQBStats = async () => {
+  try {
+    setMessage(
+      "Import des stats QB NFL en cours..."
+    );
+
+    const currentSettings =
+      await loadSettings();
+
+    const currentWeek =
+      Number(
+        currentSettings.current_week
+      );
+
+    const result =
+      await updateAllQBWeeklyStatsFromEspn(
+        currentWeek
+      );
+
+    let finalMessage =
+      `Import stats QB NFL terminé ✅ ` +
+      `${result.updated} performances enregistrées pour la semaine ${currentWeek}.`;
+
+    if (
+      result.notFound.length > 0
+    ) {
+      finalMessage +=
+        ` Non trouvées : ` +
+        result.notFound.join(", ") +
+        ".";
+    }
+
+    setMessage(finalMessage);
+  } catch (error) {
+    console.error(
+      "Erreur import stats QB NFL :",
+      error
+    );
+
+    setMessage(
+      "Erreur import stats QB NFL : " +
+        error.message
+    );
+  }
+};
   /* =========================================================
      MISE À JOUR COMPLÈTE
      ========================================================= */
@@ -2760,6 +2808,19 @@ async function resetUserPassword() {
               Mettre à jour ESPN +
               classements
             </button>
+                 <button
+  className="button-secondary"
+  onClick={importAllQBStats}
+  style={{
+    width: isDesktop
+      ? "100%"
+      : undefined,
+
+    marginTop: 10,
+  }}
+>
+  Importer stats QB NFL
+</button>
           </div>
         </section>
 
