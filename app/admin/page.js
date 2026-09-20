@@ -1522,7 +1522,283 @@ const [isDesktop, setIsDesktop] = useState(false);
       notFound,
     };
   }
+/* =========================================================
+   STATS HEBDOMADAIRES DE TOUS LES QB NFL
+   ========================================================= */
 
+async function updateAllQBWeeklyStatsFromEspn(
+  currentWeek
+) {
+  /*
+   * Cette table est complètement indépendante
+   * des choix du pool.
+   *
+   * On parcourt TOUS les matchs NFL de la semaine
+   * et on enregistre TOUS les passeurs trouvés
+   * dans les boxscores ESPN.
+   *
+   * qb_ratings continue de servir au pool.
+   * qb_weekly_stats sert aux vraies statistiques NFL.
+   */
+
+  const {
+    data: games,
+    error: gamesError,
+  } = await supabase
+    .from("games")
+    .select(
+      "id, external_game_id, home_team, away_team"
+    )
+    .eq("week", currentWeek);
+
+  if (gamesError) {
+    throw new Error(
+      "Games pour stats QB : " +
+        gamesError.message
+    );
+  }
+
+  let updated = 0;
+  const notFound = [];
+
+  for (const game of games || []) {
+    if (!game.external_game_id) {
+      continue;
+    }
+
+    const url =
+      `https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary` +
+      `?event=${game.external_game_id}`;
+
+    let response;
+
+    try {
+      response = await fetch(url);
+    } catch (error) {
+      console.error(
+        `Erreur ESPN stats QB match ${game.external_game_id}:`,
+        error
+      );
+
+      notFound.push(
+        `${game.away_team} @ ${game.home_team}`
+      );
+
+      continue;
+    }
+
+    if (!response.ok) {
+      console.error(
+        `Erreur ESPN stats QB match ${game.external_game_id}:`,
+        response.status
+      );
+
+      notFound.push(
+        `${game.away_team} @ ${game.home_team} (ESPN ${response.status})`
+      );
+
+      continue;
+    }
+
+    const summary =
+      await response.json();
+
+    const boxscoreTeams =
+      summary.boxscore?.players || [];
+
+    /*
+     * Chaque élément représente normalement
+     * une des deux équipes du match.
+     */
+    for (const teamBox of boxscoreTeams) {
+      const teamName =
+        teamBox.team?.shortDisplayName ||
+        teamBox.team?.displayName ||
+        teamBox.team?.name ||
+        "";
+
+      /*
+       * On essaie également de récupérer
+       * l'abréviation ESPN. Elle nous aidera
+       * à associer proprement le QB à notre
+       * table teams.
+       */
+      const espnAbbr =
+        teamBox.team?.abbreviation ||
+        "";
+
+      const passingCategory =
+        teamBox.statistics?.find(
+          (category) =>
+            category.name === "passing" ||
+            category.displayName ===
+              "Passing"
+        );
+
+      if (!passingCategory) {
+        continue;
+      }
+
+      const labels =
+        passingCategory.labels || [];
+
+      const ratingIndex =
+        labels.findIndex((label) =>
+          [
+            "RTG",
+            "RAT",
+            "RATE",
+          ].includes(
+            String(label).toUpperCase()
+          )
+        );
+
+      if (ratingIndex === -1) {
+        continue;
+      }
+
+      /*
+       * On détermine le nom d'équipe utilisé
+       * par notre application.
+       *
+       * Priorité :
+       * 1. espn_abbr dans teams
+       * 2. nom ESPN
+       */
+      let localTeamName =
+        teamName || null;
+
+      if (espnAbbr) {
+        const localAbbr =
+          espnAbbr === "WSH"
+            ? "WAS"
+            : espnAbbr;
+
+        const {
+          data: localTeam,
+          error: localTeamError,
+        } = await supabase
+          .from("teams")
+          .select("name")
+          .ilike(
+            "espn_abbr",
+            localAbbr
+          )
+          .maybeSingle();
+
+        if (localTeamError) {
+          console.error(
+            `Erreur association équipe ${espnAbbr}:`,
+            localTeamError.message
+          );
+        }
+
+        if (localTeam?.name) {
+          localTeamName =
+            localTeam.name;
+        }
+      }
+
+      /*
+       * Tous les joueurs apparaissant dans
+       * la catégorie Passing sont examinés.
+       *
+       * Il peut donc y avoir :
+       *
+       * - le QB partant;
+       * - son remplaçant;
+       * - deux QB ayant joué;
+       * - etc.
+       */
+      for (
+        const row of
+          passingCategory.athletes || []
+      ) {
+        const athleteId =
+          row.athlete?.id;
+
+        const athleteName =
+          row.athlete?.displayName;
+
+        const rating =
+          Number(
+            row.stats?.[
+              ratingIndex
+            ]
+          );
+
+        if (
+          !athleteId ||
+          !athleteName ||
+          !Number.isFinite(rating)
+        ) {
+          continue;
+        }
+
+        const {
+          error: upsertError,
+        } = await supabase
+          .from(
+            "qb_weekly_stats"
+          )
+          .upsert(
+            {
+              week:
+                Number(
+                  currentWeek
+                ),
+
+              espn_athlete_id:
+                String(
+                  athleteId
+                ),
+
+              qb_name:
+                athleteName,
+
+              team:
+                localTeamName,
+
+              passer_rating:
+                rating,
+
+              updated_at:
+                new Date()
+                  .toISOString(),
+            },
+            {
+              onConflict:
+                "week,espn_athlete_id",
+            }
+          );
+
+        if (upsertError) {
+          console.error(
+            `Erreur qb_weekly_stats ${athleteName}:`,
+            upsertError.message
+          );
+
+          notFound.push(
+            `${athleteName} (${upsertError.message})`
+          );
+
+          continue;
+        }
+
+        updated++;
+      }
+    }
+  }
+
+  return {
+    updated,
+    notFound,
+  };
+}
+
+/* =========================================================
+   CALCUL DES SCORES DU POOL
+   ========================================================= */
   /* =========================================================
      CALCUL DES SCORES DU POOL
      ========================================================= */
@@ -1751,21 +2027,31 @@ const [isDesktop, setIsDesktop] = useState(false);
       const standingsResult =
         await updateTeamStandingsFromEspn();
 
-      /*
-       * 3. QB ratings
-       */
-      const qbResult =
-        await updateQBRatingsFromEspn(
-          currentWeek
-        );
+    /*
+ * 3. QB ratings utilisés par le pool
+ */
+const qbResult =
+  await updateQBRatingsFromEspn(
+    currentWeek
+  );
 
-      /*
-       * 4. Scores du pool
-       */
-      const rankingsCalculated =
-        await calculateScores(
-          currentWeek
-        );
+/*
+ * 4. Stats NFL de TOUS les QB
+ *
+ * Indépendant des choix du pool.
+ */
+const allQbStatsResult =
+  await updateAllQBWeeklyStatsFromEspn(
+    currentWeek
+  );
+
+/*
+ * 5. Scores du pool
+ */
+const rankingsCalculated =
+  await calculateScores(
+    currentWeek
+  );
 
       /*
        * =====================================================
@@ -1881,12 +2167,13 @@ const [isDesktop, setIsDesktop] = useState(false);
        * =====================================================
        */
 
-      let finalMessage =
-        `Mise à jour complète ✅ ` +
-        `Scores ESPN : ${scoresResult.updated}. ` +
-        `Équipes : ${standingsResult.updated}. ` +
-        `QB ratings : ${qbResult.updated}. ` +
-        `Classements : ${rankingsCalculated}.`;
+let finalMessage =
+  `Mise à jour complète ✅ ` +
+  `Scores ESPN : ${scoresResult.updated}. ` +
+  `Équipes : ${standingsResult.updated}. ` +
+  `QB ratings pool : ${qbResult.updated}. ` +
+  `Stats QB NFL : ${allQbStatsResult.updated}. ` +
+  `Classements : ${rankingsCalculated}.`;
 
       /*
        * Information utile pour toi dans Admin.
@@ -1919,15 +2206,15 @@ const [isDesktop, setIsDesktop] = useState(false);
       }
 
       if (
-        qbResult.notFound
-          .length > 0
-      ) {
-        finalMessage +=
-          ` QB non trouvés : ` +
-          qbResult.notFound.join(
-            ", "
-          );
-      }
+  allQbStatsResult.notFound
+    .length > 0
+) {
+  finalMessage +=
+    ` Stats QB NFL non trouvées : ` +
+    allQbStatsResult.notFound.join(
+      ", "
+    );
+}
 
       setMessage(finalMessage);
 
