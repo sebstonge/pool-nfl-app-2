@@ -1288,18 +1288,45 @@ const [isDesktop, setIsDesktop] = useState(false);
         continue;
       }
 
-      const summary =
-        await response.json();
+     const summary =
+      await response.json();
 
-      const boxscoreTeams =
-        summary.boxscore?.players ||
-        [];
+    /*
+     * =====================================================
+     * STATS QB : MATCHS TERMINÉS SEULEMENT
+     * =====================================================
+     *
+     * Le passer rating ESPN évolue pendant le match.
+     *
+     * On ne veut donc JAMAIS enregistrer dans
+     * qb_weekly_stats un rating temporaire provenant
+     * d'un match encore en cours.
+     *
+     * ESPN utilise :
+     *
+     * pre  = match pas commencé
+     * in   = match en cours
+     * post = match terminé
+     *
+     * Seuls les matchs "post" sont conservés.
+     */
+    const gameState =
+      summary.header
+        ?.competitions?.[0]
+        ?.status?.type?.state;
 
-      let passingAthletes = [];
+    if (gameState !== "post") {
+      continue;
+    }
 
-      for (
-        const teamBox of boxscoreTeams
-      ) {
+    const boxscoreTeams =
+      summary.boxscore?.players || [];
+
+    /*
+     * Chaque élément représente normalement
+     * une des deux équipes du match.
+     */
+    for (const teamBox of boxscoreTeams) {
         const teamName =
           teamBox.team
             ?.shortDisplayName ||
