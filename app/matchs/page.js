@@ -2301,32 +2301,52 @@ export default function Matchs() {
     );
 
     /* =========================================================
-       MOYENNES SAISON QB
+       MOYENNES SAISON QB — STATS NFL OFFICIELLES
+       =========================================================
+       
+       IMPORTANT :
+       
+       Cette moyenne ne provient plus de qb_ratings,
+       qui contient les performances liées aux choix
+       effectués dans le pool.
+       
+       Elle provient maintenant de qb_weekly_stats.
+       
+       Cette table est alimentée uniquement lors de
+       la mise à jour Admin.
+       
+       Conséquence :
+       
+       - le passer rating du match peut continuer
+         d'évoluer en direct via ESPN;
+       
+       - la MOYENNE SAISON ne change jamais en direct;
+       
+       - elle change seulement après une mise à jour
+         Admin ayant enregistré une nouvelle performance
+         finale dans qb_weekly_stats.
        ========================================================= */
 
     const {
       data:
-        allRatingsData,
+        weeklyQbStatsData,
       error:
-        allRatingsError,
+        weeklyQbStatsError,
     } =
       await supabase
         .from(
-          "qb_ratings"
+          "qb_weekly_stats"
         )
-        .select(`
-          *,
-          qbs (
-            espn_athlete_id
-          )
-        `);
+        .select(
+          "week, espn_athlete_id, passer_rating"
+        );
 
     if (
-      allRatingsError
+      weeklyQbStatsError
     ) {
       console.error(
-        "Erreur chargement moyennes QB :",
-        allRatingsError.message
+        "Erreur chargement moyennes saison QB :",
+        weeklyQbStatsError.message
       );
     }
 
@@ -2334,21 +2354,24 @@ export default function Matchs() {
       {};
 
     (
-      allRatingsData || []
+      weeklyQbStatsData || []
     ).forEach(
       (row) => {
         const athleteId =
           row
-            .actual_espn_athlete_id ||
-          row
-            .qbs
-            ?.espn_athlete_id;
+            .espn_athlete_id;
+
+        const rating =
+          Number(
+            row
+              .passer_rating
+          );
 
         if (
           !athleteId ||
-          row
-            .passer_rating ==
-            null
+          !Number.isFinite(
+            rating
+          )
         ) {
           return;
         }
@@ -2371,10 +2394,7 @@ export default function Matchs() {
         ratingsByQb[
           key
         ].push(
-          Number(
-            row
-              .passer_rating
-          )
+          rating
         );
       }
     );
