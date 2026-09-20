@@ -2884,45 +2884,75 @@ const [
         ratingsData || []
       );
 
-      /* MOYENNES QB */
+      /* =====================================================
+         MOYENNES SAISON QB — STATS NFL ENREGISTRÉES
+         =====================================================
+         
+         Source unique :
+         qb_weekly_stats
+         
+         Ces données sont alimentées par la mise à jour
+         Admin et ne proviennent PAS du suivi ESPN live
+         de cette page.
+         
+         IMPORTANT POUR L'HISTORIQUE :
+         
+         Si on regarde la semaine 1, on calcule la moyenne
+         jusqu'à la semaine 1.
+         
+         Si on regarde la semaine 2, on calcule la moyenne
+         jusqu'à la semaine 2.
+         
+         Ainsi, une ancienne semaine ne montre pas une
+         moyenne provenant du futur.
+         ===================================================== */
 
       const {
-        data: allRatings,
+        data: weeklyQbStatsData,
+        error: weeklyQbStatsError,
       } = await supabase
-        .from("qb_ratings")
-        .select(`
-          qb_id,
-          week,
-          passer_rating,
-          actual_espn_athlete_id,
-          qbs (
-            espn_athlete_id
-          )
-        `)
+        .from(
+          "qb_weekly_stats"
+        )
+        .select(
+          "week, espn_athlete_id, passer_rating"
+        )
         .lte(
           "week",
           viewedWeek
         );
 
+      if (
+        weeklyQbStatsError
+      ) {
+        console.error(
+          "Erreur chargement moyennes saison QB :",
+          weeklyQbStatsError.message
+        );
+      }
+
       const averages = {};
 
       (
-        allRatings || []
+        weeklyQbStatsData || []
       ).forEach(
         (row) => {
-          if (
-            row.passer_rating ==
-            null
-          ) {
-            return;
-          }
-
           const athleteId =
-            row.actual_espn_athlete_id ||
-            row.qbs
-              ?.espn_athlete_id;
+            row
+              .espn_athlete_id;
 
-          if (!athleteId) {
+          const rating =
+            Number(
+              row
+                .passer_rating
+            );
+
+          if (
+            !athleteId ||
+            !Number.isFinite(
+              rating
+            )
+          ) {
             return;
           }
 
@@ -2943,9 +2973,7 @@ const [
           averages[
             key
           ].total +=
-            Number(
-              row.passer_rating
-            );
+            rating;
 
           averages[
             key
