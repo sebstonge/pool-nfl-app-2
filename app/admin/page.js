@@ -1321,6 +1321,7 @@ const [isDesktop, setIsDesktop] = useState(false);
 
     const boxscoreTeams =
       summary.boxscore?.players || [];
+    let passingAthletes = [];
 
     /*
      * Chaque élément représente normalement
@@ -1629,6 +1630,31 @@ async function updateAllQBWeeklyStatsFromEspn(
 
     const summary =
       await response.json();
+
+    /*
+     * =====================================================
+     * STATS QB NFL : MATCHS TERMINÉS SEULEMENT
+     * =====================================================
+     *
+     * qb_weekly_stats sert maintenant de source officielle
+     * pour les moyennes QB affichées dans l'application.
+     *
+     * On ne doit donc jamais y enregistrer un passer rating
+     * temporaire provenant d'un match encore en cours.
+     *
+     * ESPN :
+     * pre  = pas commencé
+     * in   = en cours
+     * post = terminé
+     */
+    const gameState =
+      summary.header
+        ?.competitions?.[0]
+        ?.status?.type?.state;
+
+    if (gameState !== "post") {
+      continue;
+    }
 
     const boxscoreTeams =
       summary.boxscore?.players || [];
@@ -2021,109 +2047,6 @@ async function updateAllQBWeeklyStatsFromEspn(
 
     return rows.length;
   }
-/* =========================================================
-   IMPORT MANUEL — STATS DE TOUS LES QB NFL
-   SEMAINES 1 → SEMAINE ACTIVE
-   AUCUNE NOTIFICATION
-   ========================================================= */
-
-const importAllQBStats = async () => {
-  try {
-    setMessage(
-      "Import rétroactif des stats QB NFL en cours..."
-    );
-
-    const currentSettings =
-      await loadSettings();
-
-    const currentWeek =
-      Number(
-        currentSettings.current_week
-      );
-
-    let totalUpdated = 0;
-    const resultsByWeek = [];
-    const allNotFound = [];
-
-    /*
-     * On importe toutes les semaines,
-     * de la semaine 1 jusqu'à la semaine active.
-     *
-     * updateAllQBWeeklyStatsFromEspn()
-     * utilise un UPSERT :
-     *
-     * - les semaines déjà présentes sont mises à jour;
-     * - les semaines manquantes sont ajoutées;
-     * - aucun doublon n'est créé pour
-     *   week + espn_athlete_id.
-     *
-     * IMPORTANT :
-     * cette fonction n'appelle AUCUNE route push.
-     */
-    for (
-      let week = 1;
-      week <= currentWeek;
-      week++
-    ) {
-      setMessage(
-        `Import stats QB NFL — semaine ${week}/${currentWeek}...`
-      );
-
-      const result =
-        await updateAllQBWeeklyStatsFromEspn(
-          week
-        );
-
-      totalUpdated +=
-        result.updated;
-
-      resultsByWeek.push(
-        `S${week}: ${result.updated}`
-      );
-
-      if (
-        result.notFound?.length > 0
-      ) {
-        for (
-          const item of
-            result.notFound
-        ) {
-          allNotFound.push(
-            `S${week} — ${item}`
-          );
-        }
-      }
-    }
-
-    let finalMessage =
-      `Import rétroactif stats QB NFL terminé ✅ ` +
-      `${totalUpdated} performances enregistrées/mises à jour. ` +
-      resultsByWeek.join(" · ");
-
-    if (
-      allNotFound.length > 0
-    ) {
-      finalMessage +=
-        ` Non trouvées : ` +
-        allNotFound.join(", ") +
-        ".";
-    }
-
-    setMessage(
-      finalMessage
-    );
-  } catch (error) {
-    console.error(
-      "Erreur import rétroactif stats QB NFL :",
-      error
-    );
-
-    setMessage(
-      "Erreur import rétroactif stats QB NFL : " +
-        error.message
-    );
-  }
-};
   /* =========================================================
      MISE À JOUR COMPLÈTE
      ========================================================= */
@@ -2887,19 +2810,6 @@ async function resetUserPassword() {
               Mettre à jour ESPN +
               classements
             </button>
-                 <button
-  className="button-secondary"
-  onClick={importAllQBStats}
-  style={{
-    width: isDesktop
-      ? "100%"
-      : undefined,
-
-    marginTop: 10,
-  }}
->
-  Importer stats QB NFL
-</button>
           </div>
         </section>
 
