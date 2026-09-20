@@ -1772,23 +1772,38 @@ export default function AnalyticsPage() {
             />
           </div>
 
-                 {/* =================================================
+          {/* =================================================
               RECORDS QB
               ================================================= */}
 
           <section className="card">
-            <h2 style={{ marginTop: 0 }}>
+            <h2
+              style={{
+                marginTop: 0,
+                marginBottom:
+                  isDesktop
+                    ? 18
+                    : 16,
+              }}
+            >
               Records QB 🔥
             </h2>
 
             <div
               style={{
                 display: "grid",
+
                 gridTemplateColumns:
                   isDesktop
                     ? "repeat(2, minmax(0, 1fr))"
                     : "1fr",
-                gap: 12,
+
+                gap:
+                  isDesktop
+                    ? 16
+                    : 12,
+
+                alignItems: "stretch",
               }}
             >
               <QBRecordCard
@@ -1796,6 +1811,7 @@ export default function AnalyticsPage() {
                 title="Meilleur QB utilisé"
                 qb={stats.bestQb}
                 teams={teams}
+                isDesktop={isDesktop}
               />
 
               <QBRecordCard
@@ -1804,6 +1820,7 @@ export default function AnalyticsPage() {
                 qb={stats.worstQb}
                 teams={teams}
                 color="#ef4444"
+                isDesktop={isDesktop}
               />
             </div>
           </section>
