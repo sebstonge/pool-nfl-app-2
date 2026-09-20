@@ -1036,84 +1036,6 @@ export default function AnalyticsPage() {
         };
       }
 
-      const qbAverageRows =
-        Object.values(
-          (qbRatings || []).reduce(
-            (acc, rating) => {
-              const selectedQb =
-                (qbs || []).find(
-                  (q) =>
-                    q.id ===
-                    rating.qb_id
-                );
-
-              const athleteId =
-                rating.actual_espn_athlete_id ||
-                selectedQb?.espn_athlete_id;
-
-              if (!athleteId) {
-                return acc;
-              }
-
-              const key =
-                String(athleteId);
-
-              if (!acc[key]) {
-                const actualQb =
-                  (qbs || []).find(
-                    (q) =>
-                      String(
-                        q.espn_athlete_id
-                      ) ===
-                      String(
-                        athleteId
-                      )
-                  );
-
-                acc[key] = {
-                  name:
-                    rating.actual_qb_name ||
-                    actualQb?.name ||
-                    selectedQb?.name ||
-                    "QB",
-                  team:
-                    actualQb?.team ||
-                    selectedQb?.team ||
-                    "",
-                  total: 0,
-                  count: 0,
-                };
-              }
-
-              acc[key].total +=
-                Number(
-                  rating.passer_rating ||
-                    0
-                );
-
-              acc[key].count += 1;
-
-              return acc;
-            },
-            {}
-          )
-        )
-          .map((row) => ({
-            name: row.name,
-            team: row.team,
-            rating:
-              row.total / row.count,
-            detail: `${row.count} utilisation${
-              row.count > 1
-                ? "s"
-                : ""
-            }`,
-          }))
-          .sort(
-            (a, b) =>
-              b.rating - a.rating
-          );
-
       /* =====================================================
          HISTORIQUE PERSONNEL
          ===================================================== */
@@ -1237,8 +1159,6 @@ export default function AnalyticsPage() {
 
         worstQb:
           qbLabel(worstQb),
-
-        qbAverageRows,
 
         myWeeklyRows,
         myTotalScore,
@@ -1558,7 +1478,7 @@ export default function AnalyticsPage() {
             />
           </div>
 
-          {/* =================================================
+                 {/* =================================================
               RECORDS QB
               ================================================= */}
 
@@ -1572,7 +1492,7 @@ export default function AnalyticsPage() {
                 display: "grid",
                 gridTemplateColumns:
                   isDesktop
-                    ? "repeat(3, minmax(0, 1fr))"
+                    ? "repeat(2, minmax(0, 1fr))"
                     : "1fr",
                 gap: 12,
               }}
@@ -1590,19 +1510,6 @@ export default function AnalyticsPage() {
                 qb={stats.worstQb}
                 teams={teams}
                 color="#ef4444"
-              />
-
-              <QBRecordCard
-                icon="📊"
-                title="Meilleure moyenne QB"
-                qb={
-                  stats.qbAverageRows[
-                    0
-                  ] || null
-                }
-                teams={teams}
-                color="#38bdf8"
-                isAverage
               />
             </div>
           </section>
