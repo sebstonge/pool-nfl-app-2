@@ -595,14 +595,10 @@ function findQbGameData(
   }
 
   /*
-   * IMPORTANT :
-   *
-   * On identifie maintenant le match
-   * grâce aux noms EXACTS provenant
-   * de Supabase.
-   *
-   * On ne tente plus de deviner le
-   * match avec les noms ESPN.
+   * On identifie le match exact du QB
+   * avec les noms d'équipes provenant
+   * de Supabase et conservés dans
+   * liveGames.
    */
   const matchingGame =
     Object.values(
@@ -648,17 +644,11 @@ function findQbGameData(
     });
 
   /*
-   * Si le match du QB n'est PAS
-   * actuellement live ou terminé,
-   * aucune donnée ESPN n'est associée
-   * à ce QB.
+   * Le match du QB n'est ni LIVE
+   * ni terminé chez ESPN.
    *
-   * Exemple :
-   * Mahomes joue lundi soir alors
-   * qu'on est dimanche après-midi.
-   *
-   * Résultat :
-   * null
+   * On ne lui associe donc aucune
+   * donnée temporaire.
    */
   if (!matchingGame) {
     return null;
@@ -670,8 +660,14 @@ function findQbGameData(
   let passer = null;
 
   /*
-   * PRIORITÉ 1 :
-   * QB sélectionné lui-même.
+   * =========================================================
+   * PRIORITÉ 1 — QB SÉLECTIONNÉ PAR ESPN ATHLETE ID
+   * =========================================================
+   *
+   * Si le QB sélectionné a joué,
+   * même s'il est ensuite blessé ou
+   * remplacé pendant le match,
+   * il demeure le QB du joueur.
    */
   if (
     qb.espn_athlete_id
@@ -689,8 +685,9 @@ function findQbGameData(
   }
 
   /*
-   * PRIORITÉ 2 :
-   * recherche par nom.
+   * =========================================================
+   * PRIORITÉ 2 — QB SÉLECTIONNÉ PAR NOM
+   * =========================================================
    */
   if (!passer) {
     const qbName =
@@ -713,45 +710,39 @@ function findQbGameData(
   }
 
   /*
-   * MATCH EN DIRECT
+   * =========================================================
+   * REMPLACEMENT AUTOMATIQUE
+   * =========================================================
    *
-   * Si le QB choisi n'a pas encore
-   * de statistique de passe, on NE
-   * déclenche PAS de remplacement.
+   * Si le QB sélectionné n'apparaît
+   * PAS parmi les passers ESPN,
+   * on cherche le véritable passeur
+   * de SON équipe.
    *
-   * Il demeure le QB sélectionné
-   * avec Rating --.
+   * Contrairement à l'ancienne logique,
+   * ceci fonctionne aussi pendant
+   * le LIVE.
+   *
+   * Exemple :
+   *
+   * Tua est sélectionné.
+   * Tua ne joue pas.
+   * Cooper Rush possède les stats
+   * de passe de l'équipe.
+   *
+   * => Cooper Rush devient le QB
+   *    affiché immédiatement.
+   *
+   * IMPORTANT :
+   *
+   * Si Tua avait commencé le match
+   * puis s'était blessé, Tua serait
+   * présent dans passers.
+   *
+   * On conserverait donc Tua et
+   * son propre passer rating.
    */
-  if (
-    !passer &&
-    matchingGame
-      ?.status
-      ?.state === "in"
-  ) {
-    return {
-      game:
-        matchingGame,
-
-      passer:
-        null,
-    };
-  }
-
-  /*
-   * MATCH TERMINÉ
-   *
-   * Seulement à ce moment, si le QB
-   * sélectionné n'apparaît toujours
-   * pas parmi les passeurs, on peut
-   * utiliser le véritable passeur de
-   * son équipe.
-   */
-  if (
-    !passer &&
-    matchingGame
-      ?.status
-      ?.state === "post"
-  ) {
+  if (!passer) {
     passer =
       passers.find(
         (row) =>
@@ -762,6 +753,15 @@ function findQbGameData(
       ) || null;
   }
 
+  /*
+   * Si aucun passeur de cette équipe
+   * n'est encore présent chez ESPN,
+   * on ne devine rien.
+   *
+   * passer restera null et le QB
+   * sélectionné continuera d'être
+   * affiché avec Rating --.
+   */
   return {
     game:
       matchingGame,
