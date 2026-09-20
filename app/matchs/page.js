@@ -738,9 +738,14 @@ function findQbGameData(
     null;
 
   /*
-   * 3. Priorité absolue :
+   * 3. PRIORITÉ ABSOLUE :
    *    retrouver le QB sélectionné
    *    par son ESPN athlete ID.
+   *
+   * Si le QB sélectionné a joué,
+   * même s'il est ensuite blessé
+   * ou remplacé pendant le match,
+   * il demeure le QB du joueur.
    */
   if (
     qb.espn_athlete_id
@@ -785,47 +790,38 @@ function findQbGameData(
   }
 
   /*
-   * 5. IMPORTANT :
-   *
-   * Pendant un match LIVE, si le QB
-   * choisi n'a pas encore de stats,
-   * on NE LE REMPLACE PAS.
-   *
-   * Exemple :
-   * Mahomes est actif mais n'a pas
-   * encore lancé de passe.
-   *
-   * Résultat :
-   * Mahomes demeure affiché,
-   * Rating --.
-   */
-  if (
-    !passer &&
-    state === "in"
-  ) {
-    return {
-      game:
-        matchingGame,
-
-      passer:
-        null,
-    };
-  }
-
-  /*
-   * 6. REMPLACEMENT AUTOMATIQUE
-   *
-   * Seulement une fois le match
-   * terminé.
+   * 5. REMPLACEMENT AUTOMATIQUE
    *
    * Si le QB sélectionné n'apparaît
-   * toujours pas parmi les passers,
-   * on prend alors le QB réel ayant
-   * lancé pour cette équipe.
+   * PAS parmi les passers ESPN,
+   * on cherche le véritable passeur
+   * de son équipe.
+   *
+   * Cette détection fonctionne
+   * maintenant PENDANT LE LIVE
+   * ainsi qu'après le match.
+   *
+   * Exemple :
+   *
+   * Tua est sélectionné.
+   * Tua ne joue pas.
+   * Cooper Rush commence le match
+   * et possède les stats de passe.
+   *
+   * => Cooper Rush devient le QB
+   *    affiché immédiatement.
+   *
+   * IMPORTANT :
+   *
+   * Si Tua avait commencé le match
+   * puis s'était blessé, il serait
+   * présent dans passers.
+   *
+   * On conserverait donc Tua et
+   * son propre passer rating.
    */
   if (
-    !passer &&
-    state === "post"
+    !passer
   ) {
     passer =
       passers.find(
@@ -837,6 +833,16 @@ function findQbGameData(
       ) || null;
   }
 
+  /*
+   * Si aucun passeur de cette équipe
+   * n'est encore présent chez ESPN,
+   * on ne devine rien.
+   *
+   * Le QB sélectionné demeure affiché
+   * avec Rating -- jusqu'à ce qu'ESPN
+   * fournisse les premières stats
+   * du véritable passeur.
+   */
   return {
     game:
       matchingGame,
