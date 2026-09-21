@@ -231,14 +231,10 @@ function QBRecordCard({
   return (
     <div
       style={{
-        padding: isDesktop
-          ? "18px 20px"
-          : 16,
+        padding: isDesktop ? "18px 20px" : 16,
         borderRadius: 22,
-        background:
-          "rgba(15,23,42,0.82)",
-        border:
-          "1px solid rgba(148,163,184,0.16)",
+        background: "rgba(15,23,42,0.82)",
+        border: "1px solid rgba(148,163,184,0.16)",
         minWidth: 0,
         overflow: "hidden",
       }}
@@ -283,27 +279,17 @@ function QBRecordCard({
         </>
       ) : (
         <>
-          {/* =================================================
-              TITRE
-              ================================================= */}
-
           <div
             style={{
               display: "flex",
               alignItems: "center",
               gap: 10,
-              marginBottom:
-                isDesktop
-                  ? 14
-                  : 16,
+              marginBottom: isDesktop ? 14 : 16,
             }}
           >
             <span
               style={{
-                fontSize:
-                  isDesktop
-                    ? 28
-                    : 26,
+                fontSize: isDesktop ? 28 : 26,
                 lineHeight: 1,
               }}
             >
@@ -321,44 +307,20 @@ function QBRecordCard({
             </strong>
           </div>
 
-          {/* =================================================
-              PHOTO + INFORMATIONS QB
-
-              La photo et le bloc texte ont exactement
-              la même hauteur.
-
-              Haut photo = haut du nom
-              Bas photo = bas de "Semaine X"
-              ================================================= */}
-
           <div
             style={{
               display: "grid",
-
-              gridTemplateColumns:
-                isDesktop
-                  ? "125px minmax(0, 1fr)"
-                  : "92px minmax(0, 1fr)",
-
-              gap:
-                isDesktop
-                  ? 16
-                  : 14,
-
+              gridTemplateColumns: isDesktop
+                ? "125px minmax(0, 1fr)"
+                : "92px minmax(0, 1fr)",
+              gap: isDesktop ? 16 : 14,
               alignItems: "stretch",
             }}
           >
-            {/* =================================================
-                PHOTO
-                ================================================= */}
-
             <div
               style={{
                 position: "relative",
-                minHeight:
-                  isDesktop
-                    ? 118
-                    : 108,
+                minHeight: isDesktop ? 118 : 108,
                 overflow: "hidden",
               }}
             >
@@ -369,15 +331,10 @@ function QBRecordCard({
                   style={{
                     position: "absolute",
                     inset: 0,
-
                     width: "100%",
                     height: "100%",
-
                     objectFit: "contain",
-
-                    objectPosition:
-                      "center center",
-
+                    objectPosition: "center center",
                     display: "block",
                   }}
                 />
@@ -386,24 +343,15 @@ function QBRecordCard({
                   style={{
                     position: "absolute",
                     inset: 0,
-
                     borderRadius: 16,
-
                     background:
                       "rgba(148,163,184,0.12)",
-
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-
                     color: "#94a3b8",
-
                     fontWeight: 900,
-
-                    fontSize:
-                      isDesktop
-                        ? 22
-                        : 18,
+                    fontSize: isDesktop ? 22 : 18,
                   }}
                 >
                   QB
@@ -411,48 +359,28 @@ function QBRecordCard({
               )}
             </div>
 
-            {/* =================================================
-                NOM + LOGO + RATING + SEMAINE
-                ================================================= */}
-
             <div
               style={{
                 minWidth: 0,
-
                 display: "flex",
                 flexDirection: "column",
-
-                justifyContent:
-                  "space-between",
+                justifyContent: "space-between",
               }}
             >
               <div
                 style={{
                   display: "flex",
-
                   alignItems: "center",
-
-                  gap:
-                    isDesktop
-                      ? 9
-                      : 7,
-
+                  gap: isDesktop ? 9 : 7,
                   minWidth: 0,
                 }}
               >
                 <strong
                   style={{
                     color: "#f8fafc",
-
-                    fontSize:
-                      isDesktop
-                        ? 20
-                        : 18,
-
+                    fontSize: isDesktop ? 20 : 18,
                     lineHeight: 1.08,
-
                     fontWeight: 900,
-
                     minWidth: 0,
                   }}
                 >
@@ -464,19 +392,9 @@ function QBRecordCard({
                     src={logo}
                     alt={qb.team}
                     style={{
-                      width:
-                        isDesktop
-                          ? 38
-                          : 30,
-
-                      height:
-                        isDesktop
-                          ? 38
-                          : 30,
-
-                      objectFit:
-                        "contain",
-
+                      width: isDesktop ? 38 : 30,
+                      height: isDesktop ? 38 : 30,
+                      objectFit: "contain",
                       flexShrink: 0,
                     }}
                   />
@@ -486,14 +404,8 @@ function QBRecordCard({
               <div
                 style={{
                   color,
-
-                  fontSize:
-                    isDesktop
-                      ? 36
-                      : 32,
-
+                  fontSize: isDesktop ? 36 : 32,
                   lineHeight: 1,
-
                   fontWeight: 900,
                 }}
               >
@@ -503,14 +415,8 @@ function QBRecordCard({
               <div
                 style={{
                   color: "#94a3b8",
-
-                  fontSize:
-                    isDesktop
-                      ? 15
-                      : 14,
-
+                  fontSize: isDesktop ? 15 : 14,
                   lineHeight: 1.1,
-
                   fontWeight: 700,
                 }}
               >
@@ -519,22 +425,10 @@ function QBRecordCard({
             </div>
           </div>
 
-          {/* =================================================
-              CHOISI PAR
-              ================================================= */}
-
           <div
             style={{
-              marginTop:
-                isDesktop
-                  ? 14
-                  : 13,
-
-              paddingTop:
-                isDesktop
-                  ? 12
-                  : 11,
-
+              marginTop: isDesktop ? 14 : 13,
+              paddingTop: isDesktop ? 12 : 11,
               borderTop:
                 "1px solid rgba(148,163,184,0.14)",
             }}
@@ -542,11 +436,8 @@ function QBRecordCard({
             <span
               style={{
                 display: "block",
-
                 color: "#94a3b8",
-
                 fontSize: 12,
-
                 marginBottom: 4,
               }}
             >
@@ -555,9 +446,7 @@ function QBRecordCard({
 
             <PlayerIdentity
               name={qb.selectedBy}
-              realName={
-                qb.selectedByRealName
-              }
+              realName={qb.selectedByRealName}
               compact
             />
           </div>
@@ -579,7 +468,10 @@ function MiniRanking({
   return (
     <section
       className="card"
-      style={{ height: "100%" }}
+      style={{
+        height: "100%",
+        margin: 0,
+      }}
     >
       <h2 style={{ marginTop: 0 }}>
         {title}
@@ -668,73 +560,73 @@ function PersonalHistory({
       : 0;
 
   return (
-    <>
-      <section className="card">
-        <h2 style={{ marginTop: 0 }}>
-          👤 Mon historique
-        </h2>
+    <section
+      className="card"
+      style={{ margin: 0 }}
+    >
+      <h2 style={{ marginTop: 0 }}>
+        👤 Mon historique
+      </h2>
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns:
-              isDesktop
-                ? "repeat(4, minmax(0, 1fr))"
-                : "repeat(2, minmax(0, 1fr))",
-            gap: 12,
-          }}
-        >
-          <ConsensusCard
-            icon="🏆"
-            title="Score total"
-            value={totalScore.toFixed(3)}
-            subtitle="Saison"
-            color="#facc15"
-          />
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: isDesktop
+            ? "repeat(4, minmax(0, 1fr))"
+            : "repeat(2, minmax(0, 1fr))",
+          gap: 12,
+        }}
+      >
+        <ConsensusCard
+          icon="🏆"
+          title="Score total"
+          value={totalScore.toFixed(3)}
+          subtitle="Saison"
+          color="#facc15"
+        />
 
-          <ConsensusCard
-            icon="📊"
-            title="Moyenne / semaine"
-            value={average.toFixed(3)}
-            subtitle={`${weeks.length} semaine${
-              weeks.length > 1 ? "s" : ""
-            }`}
-          />
+        <ConsensusCard
+          icon="📊"
+          title="Moyenne / semaine"
+          value={average.toFixed(3)}
+          subtitle={`${weeks.length} semaine${
+            weeks.length > 1 ? "s" : ""
+          }`}
+        />
 
-          <ConsensusCard
-            icon="🔥"
-            title="Meilleure semaine"
-            value={
-              bestWeek
-                ? bestWeek.score.toFixed(3)
-                : "--"
-            }
-            subtitle={
-              bestWeek
-                ? `Semaine ${bestWeek.week}`
-                : "Aucune donnée"
-            }
-            color="#22c55e"
-          />
+        <ConsensusCard
+          icon="🔥"
+          title="Meilleure semaine"
+          value={
+            bestWeek
+              ? bestWeek.score.toFixed(3)
+              : "--"
+          }
+          subtitle={
+            bestWeek
+              ? `Semaine ${bestWeek.week}`
+              : "Aucune donnée"
+          }
+          color="#22c55e"
+        />
 
-          <ConsensusCard
-            icon="📉"
-            title="Pire semaine"
-            value={
-              worstWeek
-                ? worstWeek.score.toFixed(3)
-                : "--"
-            }
-            subtitle={
-              worstWeek
-                ? `Semaine ${worstWeek.week}`
-                : "Aucune donnée"
-            }
-            color="#ef4444"
-          />
-        </div>
-      </section>
-    </>
+        <ConsensusCard
+          icon="📉"
+          title="Pire semaine"
+          value={
+            worstWeek
+              ? worstWeek.score.toFixed(3)
+              : "--"
+          }
+          subtitle={
+            worstWeek
+              ? `Semaine ${worstWeek.week}`
+              : "Aucune donnée"
+          }
+          color="#ef4444"
+        />
+      </div>
+    </section>
   );
 }
 
@@ -758,14 +650,8 @@ export default function AnalyticsPage() {
   const [currentUser, setCurrentUser] =
     useState(null);
 
-  const [
-    isDesktop,
-    setIsDesktop,
-  ] = useState(false);
-
-  /* =========================================================
-     RESPONSIVE
-     ========================================================= */
+  const [isDesktop, setIsDesktop] =
+    useState(false);
 
   useEffect(() => {
     const updateResponsive = () => {
@@ -789,23 +675,16 @@ export default function AnalyticsPage() {
     };
   }, []);
 
-  /* =========================================================
-     DONNÉES
-     ========================================================= */
-
   useEffect(() => {
     async function loadData() {
       setLoading(true);
       setMessage("");
 
-      const {
-        data: sessionData,
-      } =
+      const { data: sessionData } =
         await supabase.auth.getSession();
 
       const authUser =
-        sessionData.session?.user ||
-        null;
+        sessionData.session?.user || null;
 
       setCurrentUser(authUser);
 
@@ -880,10 +759,6 @@ export default function AnalyticsPage() {
             p.games?.home_score != null &&
             p.games?.away_score != null
         );
-
-      /* =====================================================
-         STATS PAR JOUEUR
-         ===================================================== */
 
       const byUser = {};
 
@@ -986,10 +861,6 @@ export default function AnalyticsPage() {
             )} % de bons gagnants`,
           }));
 
-      /* =====================================================
-         SCORES HEBDOMADAIRES
-         ===================================================== */
-
       const weeklyRows =
         (weeklyScores || []).map(
           (row) => {
@@ -1003,8 +874,7 @@ export default function AnalyticsPage() {
             return {
               ...row,
               name: displayName(user),
-              realName:
-                realName(user),
+              realName: realName(user),
               score: statValue(row),
             };
           }
@@ -1044,10 +914,6 @@ export default function AnalyticsPage() {
             u.exactMargins,
           0
         );
-
-      /* =====================================================
-         CONSENSUS DU POOL
-         ===================================================== */
 
       const gamesMap = {};
 
@@ -1104,8 +970,7 @@ export default function AnalyticsPage() {
               ? game.home_team
               : game.away_team;
 
-          const week =
-            game.week;
+          const week = game.week;
 
           if (!consensusByWeek[week]) {
             consensusByWeek[week] = {
@@ -1169,10 +1034,6 @@ export default function AnalyticsPage() {
           (a, b) =>
             a.pct - b.pct
         )[0];
-
-      /* =====================================================
-         QB
-         ===================================================== */
 
       const bestQb =
         [...(qbRatings || [])].sort(
@@ -1242,43 +1103,25 @@ export default function AnalyticsPage() {
 
         return {
           name: qbName,
-
           team:
             actualQb?.team ||
             selectedQb?.team ||
             "",
-
-          /*
-           * IMPORTANT :
-           * QBRecordCard utilise cet ID pour
-           * charger la photo officielle ESPN.
-           *
-           * En cas de remplacement, on privilégie
-           * le QB qui a réellement joué.
-           */
           espn_athlete_id:
             rating.actual_espn_athlete_id ||
             actualQb?.espn_athlete_id ||
             selectedQb?.espn_athlete_id ||
             null,
-
           rating: Number(
             rating.passer_rating
           ),
-
           week: rating.week,
-
           selectedBy:
             displayName(user),
-
           selectedByRealName:
             realName(user),
         };
       }
-
-      /* =====================================================
-         HISTORIQUE PERSONNEL
-         ===================================================== */
 
       const myWeeklyRows =
         authUser
@@ -1387,19 +1230,13 @@ export default function AnalyticsPage() {
         totalExact,
         topExact,
         topCorrect,
-
         consensusWins,
         consensusLosses,
         consensusPct,
         bestConsensusWeek,
         worstConsensusWeek,
-
-        bestQb:
-          qbLabel(bestQb),
-
-        worstQb:
-          qbLabel(worstQb),
-
+        bestQb: qbLabel(bestQb),
+        worstQb: qbLabel(worstQb),
         myWeeklyRows,
         myTotalScore,
         myBestWeek,
@@ -1412,96 +1249,153 @@ export default function AnalyticsPage() {
 
     loadData();
   }, []);
-
-  /* =========================================================
+     /* =========================================================
      AFFICHAGE
      ========================================================= */
 
   return (
     <main
-      className="page"
-      style={
-        isDesktop
-          ? {
-              maxWidth: 1280,
-              width:
-                "calc(100% - 48px)",
-              margin: "0 auto",
-              paddingTop: 112,
-            }
-          : undefined
-      }
+      style={{
+        minHeight: "100vh",
+        background: "#020617",
+        color: "#f8fafc",
+
+        width: isDesktop
+          ? "calc(100% - 48px)"
+          : "100%",
+
+        maxWidth: isDesktop
+          ? 1280
+          : "none",
+
+        margin: "0 auto",
+
+        padding: isDesktop
+          ? "112px 0 110px"
+          : "24px 16px 110px",
+
+        boxSizing: "border-box",
+      }}
     >
       {/* =====================================================
-          HEADER
+          EN-TÊTE
           ===================================================== */}
 
       <section
-        className="header-card"
-        style={
-          isDesktop
-            ? {
-                padding: "28px 32px",
-                marginBottom: 20,
-              }
-            : undefined
-        }
+        className="card"
+        style={{
+          margin: 0,
+          marginBottom: isDesktop
+            ? 18
+            : 16,
+        }}
       >
         <h1
-          style={
-            isDesktop
-              ? {
-                  marginBottom: 6,
-                }
-              : undefined
-          }
+          style={{
+            marginTop: 0,
+            marginBottom: 6,
+          }}
         >
-          Statistiques avancées 📈
+          📊 Statistiques
         </h1>
 
-        <p>
-          Records et statistiques de la saison.
+        <p
+          style={{
+            margin: 0,
+            color: "#94a3b8",
+          }}
+        >
+          Records, tendances et historique du pool.
         </p>
       </section>
 
-      {message && (
-        <section className="card">
-          <p>{message}</p>
-        </section>
-      )}
-
       {loading && (
-        <section className="card">
-          <p>
+        <section
+          className="card"
+          style={{
+            margin: 0,
+          }}
+        >
+          <p
+            style={{
+              margin: 0,
+              color: "#94a3b8",
+            }}
+          >
             Chargement des statistiques...
           </p>
         </section>
       )}
 
+      {message && (
+        <section
+          className="card"
+          style={{
+            margin: 0,
+          }}
+        >
+          <p
+            style={{
+              margin: 0,
+              color: "#ef4444",
+            }}
+          >
+            {message}
+          </p>
+        </section>
+      )}
+
       {!loading && stats && (
-        <>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+
+            /*
+             * IMPORTANT :
+             * Toutes les grandes sections de Stats
+             * utilisent maintenant exactement le même
+             * espacement vertical.
+             */
+            gap: isDesktop
+              ? 18
+              : 16,
+          }}
+        >
           {/* =================================================
               RECORDS DE SAISON
               ================================================= */}
 
-          <section className="card">
-            <h2 style={{ marginTop: 0 }}>
-              Records de saison
+          <section
+            className="card"
+            style={{
+              margin: 0,
+            }}
+          >
+            <h2
+              style={{
+                marginTop: 0,
+                marginBottom: 16,
+              }}
+            >
+              🏆 Records de saison
             </h2>
 
             <div
               style={{
                 display: "grid",
+
                 gridTemplateColumns:
                   isDesktop
                     ? "repeat(4, minmax(0, 1fr))"
-                    : "1fr",
+                    : "repeat(2, minmax(0, 1fr))",
+
                 gap: 12,
               }}
             >
               <StatCard
-                icon="🏆"
-                title="Meilleur score semaine"
+                icon="🔥"
+                title="Meilleure semaine"
                 value={
                   stats.bestWeek
                     ? stats.bestWeek.score.toFixed(
@@ -1510,56 +1404,10 @@ export default function AnalyticsPage() {
                     : "--"
                 }
                 subtitle={
-                  stats.bestWeek ? (
-                    <>
-                      <PlayerIdentity
-                        name={
-                          stats.bestWeek
-                            .name
-                        }
-                        realName={
-                          stats.bestWeek
-                            .realName
-                        }
-                        compact
-                      />
-
-                      <div
-                        style={{
-                          marginTop: 5,
-                        }}
-                      >
-                        Semaine{" "}
-                        {
-                          stats.bestWeek
-                            .week
-                        }
-                      </div>
-                    </>
-                  ) : (
-                    "Aucune donnée"
-                  )
+                  stats.bestWeek
+                    ? `Semaine ${stats.bestWeek.week} · ${stats.bestWeek.name}`
+                    : "Aucune donnée"
                 }
-                color="#facc15"
-              />
-
-              <StatCard
-                icon="🎯"
-                title="Écarts exacts"
-                value={
-                  stats.totalExact
-                }
-                subtitle="Total de la saison"
-              />
-
-              <StatCard
-                icon="✅"
-                title="Bons gagnants"
-                value={
-                  stats.totalCorrect
-                }
-                subtitle={`${stats.totalPicks} choix calculés`}
-                color="#3b82f6"
               />
 
               <StatCard
@@ -1573,84 +1421,122 @@ export default function AnalyticsPage() {
                     : "--"
                 }
                 subtitle={
-                  stats.worstWeek ? (
-                    <>
-                      <PlayerIdentity
-                        name={
-                          stats.worstWeek
-                            .name
-                        }
-                        realName={
-                          stats.worstWeek
-                            .realName
-                        }
-                        compact
-                      />
-
-                      <div
-                        style={{
-                          marginTop: 5,
-                        }}
-                      >
-                        Semaine{" "}
-                        {
-                          stats.worstWeek
-                            .week
-                        }
-                      </div>
-                    </>
-                  ) : (
-                    "Aucune donnée"
-                  )
+                  stats.worstWeek
+                    ? `Semaine ${stats.worstWeek.week} · ${stats.worstWeek.name}`
+                    : "Aucune donnée"
                 }
                 color="#ef4444"
+              />
+
+              <StatCard
+                icon="🎯"
+                title="Écarts exacts"
+                value={
+                  stats.totalExact
+                }
+                subtitle={`${stats.totalPicks} choix complétés`}
+                color="#facc15"
+              />
+
+              <StatCard
+                icon="✅"
+                title="Bons gagnants"
+                value={
+                  stats.totalCorrect
+                }
+                subtitle={
+                  stats.totalPicks > 0
+                    ? `${Math.round(
+                        (stats.totalCorrect /
+                          stats.totalPicks) *
+                          100
+                      )} % du pool`
+                    : "Aucune donnée"
+                }
+                color="#22c55e"
               />
             </div>
           </section>
 
           {/* =================================================
+              CLASSEMENTS JOUEURS
+              ================================================= */}
+
+          <div
+            style={{
+              display: "grid",
+
+              gridTemplateColumns:
+                isDesktop
+                  ? "repeat(2, minmax(0, 1fr))"
+                  : "1fr",
+
+              gap: isDesktop
+                ? 18
+                : 16,
+
+              alignItems: "stretch",
+            }}
+          >
+            <MiniRanking
+              title="🎯 Rois de l'écart exact"
+              rows={stats.topExact}
+            />
+
+            <MiniRanking
+              title="✅ Meilleurs gagnants"
+              rows={stats.topCorrect}
+            />
+          </div>
+
+          {/* =================================================
               CONSENSUS DU POOL
               ================================================= */}
 
-          <section className="card">
-            <h2 style={{ marginTop: 0 }}>
-              🧠 Consensus du pool
-            </h2>
-
-            <p
+          <section
+            className="card"
+            style={{
+              margin: 0,
+            }}
+          >
+            <h2
               style={{
-                marginTop: -4,
+                marginTop: 0,
                 marginBottom: 16,
-                color: "#94a3b8",
               }}
             >
-              Performance du choix majoritaire du pool.
-            </p>
+              🧠 Consensus du pool
+            </h2>
 
             <div
               style={{
                 display: "grid",
+
                 gridTemplateColumns:
                   isDesktop
                     ? "repeat(4, minmax(0, 1fr))"
                     : "repeat(2, minmax(0, 1fr))",
+
                 gap: 12,
               }}
             >
               <ConsensusCard
-                icon="👥"
-                title="Fiche"
-                value={`${stats.consensusWins}-${stats.consensusLosses}`}
-                subtitle="Consensus gagnant / perdant"
+                icon="📈"
+                title="Réussite du consensus"
+                value={`${Math.round(
+                  stats.consensusPct
+                )} %`}
+                subtitle={`${stats.consensusWins} victoires · ${stats.consensusLosses} défaites`}
+                color="#38bdf8"
               />
 
               <ConsensusCard
-                icon="🎯"
-                title="Taux de réussite"
-                value={`${stats.consensusPct.toFixed(
-                  1
-                )} %`}
-                subtitle="Choix majoritaire"
+                icon="✅"
+                title="Bons consensus"
+                value={
+                  stats.consensusWins
+                }
+                subtitle="Matchs correctement prédits"
                 color="#22c55e"
               />
 
@@ -1659,32 +1545,36 @@ export default function AnalyticsPage() {
                 title="Meilleure semaine"
                 value={
                   stats.bestConsensusWeek
-                    ? `${stats.bestConsensusWeek.pct.toFixed(
-                        0
+                    ? `${Math.round(
+                        stats
+                          .bestConsensusWeek
+                          .pct
                       )} %`
                     : "--"
                 }
                 subtitle={
                   stats.bestConsensusWeek
-                    ? `Semaine ${stats.bestConsensusWeek.week} · ${stats.bestConsensusWeek.wins}-${stats.bestConsensusWeek.losses}`
+                    ? `Semaine ${stats.bestConsensusWeek.week} · ${stats.bestConsensusWeek.wins}/${stats.bestConsensusWeek.wins + stats.bestConsensusWeek.losses}`
                     : "Aucune donnée"
                 }
                 color="#facc15"
               />
 
               <ConsensusCard
-                icon="🧊"
+                icon="📉"
                 title="Pire semaine"
                 value={
                   stats.worstConsensusWeek
-                    ? `${stats.worstConsensusWeek.pct.toFixed(
-                        0
+                    ? `${Math.round(
+                        stats
+                          .worstConsensusWeek
+                          .pct
                       )} %`
                     : "--"
                 }
                 subtitle={
                   stats.worstConsensusWeek
-                    ? `Semaine ${stats.worstConsensusWeek.week} · ${stats.worstConsensusWeek.wins}-${stats.worstConsensusWeek.losses}`
+                    ? `Semaine ${stats.worstConsensusWeek.week} · ${stats.worstConsensusWeek.wins}/${stats.worstConsensusWeek.wins + stats.worstConsensusWeek.losses}`
                     : "Aucune donnée"
                 }
                 color="#ef4444"
@@ -1693,43 +1583,21 @@ export default function AnalyticsPage() {
           </section>
 
           {/* =================================================
-              TOP JOUEURS
-              ================================================= */}
-
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns:
-                isDesktop
-                  ? "repeat(2, minmax(0, 1fr))"
-                  : "1fr",
-              gap: isDesktop ? 18 : 16,
-              alignItems: "stretch",
-            }}
-          >
-            <MiniRanking
-              title="Top écarts exacts 🎯"
-              rows={stats.topExact}
-            />
-
-            <MiniRanking
-              title="Top bons gagnants ✅"
-              rows={stats.topCorrect}
-            />
-          </div>
-
-          {/* =================================================
               RECORDS QB
               ================================================= */}
 
-          <section className="card">
+          <section
+            className="card"
+            style={{
+              margin: 0,
+            }}
+          >
             <h2
               style={{
                 marginTop: 0,
-                marginBottom:
-                  isDesktop
-                    ? 18
-                    : 16,
+                marginBottom: isDesktop
+                  ? 18
+                  : 16,
               }}
             >
               Records QB 🔥
@@ -1744,10 +1612,9 @@ export default function AnalyticsPage() {
                     ? "repeat(2, minmax(0, 1fr))"
                     : "1fr",
 
-                gap:
-                  isDesktop
-                    ? 16
-                    : 12,
+                gap: isDesktop
+                  ? 16
+                  : 12,
 
                 alignItems: "stretch",
               }}
@@ -1775,306 +1642,336 @@ export default function AnalyticsPage() {
               MON HISTORIQUE
               ================================================= */}
 
-          {currentUser && (
-            <>
-              <PersonalHistory
-                weeks={
-                  stats.myWeeklyRows
-                }
-                totalScore={
-                  stats.myTotalScore
-                }
-                bestWeek={
-                  stats.myBestWeek
-                }
-                worstWeek={
-                  stats.myWorstWeek
-                }
-                isDesktop={
-                  isDesktop
-                }
-              />
+          <PersonalHistory
+            weeks={
+              stats.myWeeklyRows
+            }
+            totalScore={
+              stats.myTotalScore
+            }
+            bestWeek={
+              stats.myBestWeek
+            }
+            worstWeek={
+              stats.myWorstWeek
+            }
+            isDesktop={isDesktop}
+          />
 
-              {/* =============================================
-                  MES SEMAINES + MES QB
-                  ============================================= */}
+          {/* =================================================
+              MES QB UTILISÉS
+              ================================================= */}
 
+          <section
+            className="card"
+            style={{
+              margin: 0,
+            }}
+          >
+            <h2
+              style={{
+                marginTop: 0,
+                marginBottom: 16,
+              }}
+            >
+              🏈 Mes QB utilisés
+            </h2>
+
+            {stats.myQbPicks.length ===
+            0 ? (
+              <p
+                style={{
+                  marginBottom: 0,
+                  color: "#94a3b8",
+                }}
+              >
+                Aucun QB utilisé.
+              </p>
+            ) : (
               <div
                 style={{
                   display: "grid",
+
                   gridTemplateColumns:
                     isDesktop
-                      ? "repeat(2, minmax(0, 1fr))"
+                      ? "repeat(3, minmax(0, 1fr))"
                       : "1fr",
-                  gap:
-                    isDesktop
-                      ? 18
-                      : 16,
-                  alignItems: "start",
+
+                  gap: 12,
                 }}
               >
-                {/* ===========================================
-                    MES SEMAINES
-                    =========================================== */}
+                {stats.myQbPicks.map(
+                  (qbPick) => {
+                    const team =
+                      teams.find(
+                        (teamRow) =>
+                          teamRow.name
+                            ?.toLowerCase()
+                            .trim() ===
+                          qbPick.team
+                            ?.toLowerCase()
+                            .trim()
+                      );
 
-                <section className="card">
-                  <h2
-                    style={{
-                      marginTop: 0,
-                    }}
-                  >
-                    📅 Mes semaines
-                  </h2>
+                    const teamLogo =
+                      team?.espn_abbr
+                        ? `https://a.espncdn.com/i/teamlogos/nfl/500/${team.espn_abbr.toLowerCase()}.png`
+                        : team?.logo ||
+                          null;
 
-                  {stats.myWeeklyRows
-                    .length === 0 ? (
-                    <p
-                      style={{
-                        color:
-                          "#94a3b8",
-                      }}
-                    >
-                      Aucun score calculé.
-                    </p>
-                  ) : (
-                    stats.myWeeklyRows.map(
-                      (row, index) => (
+                    return (
+                      <div
+                        key={`${qbPick.week}-${qbPick.qbName}`}
+                        style={{
+                          padding: 16,
+
+                          borderRadius: 18,
+
+                          background:
+                            "rgba(15,23,42,0.72)",
+
+                          border:
+                            "1px solid rgba(148,163,184,0.14)",
+                        }}
+                      >
                         <div
-                          key={
-                            row.id ||
-                            `${row.week}-${index}`
-                          }
                           style={{
                             display:
-                              "grid",
-                            gridTemplateColumns:
-                              "auto minmax(0, 1fr) auto",
-                            gap: 12,
+                              "flex",
+
                             alignItems:
                               "center",
-                            padding:
-                              "13px 0",
-                            borderBottom:
-                              index ===
-                              stats
-                                .myWeeklyRows
-                                .length -
-                                1
-                                ? "none"
-                                : "1px solid rgba(148,163,184,0.12)",
-                          }}
-                        >
-                          <strong
-                            style={{
-                              color:
-                                "#94a3b8",
-                              minWidth:
-                                34,
-                            }}
-                          >
-                            S{row.week}
-                          </strong>
 
-                          <span
-                            style={{
-                              color:
-                                "#cbd5e1",
-                            }}
-                          >
-                            Score de la semaine
-                          </span>
+                            justifyContent:
+                              "space-between",
 
-                          <strong
-                            style={{
-                              color:
-                                "#22c55e",
-                              fontSize:
-                                18,
-                            }}
-                          >
-                            {row.score.toFixed(
-                              3
-                            )}
-                          </strong>
-                        </div>
-                      )
-                    )
-                  )}
-                </section>
-
-                {/* ===========================================
-                    MES QB UTILISÉS
-                    =========================================== */}
-
-                <section className="card">
-                  <h2
-                    style={{
-                      marginTop: 0,
-                    }}
-                  >
-                    🏈 Mes QB utilisés
-                  </h2>
-
-                  {stats.myQbPicks
-                    .length === 0 ? (
-                    <p
-                      style={{
-                        color:
-                          "#94a3b8",
-                      }}
-                    >
-                      Aucun QB utilisé.
-                    </p>
-                  ) : (
-                    stats.myQbPicks.map(
-                      (row, index) => (
-                        <div
-                          key={`${row.week}-${row.qbName}-${index}`}
-                          style={{
-                            display:
-                              "grid",
-                            gridTemplateColumns:
-                              "42px minmax(0, 1fr) auto",
                             gap: 12,
-                            alignItems:
-                              "center",
-                            padding:
-                              "13px 0",
-                            borderBottom:
-                              index ===
-                              stats
-                                .myQbPicks
-                                .length -
-                                1
-                                ? "none"
-                                : "1px solid rgba(148,163,184,0.12)",
                           }}
                         >
-                          <strong
-                            style={{
-                              color:
-                                "#94a3b8",
-                            }}
-                          >
-                            S{row.week}
-                          </strong>
-
                           <div
-  style={{
-    display: "flex",
-    alignItems: "center",
-    gap: 10,
-    minWidth: 0,
-  }}
->
-  {(() => {
-    const team = teams.find(
-      (t) =>
-        t.name?.toLowerCase().trim() ===
-        row.team?.toLowerCase().trim()
-    );
+                            style={{
+                              minWidth: 0,
+                            }}
+                          >
+                            <span
+                              style={{
+                                display:
+                                  "block",
 
-    const logo = team?.espn_abbr
-      ? `https://a.espncdn.com/i/teamlogos/nfl/500/${team.espn_abbr.toLowerCase()}.png`
-      : team?.logo || null;
+                                color:
+                                  "#94a3b8",
 
-    return logo ? (
-      <img
-        src={logo}
-        alt={row.team || row.qbName}
-        style={{
-          width: 34,
-          height: 34,
-          objectFit: "contain",
-          flexShrink: 0,
-        }}
-      />
-    ) : null;
-  })()}
+                                fontSize:
+                                  12,
 
-  <div
-    style={{
-      minWidth: 0,
-    }}
-  >
-    <strong
-      style={{
-        display: "block",
-        color: "#f8fafc",
-      }}
-    >
-      {row.qbName}
-    </strong>
+                                marginBottom:
+                                  5,
+                              }}
+                            >
+                              Semaine{" "}
+                              {
+                                qbPick.week
+                              }
+                            </span>
 
-    {row.actualQbName &&
-      row.actualQbName !== row.qbName && (
-        <span
-          style={{
-            display: "block",
-            marginTop: 3,
-            color: "#facc15",
-            fontSize: 12,
-          }}
-        >
-          Rating obtenu par{" "}
-          {row.actualQbName}
-        </span>
-      )}
-  </div>
-</div>
+                            <div
+                              style={{
+                                display:
+                                  "flex",
+
+                                alignItems:
+                                  "center",
+
+                                gap: 8,
+                              }}
+                            >
+                              <strong
+                                style={{
+                                  color:
+                                    "#f8fafc",
+
+                                  fontSize:
+                                    17,
+                                }}
+                              >
+                                {
+                                  qbPick.qbName
+                                }
+                              </strong>
+
+                              {teamLogo && (
+                                <img
+                                  src={
+                                    teamLogo
+                                  }
+                                  alt={
+                                    qbPick.team
+                                  }
+                                  style={{
+                                    width:
+                                      30,
+
+                                    height:
+                                      30,
+
+                                    objectFit:
+                                      "contain",
+                                  }}
+                                />
+                              )}
+                            </div>
+
+                            {qbPick.actualQbName &&
+                              qbPick.actualQbName !==
+                                qbPick.qbName && (
+                                <div
+                                  style={{
+                                    marginTop:
+                                      5,
+
+                                    color:
+                                      "#94a3b8",
+
+                                    fontSize:
+                                      12,
+                                  }}
+                                >
+                                  Remplacé
+                                  par{" "}
+                                  {
+                                    qbPick.actualQbName
+                                  }
+                                </div>
+                              )}
+                          </div>
 
                           <strong
                             style={{
+                              flexShrink: 0,
+
                               color:
-                                row.rating !=
+                                qbPick.rating !=
                                 null
                                   ? "#22c55e"
-                                  : "#64748b",
-                              fontSize:
-                                18,
+                                  : "#94a3b8",
+
+                              fontSize: 23,
                             }}
                           >
-                            {row.rating !=
+                            {qbPick.rating !=
                             null
-                              ? row.rating.toFixed(
+                              ? qbPick.rating.toFixed(
                                   1
                                 )
                               : "--"}
                           </strong>
                         </div>
-                      )
-                    )
-                  )}
-                </section>
+                      </div>
+                    );
+                  }
+                )}
               </div>
-            </>
-          )}
+            )}
+          </section>
 
           {/* =================================================
-              INFO
+              RÉSUMÉ PERSONNEL PAR SEMAINE
               ================================================= */}
 
           <section
             className="card"
-            style={
-              isDesktop
-                ? {
-                    padding:
-                      "16px 20px",
-                  }
-                : undefined
-            }
+            style={{
+              margin: 0,
+            }}
           >
-            <p
+            <h2
               style={{
-                margin: 0,
-                color: "#94a3b8",
+                marginTop: 0,
+                marginBottom: 16,
               }}
             >
-              ⭐ Les statistiques se mettent à jour automatiquement après le calcul des scores.
-            </p>
+              📅 Mes semaines
+            </h2>
+
+            {stats.myWeeklyRows.length ===
+            0 ? (
+              <p
+                style={{
+                  marginBottom: 0,
+                  color: "#94a3b8",
+                }}
+              >
+                Aucun résultat hebdomadaire.
+              </p>
+            ) : (
+              <div
+                style={{
+                  display: "grid",
+
+                  gridTemplateColumns:
+                    isDesktop
+                      ? "repeat(4, minmax(0, 1fr))"
+                      : "repeat(2, minmax(0, 1fr))",
+
+                  gap: 12,
+                }}
+              >
+                {stats.myWeeklyRows.map(
+                  (weekRow) => (
+                    <div
+                      key={
+                        weekRow.id ||
+                        `${weekRow.user_id}-${weekRow.week}`
+                      }
+                      style={{
+                        padding: 16,
+
+                        borderRadius: 18,
+
+                        background:
+                          "rgba(15,23,42,0.72)",
+
+                        border:
+                          "1px solid rgba(148,163,184,0.14)",
+                      }}
+                    >
+                      <span
+                        style={{
+                          display: "block",
+
+                          color:
+                            "#94a3b8",
+
+                          fontSize: 12,
+
+                          marginBottom: 5,
+                        }}
+                      >
+                        Semaine{" "}
+                        {weekRow.week}
+                      </span>
+
+                      <strong
+                        style={{
+                          display: "block",
+
+                          color:
+                            "#22c55e",
+
+                          fontSize: 24,
+                        }}
+                      >
+                        {weekRow.score.toFixed(
+                          3
+                        )}
+                      </strong>
+                    </div>
+                  )
+                )}
+              </div>
+            )}
           </section>
-        </>
+        </div>
       )}
 
       <BottomNav />
