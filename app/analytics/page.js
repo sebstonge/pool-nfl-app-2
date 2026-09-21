@@ -1998,8 +1998,13 @@ export default function AnalyticsPage() {
                   )}
                 </div>
               )}
-            </section>
+                        </section>
           </div>
+
+          {/* =================================================
+              FIN DES SECTIONS STATS
+              ================================================= */}
+        </div>
       )}
 
       <BottomNav />
