@@ -1659,121 +1659,128 @@ export default function AnalyticsPage() {
           />
 
           {/* =================================================
-              MES QB UTILISÉS
+              MES QB UTILISÉS + MES SEMAINES
               ================================================= */}
 
-          <section
-            className="card"
+          <div
             style={{
-              margin: 0,
+              display: "grid",
+
+              gridTemplateColumns:
+                isDesktop
+                  ? "repeat(2, minmax(0, 1fr))"
+                  : "1fr",
+
+              gap: isDesktop
+                ? 18
+                : 16,
+
+              alignItems: "stretch",
             }}
           >
-            <h2
+            {/* ===============================================
+                MES QB UTILISÉS
+                =============================================== */}
+
+            <section
+              className="card"
               style={{
-                marginTop: 0,
-                marginBottom: 16,
+                margin: 0,
+                height: "100%",
+                boxSizing: "border-box",
               }}
             >
-              🏈 Mes QB utilisés
-            </h2>
-
-            {stats.myQbPicks.length ===
-            0 ? (
-              <p
+              <h2
                 style={{
-                  marginBottom: 0,
-                  color: "#94a3b8",
+                  marginTop: 0,
+                  marginBottom: 16,
                 }}
               >
-                Aucun QB utilisé.
-              </p>
-            ) : (
-              <div
-                style={{
-                  display: "grid",
+                🏈 Mes QB utilisés
+              </h2>
 
-                  gridTemplateColumns:
-                    isDesktop
-                      ? "repeat(3, minmax(0, 1fr))"
-                      : "1fr",
+              {stats.myQbPicks.length === 0 ? (
+                <p
+                  style={{
+                    marginBottom: 0,
+                    color: "#94a3b8",
+                  }}
+                >
+                  Aucun QB utilisé.
+                </p>
+              ) : (
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                  }}
+                >
+                  {stats.myQbPicks.map(
+                    (qbPick, index) => {
+                      const team =
+                        teams.find(
+                          (teamRow) =>
+                            teamRow.name
+                              ?.toLowerCase()
+                              .trim() ===
+                            qbPick.team
+                              ?.toLowerCase()
+                              .trim()
+                        );
 
-                  gap: 12,
-                }}
-              >
-                {stats.myQbPicks.map(
-                  (qbPick) => {
-                    const team =
-                      teams.find(
-                        (teamRow) =>
-                          teamRow.name
-                            ?.toLowerCase()
-                            .trim() ===
-                          qbPick.team
-                            ?.toLowerCase()
-                            .trim()
-                      );
+                      const teamLogo =
+                        team?.espn_abbr
+                          ? `https://a.espncdn.com/i/teamlogos/nfl/500/${team.espn_abbr.toLowerCase()}.png`
+                          : team?.logo ||
+                            null;
 
-                    const teamLogo =
-                      team?.espn_abbr
-                        ? `https://a.espncdn.com/i/teamlogos/nfl/500/${team.espn_abbr.toLowerCase()}.png`
-                        : team?.logo ||
-                          null;
-
-                    return (
-                      <div
-                        key={`${qbPick.week}-${qbPick.qbName}`}
-                        style={{
-                          padding: 16,
-
-                          borderRadius: 18,
-
-                          background:
-                            "rgba(15,23,42,0.72)",
-
-                          border:
-                            "1px solid rgba(148,163,184,0.14)",
-                        }}
-                      >
+                      return (
                         <div
+                          key={`${qbPick.week}-${qbPick.qbName}`}
                           style={{
-                            display:
-                              "flex",
+                            display: "grid",
 
-                            alignItems:
-                              "center",
+                            gridTemplateColumns:
+                              "82px minmax(0, 1fr) auto",
 
-                            justifyContent:
-                              "space-between",
+                            gap: 14,
 
-                            gap: 12,
+                            alignItems: "center",
+
+                            padding:
+                              "13px 0",
+
+                            borderBottom:
+                              index ===
+                              stats.myQbPicks.length -
+                                1
+                                ? "none"
+                                : "1px solid rgba(148,163,184,0.12)",
                           }}
                         >
+                          {/* SEMAINE */}
+
+                          <span
+                            style={{
+                              color:
+                                "#94a3b8",
+
+                              fontSize: 13,
+
+                              fontWeight: 700,
+                            }}
+                          >
+                            Semaine{" "}
+                            {qbPick.week}
+                          </span>
+
+                          {/* QB */}
+
                           <div
                             style={{
                               minWidth: 0,
                             }}
                           >
-                            <span
-                              style={{
-                                display:
-                                  "block",
-
-                                color:
-                                  "#94a3b8",
-
-                                fontSize:
-                                  12,
-
-                                marginBottom:
-                                  5,
-                              }}
-                            >
-                              Semaine{" "}
-                              {
-                                qbPick.week
-                              }
-                            </span>
-
                             <div
                               style={{
                                 display:
@@ -1783,6 +1790,8 @@ export default function AnalyticsPage() {
                                   "center",
 
                                 gap: 8,
+
+                                minWidth: 0,
                               }}
                             >
                               <strong
@@ -1791,7 +1800,10 @@ export default function AnalyticsPage() {
                                     "#f8fafc",
 
                                   fontSize:
-                                    17,
+                                    16,
+
+                                  lineHeight:
+                                    1.15,
                                 }}
                               >
                                 {
@@ -1808,14 +1820,13 @@ export default function AnalyticsPage() {
                                     qbPick.team
                                   }
                                   style={{
-                                    width:
-                                      30,
-
-                                    height:
-                                      30,
+                                    width: 26,
+                                    height: 26,
 
                                     objectFit:
                                       "contain",
+
+                                    flexShrink: 0,
                                   }}
                                 />
                               )}
@@ -1827,17 +1838,16 @@ export default function AnalyticsPage() {
                                 <div
                                   style={{
                                     marginTop:
-                                      5,
+                                      3,
 
                                     color:
                                       "#94a3b8",
 
                                     fontSize:
-                                      12,
+                                      11,
                                   }}
                                 >
-                                  Remplacé
-                                  par{" "}
+                                  Remplacé par{" "}
                                   {
                                     qbPick.actualQbName
                                   }
@@ -1845,17 +1855,22 @@ export default function AnalyticsPage() {
                               )}
                           </div>
 
+                          {/* RATING */}
+
                           <strong
                             style={{
-                              flexShrink: 0,
-
                               color:
                                 qbPick.rating !=
                                 null
                                   ? "#22c55e"
                                   : "#94a3b8",
 
-                              fontSize: 23,
+                              fontSize: 20,
+
+                              flexShrink: 0,
+
+                              textAlign:
+                                "right",
                             }}
                           >
                             {qbPick.rating !=
@@ -1866,112 +1881,125 @@ export default function AnalyticsPage() {
                               : "--"}
                           </strong>
                         </div>
-                      </div>
-                    );
-                  }
-                )}
-              </div>
-            )}
-          </section>
+                      );
+                    }
+                  )}
+                </div>
+              )}
+            </section>
 
-          {/* =================================================
-              RÉSUMÉ PERSONNEL PAR SEMAINE
-              ================================================= */}
+            {/* ===============================================
+                MES SEMAINES
+                =============================================== */}
 
-          <section
-            className="card"
-            style={{
-              margin: 0,
-            }}
-          >
-            <h2
+            <section
+              className="card"
               style={{
-                marginTop: 0,
-                marginBottom: 16,
+                margin: 0,
+                height: "100%",
+                boxSizing: "border-box",
               }}
             >
-              📅 Mes semaines
-            </h2>
-
-            {stats.myWeeklyRows.length ===
-            0 ? (
-              <p
+              <h2
                 style={{
-                  marginBottom: 0,
-                  color: "#94a3b8",
+                  marginTop: 0,
+                  marginBottom: 16,
                 }}
               >
-                Aucun résultat hebdomadaire.
-              </p>
-            ) : (
-              <div
-                style={{
-                  display: "grid",
+                📅 Mes semaines
+              </h2>
 
-                  gridTemplateColumns:
-                    isDesktop
-                      ? "repeat(4, minmax(0, 1fr))"
-                      : "repeat(2, minmax(0, 1fr))",
-
-                  gap: 12,
-                }}
-              >
-                {stats.myWeeklyRows.map(
-                  (weekRow) => (
-                    <div
-                      key={
-                        weekRow.id ||
-                        `${weekRow.user_id}-${weekRow.week}`
-                      }
-                      style={{
-                        padding: 16,
-
-                        borderRadius: 18,
-
-                        background:
-                          "rgba(15,23,42,0.72)",
-
-                        border:
-                          "1px solid rgba(148,163,184,0.14)",
-                      }}
-                    >
-                      <span
+              {stats.myWeeklyRows.length ===
+              0 ? (
+                <p
+                  style={{
+                    marginBottom: 0,
+                    color: "#94a3b8",
+                  }}
+                >
+                  Aucun résultat hebdomadaire.
+                </p>
+              ) : (
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                  }}
+                >
+                  {stats.myWeeklyRows.map(
+                    (
+                      weekRow,
+                      index
+                    ) => (
+                      <div
+                        key={
+                          weekRow.id ||
+                          `${weekRow.user_id}-${weekRow.week}`
+                        }
                         style={{
-                          display: "block",
+                          display:
+                            "flex",
 
-                          color:
-                            "#94a3b8",
+                          alignItems:
+                            "center",
 
-                          fontSize: 12,
+                          justifyContent:
+                            "space-between",
 
-                          marginBottom: 5,
+                          gap: 16,
+
+                          padding:
+                            "13px 0",
+
+                          borderBottom:
+                            index ===
+                            stats
+                              .myWeeklyRows
+                              .length -
+                              1
+                              ? "none"
+                              : "1px solid rgba(148,163,184,0.12)",
                         }}
                       >
-                        Semaine{" "}
-                        {weekRow.week}
-                      </span>
+                        <span
+                          style={{
+                            color:
+                              "#94a3b8",
 
-                      <strong
-                        style={{
-                          display: "block",
+                            fontSize:
+                              13,
 
-                          color:
-                            "#22c55e",
+                            fontWeight:
+                              700,
+                          }}
+                        >
+                          Semaine{" "}
+                          {weekRow.week}
+                        </span>
 
-                          fontSize: 24,
-                        }}
-                      >
-                        {weekRow.score.toFixed(
-                          3
-                        )}
-                      </strong>
-                    </div>
-                  )
-                )}
-              </div>
-            )}
-          </section>
-        </div>
+                        <strong
+                          style={{
+                            color:
+                              "#22c55e",
+
+                            fontSize:
+                              20,
+
+                            textAlign:
+                              "right",
+                          }}
+                        >
+                          {weekRow.score.toFixed(
+                            3
+                          )}
+                        </strong>
+                      </div>
+                    )
+                  )}
+                </div>
+              )}
+            </section>
+          </div>
       )}
 
       <BottomNav />
