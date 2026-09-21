@@ -2480,32 +2480,241 @@ export default function Matchs() {
 
     /* =========================================================
        QB DÉJÀ UTILISÉS PAR CE JOUEUR
+       =========================================================
+
+       NOUVELLE RÈGLE :
+
+       Un QB sélectionné est considéré comme utilisé
+       seulement s'il a réellement joué.
+
+       Exemple :
+
+       - Sam Darnold sélectionné
+       - Drew Lock joue à sa place
+       - qb_ratings conserve qb_id = Darnold
+       - actual_espn_athlete_id = Drew Lock
+
+       Résultat :
+       Darnold n'est PAS consommé et pourra être
+       sélectionné de nouveau plus tard.
+
+       Le remplaçant automatique n'est pas consommé
+       non plus puisqu'il n'a jamais été sélectionné.
+
+       Tant qu'un ancien choix n'a pas encore de
+       qb_ratings officiel, on le considère utilisé
+       par sécurité.
        ========================================================= */
 
-      const {
-      data:
-        qbHistoryData,
-      error:
-        qbHistoryError,
+    const {
+      data: previousQbPicksData,
+      error: previousQbPicksError,
     } =
       await supabase
-        .from(
-          "qb_history"
-        )
-        .select(
-          "qb_id"
-        )
+        .from("qb_picks")
+        .select(`
+          qb_id,
+          week,
+          qbs (
+            id,
+            name,
+            espn_athlete_id
+          )
+        `)
         .eq(
           "user_id",
           currentUser.id
+        )
+        .lt(
+          "week",
+          week
         );
 
+    if (
+      previousQbPicksError
+    ) {
+      console.error(
+        "Erreur chargement anciens choix QB :",
+        previousQbPicksError.message
+      );
+    }
+
+    const previousQbPicks =
+      previousQbPicksData || [];
+
+    /*
+     * On récupère les résultats officiels
+     * correspondant aux anciens choix du joueur.
+     */
+    const previousQbIds =
+      previousQbPicks
+        .map(
+          (pick) =>
+            pick.qb_id
+        )
+        .filter(Boolean);
+
+    let previousRatings =
+      [];
+
+    if (
+      previousQbIds.length >
+      0
+    ) {
+      const {
+        data: previousRatingsData,
+        error: previousRatingsError,
+      } =
+        await supabase
+          .from("qb_ratings")
+          .select(`
+            qb_id,
+            week,
+            actual_espn_athlete_id,
+            actual_qb_name,
+            passer_rating
+          `)
+          .in(
+            "qb_id",
+            previousQbIds
+          );
+
+      if (
+        previousRatingsError
+      ) {
+        console.error(
+          "Erreur chargement anciens ratings QB :",
+          previousRatingsError.message
+        );
+      }
+
+      previousRatings =
+        previousRatingsData || [];
+    }
+
+    /*
+     * Ensemble final des QB réellement consommés.
+     */
+    const usedQbIds =
+      new Set();
+
+    previousQbPicks.forEach(
+      (pick) => {
+        const selectedQb =
+          pick.qbs;
+
+        if (
+          !pick.qb_id ||
+          !selectedQb
+        ) {
+          return;
+        }
+
+        /*
+         * On retrouve le rating du même QB
+         * ET de la même semaine.
+         */
+        const officialRating =
+          previousRatings.find(
+            (rating) =>
+              rating.qb_id ===
+                pick.qb_id &&
+              Number(
+                rating.week
+              ) ===
+                Number(
+                  pick.week
+                )
+          );
+
+        /*
+         * Aucun résultat officiel encore disponible :
+         *
+         * par sécurité, le QB demeure consommé
+         * jusqu'à ce que son résultat soit connu.
+         */
+        if (
+          !officialRating
+        ) {
+          usedQbIds.add(
+            pick.qb_id
+          );
+
+          return;
+        }
+
+        const selectedAthleteId =
+          selectedQb
+            .espn_athlete_id
+            ? String(
+                selectedQb
+                  .espn_athlete_id
+              )
+            : null;
+
+        const actualAthleteId =
+          officialRating
+            .actual_espn_athlete_id
+            ? String(
+                officialRating
+                  .actual_espn_athlete_id
+              )
+            : null;
+
+        /*
+         * Si aucun actual ESPN ID n'est disponible,
+         * on conserve le comportement sécuritaire :
+         * le QB sélectionné est considéré utilisé.
+         */
+        if (
+          !selectedAthleteId ||
+          !actualAthleteId
+        ) {
+          usedQbIds.add(
+            pick.qb_id
+          );
+
+          return;
+        }
+
+        /*
+         * Même athlete ID :
+         *
+         * le QB sélectionné a réellement joué.
+         * Il est donc consommé pour la saison.
+         */
+        if (
+          selectedAthleteId ===
+          actualAthleteId
+        ) {
+          usedQbIds.add(
+            pick.qb_id
+          );
+        }
+
+        /*
+         * Athlete ID différent :
+         *
+         * remplacement automatique.
+         *
+         * Le QB sélectionné n'est PAS ajouté
+         * à usedQbIds.
+         *
+         * Le remplaçant n'est PAS ajouté non plus.
+         */
+      }
+    );
+
+    /*
+     * Sert uniquement à l'affichage
+     * "QB déjà utilisés".
+     *
+     * Cette liste respecte donc exactement
+     * la même règle que le menu de disponibilité.
+     */
     const usedQbIdList =
-      (
-        qbHistoryData || []
-      ).map(
-        (row) =>
-          row.qb_id
+      Array.from(
+        usedQbIds
       );
 
     setUsedQbs(
@@ -2518,25 +2727,6 @@ export default function Matchs() {
           )
       )
     );
-    if (
-      qbHistoryError
-    ) {
-      console.error(
-        "Erreur historique QB :",
-        qbHistoryError.message
-      );
-    }
-
-    const usedQbIds =
-      new Set(
-        (
-          qbHistoryData ||
-          []
-        ).map(
-          (row) =>
-            row.qb_id
-        )
-      );
 
     /* =========================================================
        ÉQUIPES QUI JOUENT CETTE SEMAINE
@@ -3376,31 +3566,6 @@ const liveQbData =
 
           return;
         }
-
-        const {
-          error:
-            historyError,
-        } =
-          await supabase
-            .from(
-              "qb_history"
-            )
-            .insert({
-              user_id:
-                user.id,
-
-              qb_id:
-                selectedQbId,
-            });
-
-        if (
-          historyError
-        ) {
-          console.error(
-            "Erreur historique QB :",
-            historyError.message
-          );
-        }
       }
 
       /*
@@ -3474,7 +3639,6 @@ const liveQbData =
        * La soumission est maintenant complète :
        *
        * - QB enregistré
-       * - historique QB enregistré
        * - tous les choix de matchs enregistrés
        *
        * On peut donc demander au serveur
