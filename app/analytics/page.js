@@ -233,18 +233,13 @@ function QBRecordCard({
       style={{
         padding: isDesktop
           ? "18px 20px"
-          : 18,
-
+          : 16,
         borderRadius: 22,
-
         background:
           "rgba(15,23,42,0.82)",
-
         border:
           "1px solid rgba(148,163,184,0.16)",
-
         minWidth: 0,
-
         overflow: "hidden",
       }}
     >
@@ -255,47 +250,6 @@ function QBRecordCard({
               display: "flex",
               alignItems: "center",
               gap: 10,
-            }}
-          >
-            <span
-              style={{
-                fontSize: 28,
-              }}
-            >
-              {icon}
-            </span>
-
-            <strong
-              style={{
-                color: "#cbd5e1",
-                fontSize: 17,
-              }}
-            >
-              {title}
-            </strong>
-          </div>
-
-          <p
-            style={{
-              color: "#94a3b8",
-              marginBottom: 0,
-            }}
-          >
-            Aucune donnée
-          </p>
-        </>
-      ) : isDesktop ? (
-        <>
-          {/* =================================================
-              TITRE
-              ================================================= */}
-
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              marginBottom: 14,
             }}
           >
             <span
@@ -318,8 +272,63 @@ function QBRecordCard({
             </strong>
           </div>
 
+          <p
+            style={{
+              color: "#94a3b8",
+              marginBottom: 0,
+            }}
+          >
+            Aucune donnée
+          </p>
+        </>
+      ) : (
+        <>
           {/* =================================================
-              PHOTO | QB | CHOISI PAR
+              TITRE
+              ================================================= */}
+
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              marginBottom:
+                isDesktop
+                  ? 14
+                  : 16,
+            }}
+          >
+            <span
+              style={{
+                fontSize:
+                  isDesktop
+                    ? 28
+                    : 26,
+                lineHeight: 1,
+              }}
+            >
+              {icon}
+            </span>
+
+            <strong
+              style={{
+                color: "#cbd5e1",
+                fontSize: 16,
+                fontWeight: 800,
+              }}
+            >
+              {title}
+            </strong>
+          </div>
+
+          {/* =================================================
+              PHOTO + INFORMATIONS QB
+
+              La photo et le bloc texte ont exactement
+              la même hauteur.
+
+              Haut photo = haut du nom
+              Bas photo = bas de "Semaine X"
               ================================================= */}
 
           <div
@@ -327,29 +336,29 @@ function QBRecordCard({
               display: "grid",
 
               gridTemplateColumns:
-                "125px minmax(0, 1fr) 155px",
+                isDesktop
+                  ? "125px minmax(0, 1fr)"
+                  : "92px minmax(0, 1fr)",
 
-              gap: 16,
+              gap:
+                isDesktop
+                  ? 16
+                  : 14,
 
-              alignItems: "center",
-
-              minHeight: 140,
+              alignItems: "stretch",
             }}
           >
             {/* =================================================
-                PHOTO QB
+                PHOTO
                 ================================================= */}
 
             <div
               style={{
-                height: 140,
-
-                display: "flex",
-
-                alignItems: "flex-end",
-
-                justifyContent: "center",
-
+                position: "relative",
+                minHeight:
+                  isDesktop
+                    ? 118
+                    : 108,
                 overflow: "hidden",
               }}
             >
@@ -358,14 +367,16 @@ function QBRecordCard({
                   src={qbHeadshot}
                   alt={qb.name}
                   style={{
-                    width: 125,
+                    position: "absolute",
+                    inset: 0,
 
-                    height: 140,
+                    width: "100%",
+                    height: "100%",
 
                     objectFit: "contain",
 
                     objectPosition:
-                      "center bottom",
+                      "center center",
 
                     display: "block",
                   }}
@@ -373,26 +384,26 @@ function QBRecordCard({
               ) : (
                 <div
                   style={{
-                    width: 115,
+                    position: "absolute",
+                    inset: 0,
 
-                    height: 125,
-
-                    borderRadius: 18,
+                    borderRadius: 16,
 
                     background:
                       "rgba(148,163,184,0.12)",
 
                     display: "flex",
-
                     alignItems: "center",
-
                     justifyContent: "center",
 
                     color: "#94a3b8",
 
                     fontWeight: 900,
 
-                    fontSize: 22,
+                    fontSize:
+                      isDesktop
+                        ? 22
+                        : 18,
                   }}
                 >
                   QB
@@ -401,12 +412,18 @@ function QBRecordCard({
             </div>
 
             {/* =================================================
-                QB + RATING + SEMAINE
+                NOM + LOGO + RATING + SEMAINE
                 ================================================= */}
 
             <div
               style={{
                 minWidth: 0,
+
+                display: "flex",
+                flexDirection: "column",
+
+                justifyContent:
+                  "space-between",
               }}
             >
               <div
@@ -415,7 +432,10 @@ function QBRecordCard({
 
                   alignItems: "center",
 
-                  gap: 9,
+                  gap:
+                    isDesktop
+                      ? 9
+                      : 7,
 
                   minWidth: 0,
                 }}
@@ -424,7 +444,10 @@ function QBRecordCard({
                   style={{
                     color: "#f8fafc",
 
-                    fontSize: 20,
+                    fontSize:
+                      isDesktop
+                        ? 20
+                        : 18,
 
                     lineHeight: 1.08,
 
@@ -441,11 +464,18 @@ function QBRecordCard({
                     src={logo}
                     alt={qb.team}
                     style={{
-                      width: 38,
+                      width:
+                        isDesktop
+                          ? 38
+                          : 30,
 
-                      height: 38,
+                      height:
+                        isDesktop
+                          ? 38
+                          : 30,
 
-                      objectFit: "contain",
+                      objectFit:
+                        "contain",
 
                       flexShrink: 0,
                     }}
@@ -455,11 +485,12 @@ function QBRecordCard({
 
               <div
                 style={{
-                  marginTop: 9,
-
                   color,
 
-                  fontSize: 36,
+                  fontSize:
+                    isDesktop
+                      ? 36
+                      : 32,
 
                   lineHeight: 1,
 
@@ -471,11 +502,14 @@ function QBRecordCard({
 
               <div
                 style={{
-                  marginTop: 8,
-
                   color: "#94a3b8",
 
-                  fontSize: 15,
+                  fontSize:
+                    isDesktop
+                      ? 15
+                      : 14,
+
+                  lineHeight: 1.1,
 
                   fontWeight: 700,
                 }}
@@ -483,230 +517,26 @@ function QBRecordCard({
                 Semaine {qb.week}
               </div>
             </div>
-
-            {/* =================================================
-                CHOISI PAR
-                ================================================= */}
-
-            <div
-              style={{
-                minWidth: 0,
-
-                paddingLeft: 16,
-
-                borderLeft:
-                  "1px solid rgba(148,163,184,0.20)",
-              }}
-            >
-              <span
-                style={{
-                  display: "block",
-
-                  color: "#94a3b8",
-
-                  fontSize: 13,
-
-                  marginBottom: 5,
-                }}
-              >
-                Choisi par
-              </span>
-
-              <PlayerIdentity
-                name={qb.selectedBy}
-                realName={
-                  qb.selectedByRealName
-                }
-                compact
-              />
-            </div>
           </div>
-        </>
-      ) : (
-        <>
+
           {/* =================================================
-              MOBILE
+              CHOISI PAR
               ================================================= */}
 
           <div
             style={{
-              display: "flex",
+              marginTop:
+                isDesktop
+                  ? 14
+                  : 13,
 
-              alignItems: "center",
-
-              gap: 10,
-
-              marginBottom: 14,
-            }}
-          >
-            <span
-              style={{
-                fontSize: 28,
-              }}
-            >
-              {icon}
-            </span>
-
-            <strong
-              style={{
-                color: "#cbd5e1",
-
-                fontWeight: 800,
-              }}
-            >
-              {title}
-            </strong>
-          </div>
-
-          <div
-            style={{
-              display: "grid",
-
-              gridTemplateColumns:
-                "100px minmax(0,1fr)",
-
-              gap: 14,
-
-              alignItems: "center",
-            }}
-          >
-            <div
-              style={{
-                height: 115,
-
-                display: "flex",
-
-                alignItems: "flex-end",
-
-                justifyContent: "center",
-
-                overflow: "hidden",
-              }}
-            >
-              {qbHeadshot ? (
-                <img
-                  src={qbHeadshot}
-                  alt={qb.name}
-                  style={{
-                    width: 100,
-
-                    height: 115,
-
-                    objectFit: "contain",
-
-                    objectPosition:
-                      "center bottom",
-
-                    display: "block",
-                  }}
-                />
-              ) : (
-                <div
-                  style={{
-                    width: 90,
-
-                    height: 100,
-
-                    borderRadius: 18,
-
-                    background:
-                      "rgba(148,163,184,0.12)",
-
-                    display: "flex",
-
-                    alignItems: "center",
-
-                    justifyContent: "center",
-
-                    color: "#94a3b8",
-
-                    fontWeight: 900,
-                  }}
-                >
-                  QB
-                </div>
-              )}
-            </div>
-
-            <div
-              style={{
-                minWidth: 0,
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-
-                  alignItems: "center",
-
-                  gap: 8,
-
-                  flexWrap: "wrap",
-                }}
-              >
-                <strong
-                  style={{
-                    color: "#f8fafc",
-
-                    fontSize: 19,
-
-                    fontWeight: 900,
-                  }}
-                >
-                  {qb.name}
-                </strong>
-
-                {logo && (
-                  <img
-                    src={logo}
-                    alt={qb.team}
-                    style={{
-                      width: 32,
-
-                      height: 32,
-
-                      objectFit: "contain",
-                    }}
-                  />
-                )}
-              </div>
-
-              <div
-                style={{
-                  marginTop: 7,
-
-                  color,
-
-                  fontSize: 32,
-
-                  lineHeight: 1,
-
-                  fontWeight: 900,
-                }}
-              >
-                {qb.rating.toFixed(1)}
-              </div>
-
-              <div
-                style={{
-                  marginTop: 8,
-
-                  color: "#94a3b8",
-                }}
-              >
-                Semaine {qb.week}
-              </div>
-            </div>
-          </div>
-
-          <div
-            style={{
-              marginTop: 12,
-
-              paddingTop: 10,
+              paddingTop:
+                isDesktop
+                  ? 12
+                  : 11,
 
               borderTop:
-                "1px solid rgba(148,163,184,0.12)",
+                "1px solid rgba(148,163,184,0.14)",
             }}
           >
             <span
