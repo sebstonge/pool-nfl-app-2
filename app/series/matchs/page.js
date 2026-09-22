@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase } from "../../lib/supabase";
-import BottomNav from "../components/BottomNav";
+import { supabase } from "../../../lib/supabase";
+import BottomNav from "../../components/BottomNav";
 
 /* =========================================================
    ORDRE OFFICIEL — SEMAINE 1
