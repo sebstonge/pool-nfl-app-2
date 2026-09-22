@@ -3820,7 +3820,7 @@ const liveQbData =
       >
         {/* ================= QB ================= */}
 
-        <        <section
+   <section
           className="card"
           style={{
             marginBottom: 0,
