@@ -3746,6 +3746,30 @@ const liveQbData =
     );
 
   /* =========================================================
+     ÉQUIPES ADMISSIBLES — PRÉDICTION SUPER BOWL
+     =========================================================
+     
+     Pour la ronde actuellement affichée, on construit
+     automatiquement la liste à partir des matchs chargés.
+     
+     Une équipe apparaît une seule fois même si les données
+     contiennent accidentellement plusieurs références.
+     ========================================================= */
+
+  const playoffTeams = Array.from(
+    new Set(
+      games
+        .flatMap((game) => [
+          game.away_team,
+          game.home_team,
+        ])
+        .filter(Boolean)
+    )
+  ).sort((a, b) =>
+    String(a).localeCompare(String(b))
+  );
+
+  /* =========================================================
      RENDER
      ========================================================= */
 
@@ -5975,33 +5999,18 @@ const liveQbData =
               outline: "none",
             }}
           >
-            <option value="">
+                       <option value="">
               Choisir une équipe
             </option>
 
-            <option value="BUF">
-              Buffalo Bills
-            </option>
-
-            <option value="BAL">
-              Baltimore Ravens
-            </option>
-
-            <option value="KC">
-              Kansas City Chiefs
-            </option>
-
-            <option value="PHI">
-              Philadelphia Eagles
-            </option>
-
-            <option value="GB">
-              Green Bay Packers
-            </option>
-
-            <option value="DET">
-              Detroit Lions
-            </option>
+            {playoffTeams.map((team) => (
+              <option
+                key={team}
+                value={team}
+              >
+                {team}
+              </option>
+            ))}
           </select>
 
           {superBowlPrediction && (
