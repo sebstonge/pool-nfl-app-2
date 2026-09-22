@@ -1706,7 +1706,18 @@ export default function Matchs() {
     currentWeek,
     setCurrentWeek,
   ] = useState(null);
+  /* =========================================================
+     PRÉDICTION SUPER BOWL — SÉRIES
+     ========================================================= */
 
+  const [
+    superBowlPrediction,
+    setSuperBowlPrediction,
+  ] = useState("");
+
+  /* =========================================================
+     FIN PRÉDICTION SUPER BOWL — SÉRIES
+     ========================================================= */
   /*
    * Matchs DU POOL seulement.
    */
@@ -5916,6 +5927,114 @@ const liveQbData =
           </>
         )}
       </section>
+      {/* =========================================================
+          PRÉDICTION SUPER BOWL
+          ========================================================= */}
+
+      {!existingQbPick && (
+        <section className="card">
+          <h2
+            style={{
+              color: "#22c55e",
+              marginTop: 0,
+              marginBottom: 8,
+            }}
+          >
+            2. Prédiction Super Bowl 🏆
+          </h2>
+
+          <p
+            style={{
+              color: "#94a3b8",
+              marginTop: 0,
+              marginBottom: 18,
+              lineHeight: 1.5,
+            }}
+          >
+            Choisis l&apos;équipe que tu prédis gagnante du Super Bowl.
+          </p>
+
+          <select
+            value={superBowlPrediction}
+            onChange={(e) =>
+              setSuperBowlPrediction(e.target.value)
+            }
+            style={{
+              width: "100%",
+              minHeight: 52,
+              padding: "0 16px",
+              borderRadius: 14,
+              border:
+                "1px solid rgba(148,163,184,0.20)",
+              background: "rgba(2,6,23,0.75)",
+              color: superBowlPrediction
+                ? "#f8fafc"
+                : "#94a3b8",
+              fontSize: isMobile ? 16 : 17,
+              fontWeight: 800,
+              outline: "none",
+            }}
+          >
+            <option value="">
+              Choisir une équipe
+            </option>
+
+            <option value="BUF">
+              Buffalo Bills
+            </option>
+
+            <option value="BAL">
+              Baltimore Ravens
+            </option>
+
+            <option value="KC">
+              Kansas City Chiefs
+            </option>
+
+            <option value="PHI">
+              Philadelphia Eagles
+            </option>
+
+            <option value="GB">
+              Green Bay Packers
+            </option>
+
+            <option value="DET">
+              Detroit Lions
+            </option>
+          </select>
+
+          {superBowlPrediction && (
+            <div
+              style={{
+                marginTop: 16,
+                padding: "12px 14px",
+                borderRadius: 14,
+                background:
+                  "rgba(34,197,94,0.08)",
+                border:
+                  "1px solid rgba(34,197,94,0.20)",
+                color: "#cbd5e1",
+                fontSize: 14,
+                lineHeight: 1.5,
+              }}
+            >
+              🏆 Ta prédiction actuelle :{" "}
+              <strong
+                style={{
+                  color: "#f8fafc",
+                }}
+              >
+                {superBowlPrediction}
+              </strong>
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* =========================================================
+          FIN PRÉDICTION SUPER BOWL
+          ========================================================= */}
 
       {/* ================= MATCHS À CHOISIR ================= */}
 
@@ -5930,8 +6049,8 @@ const liveQbData =
                 : undefined,
             }}
           >
-            2. Choisis les matchs
-          </h2>
+3. Choisis les matchs
+   </h2>
 
           <div
             style={{
