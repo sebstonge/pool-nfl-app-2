@@ -2266,8 +2266,8 @@ export default function Matchs() {
       picksByGame
     );
 
-    /* =========================================================
-       QB DÉJÀ SOUMIS CETTE SEMAINE
+        /* =========================================================
+       QB DÉJÀ SOUMIS — RONDE DES SÉRIES
        ========================================================= */
 
     const {
@@ -2278,7 +2278,7 @@ export default function Matchs() {
     } =
       await supabase
         .from(
-          "qb_picks"
+          "playoff_qb_picks"
         )
         .select(`
           *,
@@ -2295,8 +2295,8 @@ export default function Matchs() {
           currentUser.id
         )
         .eq(
-          "week",
-          week
+          "round_id",
+          playoffRound.id
         )
         .maybeSingle();
 
@@ -2304,7 +2304,7 @@ export default function Matchs() {
       existingQbPickError
     ) {
       console.error(
-        "Erreur chargement QB soumis :",
+        "Erreur chargement QB soumis en séries :",
         existingQbPickError.message
       );
     }
@@ -2314,6 +2314,9 @@ export default function Matchs() {
         null
     );
 
+    /* =========================================================
+       FIN QB SOUMIS — SÉRIES
+       ========================================================= */
     /* =========================================================
        RATING OFFICIEL DU QB
        ========================================================= */
@@ -2499,282 +2502,80 @@ export default function Matchs() {
       averages
     );
 
+
     /* =========================================================
-       QB DÉJÀ PRIS CETTE SEMAINE
+       QB DÉJÀ UTILISÉS PAR CE JOUEUR — SÉRIES
+       =========================================================
+       
+       Wild Card = première ronde.
+       
+       Aucun QB utilisé pendant la saison régulière
+       ne compte ici.
+       
+       Pour les rondes suivantes, cette requête lira
+       uniquement les choix des rondes précédentes
+       dans playoff_qb_picks.
+       
+       La règle DNP / remplacement sera branchée
+       lorsque nous créerons les résultats QB Séries.
        ========================================================= */
 
     const {
       data:
-        takenQbsData,
+        previousPlayoffQbPicks,
       error:
-        takenQbsError,
+        previousPlayoffQbPicksError,
     } =
       await supabase
         .from(
-          "qb_picks"
+          "playoff_qb_picks"
         )
-        .select(
-          "qb_id"
-        )
-        .eq(
-          "week",
-          week
-        );
-
-    if (
-      takenQbsError
-    ) {
-      console.error(
-        "Erreur chargement QB pris :",
-        takenQbsError.message
-      );
-    }
-
-    const takenQbIds =
-      new Set(
-        (
-          takenQbsData ||
-          []
-        ).map(
-          (row) =>
-            row.qb_id
-        )
-      );
-
-    /* =========================================================
-       QB DÉJÀ UTILISÉS PAR CE JOUEUR
-       =========================================================
-
-       NOUVELLE RÈGLE :
-
-       Un QB sélectionné est considéré comme utilisé
-       seulement s'il a réellement joué.
-
-       Exemple :
-
-       - Sam Darnold sélectionné
-       - Drew Lock joue à sa place
-       - qb_ratings conserve qb_id = Darnold
-       - actual_espn_athlete_id = Drew Lock
-
-       Résultat :
-       Darnold n'est PAS consommé et pourra être
-       sélectionné de nouveau plus tard.
-
-       Le remplaçant automatique n'est pas consommé
-       non plus puisqu'il n'a jamais été sélectionné.
-
-       Tant qu'un ancien choix n'a pas encore de
-       qb_ratings officiel, on le considère utilisé
-       par sécurité.
-       ========================================================= */
-
-    const {
-      data: previousQbPicksData,
-      error: previousQbPicksError,
-    } =
-      await supabase
-        .from("qb_picks")
         .select(`
           qb_id,
-          week,
-          qbs (
-            id,
-            name,
-            espn_athlete_id
+          round_id,
+          playoff_rounds (
+            round_order
           )
         `)
         .eq(
           "user_id",
           currentUser.id
-        )
-        .lt(
-          "week",
-          week
         );
 
     if (
-      previousQbPicksError
+      previousPlayoffQbPicksError
     ) {
       console.error(
-        "Erreur chargement anciens choix QB :",
-        previousQbPicksError.message
+        "Erreur chargement anciens QB des séries :",
+        previousPlayoffQbPicksError.message
       );
     }
 
-    const previousQbPicks =
-      previousQbPicksData || [];
-
-    /*
-     * On récupère les résultats officiels
-     * correspondant aux anciens choix du joueur.
-     */
-    const previousQbIds =
-      previousQbPicks
-        .map(
-          (pick) =>
-            pick.qb_id
-        )
-        .filter(Boolean);
-
-    let previousRatings =
-      [];
-
-    if (
-      previousQbIds.length >
-      0
-    ) {
-      const {
-        data: previousRatingsData,
-        error: previousRatingsError,
-      } =
-        await supabase
-          .from("qb_ratings")
-          .select(`
-            qb_id,
-            week,
-            actual_espn_athlete_id,
-            actual_qb_name,
-            passer_rating
-          `)
-          .in(
-            "qb_id",
-            previousQbIds
-          );
-
-      if (
-        previousRatingsError
-      ) {
-        console.error(
-          "Erreur chargement anciens ratings QB :",
-          previousRatingsError.message
-        );
-      }
-
-      previousRatings =
-        previousRatingsData || [];
-    }
-
-    /*
-     * Ensemble final des QB réellement consommés.
-     */
     const usedQbIds =
-      new Set();
-
-    previousQbPicks.forEach(
-      (pick) => {
-        const selectedQb =
-          pick.qbs;
-
-        if (
-          !pick.qb_id ||
-          !selectedQb
-        ) {
-          return;
-        }
-
-        /*
-         * On retrouve le rating du même QB
-         * ET de la même semaine.
-         */
-        const officialRating =
-          previousRatings.find(
-            (rating) =>
-              rating.qb_id ===
-                pick.qb_id &&
+      new Set(
+        (
+          previousPlayoffQbPicks ||
+          []
+        )
+          .filter(
+            (pick) =>
               Number(
-                rating.week
-              ) ===
-                Number(
-                  pick.week
-                )
-          );
-
-        /*
-         * Aucun résultat officiel encore disponible :
-         *
-         * par sécurité, le QB demeure consommé
-         * jusqu'à ce que son résultat soit connu.
-         */
-        if (
-          !officialRating
-        ) {
-          usedQbIds.add(
-            pick.qb_id
-          );
-
-          return;
-        }
-
-        const selectedAthleteId =
-          selectedQb
-            .espn_athlete_id
-            ? String(
-                selectedQb
-                  .espn_athlete_id
+                pick
+                  .playoff_rounds
+                  ?.round_order
+              ) <
+              Number(
+                playoffRound
+                  .round_order
               )
-            : null;
+          )
+          .map(
+            (pick) =>
+              pick.qb_id
+          )
+          .filter(Boolean)
+      );
 
-        const actualAthleteId =
-          officialRating
-            .actual_espn_athlete_id
-            ? String(
-                officialRating
-                  .actual_espn_athlete_id
-              )
-            : null;
-
-        /*
-         * Si aucun actual ESPN ID n'est disponible,
-         * on conserve le comportement sécuritaire :
-         * le QB sélectionné est considéré utilisé.
-         */
-        if (
-          !selectedAthleteId ||
-          !actualAthleteId
-        ) {
-          usedQbIds.add(
-            pick.qb_id
-          );
-
-          return;
-        }
-
-        /*
-         * Même athlete ID :
-         *
-         * le QB sélectionné a réellement joué.
-         * Il est donc consommé pour la saison.
-         */
-        if (
-          selectedAthleteId ===
-          actualAthleteId
-        ) {
-          usedQbIds.add(
-            pick.qb_id
-          );
-        }
-
-        /*
-         * Athlete ID différent :
-         *
-         * remplacement automatique.
-         *
-         * Le QB sélectionné n'est PAS ajouté
-         * à usedQbIds.
-         *
-         * Le remplaçant n'est PAS ajouté non plus.
-         */
-      }
-    );
-
-    /*
-     * Sert uniquement à l'affichage
-     * "QB déjà utilisés".
-     *
-     * Cette liste respecte donc exactement
-     * la même règle que le menu de disponibilité.
-     */
     const usedQbIdList =
       Array.from(
         usedQbIds
@@ -2791,6 +2592,9 @@ export default function Matchs() {
       )
     );
 
+    /* =========================================================
+       FIN QB UTILISÉS — SÉRIES
+       ========================================================= */
     /* =========================================================
        ÉQUIPES QUI JOUENT CETTE SEMAINE
        ========================================================= */
@@ -2839,10 +2643,18 @@ export default function Matchs() {
               )
             );
 
-          const alreadyTaken =
-            takenQbIds.has(
-              qb.id
-            );
+                  /* =====================================================
+             SÉRIES — DISPONIBILITÉ QB
+             =====================================================
+
+             Plusieurs joueurs peuvent sélectionner
+             le même QB pendant une même ronde.
+
+             La seule restriction individuelle est
+             qu'un joueur ne peut pas réutiliser un
+             QB qu'il a déjà consommé lors d'une
+             ronde précédente des séries.
+             ===================================================== */
 
           const alreadyUsed =
             usedQbIds.has(
@@ -2851,7 +2663,6 @@ export default function Matchs() {
 
           return (
             teamIsPlaying &&
-            !alreadyTaken &&
             !alreadyUsed
           );
         }
