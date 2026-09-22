@@ -2308,7 +2308,48 @@ export default function Matchs() {
     /* =========================================================
        FIN CHOIX DE MATCHS — SÉRIES
        ========================================================= */
+    /* =========================================================
+       PRÉDICTION SUPER BOWL DÉJÀ SOUMISE — SÉRIES
+       ========================================================= */
 
+    const {
+      data:
+        existingTeamPathData,
+      error:
+        existingTeamPathError,
+    } =
+      await supabase
+        .from(
+          "playoff_team_paths"
+        )
+        .select("*")
+        .eq(
+          "user_id",
+          currentUser.id
+        )
+        .eq(
+          "round_id",
+          playoffRound.id
+        )
+        .maybeSingle();
+
+    if (
+      existingTeamPathError
+    ) {
+      console.error(
+        "Erreur chargement prédiction Super Bowl :",
+        existingTeamPathError.message
+      );
+    }
+
+    setSuperBowlPrediction(
+      existingTeamPathData
+        ?.team || ""
+    );
+
+    /* =========================================================
+       FIN PRÉDICTION SUPER BOWL SOUMISE — SÉRIES
+       ========================================================= */
         /* =========================================================
        QB DÉJÀ SOUMIS — RONDE DES SÉRIES
        ========================================================= */
