@@ -3753,13 +3753,21 @@ const liveQbData =
           : undefined
       }
     >
+           {/* =========================================================
+          EN-TÊTE SÉRIES
+          ========================================================= */}
+
       <section className="header-card">
         <h1>Mes choix ✅</h1>
 
         <p>
-          Semaine {currentWeek || "..."}
+          🏆 Wild Card
         </p>
       </section>
+
+      {/* =========================================================
+          FIN EN-TÊTE SÉRIES
+          ========================================================= */}
 
       {message && (
         <section className="card">
