@@ -1706,6 +1706,18 @@ export default function Matchs() {
     currentWeek,
     setCurrentWeek,
   ] = useState(null);
+     /* =========================================================
+     RONDE ACTIVE — SÉRIES
+     ========================================================= */
+
+  const [
+    activePlayoffRound,
+    setActivePlayoffRound,
+  ] = useState(null);
+
+  /* =========================================================
+     FIN RONDE ACTIVE — SÉRIES
+     ========================================================= */
   /* =========================================================
      PRÉDICTION SUPER BOWL — SÉRIES
      ========================================================= */
@@ -1941,7 +1953,9 @@ export default function Matchs() {
         playoffRoundError.message
       );
     }
-
+    setActivePlayoffRound(
+      playoffRound || null
+    );
     let playoffSchedule = [];
 
     if (playoffRound?.id) {
@@ -2226,25 +2240,50 @@ export default function Matchs() {
       remainingOrder
     );
 
-    /* =========================================================
-       CHOIX DE MATCHS DU JOUEUR
+       /* =========================================================
+       CHOIX DE MATCHS DU JOUEUR — SÉRIES
        ========================================================= */
 
-    const {
-      data: picksData,
-      error: picksError,
-    } =
-      await supabase
-        .from("picks")
-        .select("*")
-        .eq(
-          "user_id",
-          currentUser.id
-        );
+    const playoffGameIds =
+      weekSchedule.map(
+        (game) => game.id
+      );
+
+    let picksData = [];
+    let picksError = null;
+
+    if (
+      playoffGameIds.length >
+      0
+    ) {
+      const {
+        data,
+        error,
+      } =
+        await supabase
+          .from(
+            "playoff_picks"
+          )
+          .select("*")
+          .eq(
+            "user_id",
+            currentUser.id
+          )
+          .in(
+            "game_id",
+            playoffGameIds
+          );
+
+      picksData =
+        data || [];
+
+      picksError =
+        error;
+    }
 
     if (picksError) {
       console.error(
-        "Erreur chargement choix :",
+        "Erreur chargement choix séries :",
         picksError.message
       );
     }
@@ -2265,6 +2304,10 @@ export default function Matchs() {
     setSavedPicks(
       picksByGame
     );
+
+    /* =========================================================
+       FIN CHOIX DE MATCHS — SÉRIES
+       ========================================================= */
 
         /* =========================================================
        QB DÉJÀ SOUMIS — RONDE DES SÉRIES
@@ -3336,8 +3379,8 @@ const liveQbData =
       })
     );
   };
-     /* =========================================================
-     SOUMISSION
+  /* =========================================================
+     SOUMISSION — SÉRIES
      ========================================================= */
 
   const submitEverything =
@@ -3349,6 +3392,274 @@ const liveQbData =
 
         return;
       }
+
+      if (
+        !activePlayoffRound?.id
+      ) {
+        setMessage(
+          "Impossible d'identifier la ronde des séries."
+        );
+
+        return;
+      }
+
+      const gamesToSubmit =
+        games.filter(
+          (game) =>
+            !savedPicks[
+              game.id
+            ]
+        );
+
+      /* =====================================================
+         VALIDATION QB
+         ===================================================== */
+
+      if (
+        !existingQbPick &&
+        !selectedQbId
+      ) {
+        setMessage(
+          "Choisis un QB avant de soumettre."
+        );
+
+        return;
+      }
+
+      /* =====================================================
+         VALIDATION PRÉDICTION SUPER BOWL
+         ===================================================== */
+
+      if (
+        !superBowlPrediction
+      ) {
+        setMessage(
+          "Choisis ta prédiction Super Bowl avant de soumettre."
+        );
+
+        return;
+      }
+
+      /*
+       * La prédiction Super Bowl doit aussi
+       * être choisie gagnante de son match
+       * dans la ronde actuelle.
+       */
+      const predictionGame =
+        gamesToSubmit.find(
+          (game) =>
+            game.home_team ===
+              superBowlPrediction ||
+            game.away_team ===
+              superBowlPrediction
+        );
+
+      if (
+        predictionGame &&
+        draftPicks[
+          predictionGame.id
+        ]?.picked_team !==
+          superBowlPrediction
+      ) {
+        setMessage(
+          `Tu dois aussi choisir ${superBowlPrediction} gagnant de son match pour poursuivre cette prédiction Super Bowl.`
+        );
+
+        return;
+      }
+
+      /* =====================================================
+         VALIDATION MATCHS
+         ===================================================== */
+
+      for (
+        const game of
+        gamesToSubmit
+      ) {
+        const pick =
+          draftPicks[
+            game.id
+          ];
+
+        if (
+          !pick
+            ?.picked_team ||
+          pick
+            .predicted_spread ===
+            undefined ||
+          pick
+            .predicted_spread ===
+            ""
+        ) {
+          setMessage(
+            "Complète tous les matchs avant de soumettre."
+          );
+
+          return;
+        }
+      }
+
+      const confirmation =
+        window.confirm(
+          "Confirmer la soumission Wild Card? Tes choix seront irréversibles."
+        );
+
+      if (
+        !confirmation
+      ) {
+        return;
+      }
+
+      /* =====================================================
+         1. QB — PLAYOFF_QB_PICKS
+         ===================================================== */
+
+      if (
+        !existingQbPick
+      ) {
+        const {
+          error: qbError,
+        } =
+          await supabase
+            .from(
+              "playoff_qb_picks"
+            )
+            .insert({
+              user_id:
+                user.id,
+
+              round_id:
+                activePlayoffRound.id,
+
+              qb_id:
+                selectedQbId,
+            });
+
+        if (qbError) {
+          setMessage(
+            "Erreur QB séries : " +
+              qbError.message
+          );
+
+          return;
+        }
+      }
+
+      /* =====================================================
+         2. PRÉDICTION SUPER BOWL — TEAM PATH
+         ===================================================== */
+
+      const {
+        error:
+          pathError,
+      } =
+        await supabase
+          .from(
+            "playoff_team_paths"
+          )
+          .insert({
+            user_id:
+              user.id,
+
+            round_id:
+              activePlayoffRound.id,
+
+            team:
+              superBowlPrediction,
+
+            multiplier: 1,
+
+            continues_previous_path:
+              false,
+          });
+
+      if (pathError) {
+        setMessage(
+          "Erreur prédiction Super Bowl : " +
+            pathError.message
+        );
+
+        return;
+      }
+
+      /* =====================================================
+         3. MATCHS — PLAYOFF_PICKS
+         ===================================================== */
+
+      const pickRows =
+        gamesToSubmit.map(
+          (game) => ({
+            user_id:
+              user.id,
+
+            game_id:
+              game.id,
+
+            picked_team:
+              draftPicks[
+                game.id
+              ].picked_team,
+
+            predicted_spread:
+              Number(
+                draftPicks[
+                  game.id
+                ]
+                  .predicted_spread
+              ),
+
+            updated_at:
+              new Date()
+                .toISOString(),
+          })
+        );
+
+      if (
+        pickRows.length >
+        0
+      ) {
+        const {
+          error:
+            picksError,
+        } =
+          await supabase
+            .from(
+              "playoff_picks"
+            )
+            .upsert(
+              pickRows,
+              {
+                onConflict:
+                  "user_id,game_id",
+              }
+            );
+
+        if (
+          picksError
+        ) {
+          setMessage(
+            "Erreur choix séries : " +
+              picksError.message
+          );
+
+          return;
+        }
+      }
+
+      /* =====================================================
+         SOUMISSION TERMINÉE
+         ===================================================== */
+
+      setMessage(
+        "Choix Wild Card soumis ✅"
+      );
+
+      await loadData();
+    };
+
+  /* =========================================================
+     FIN SOUMISSION — SÉRIES
+     ========================================================= */
 
       const gamesToPick =
         games.filter(
