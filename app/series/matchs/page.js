@@ -3426,6 +3426,8 @@ const liveQbData =
 
   const submitEverything =
     async () => {
+      alert("TEST — submitEverything déclenché");
+
       if (!user) {
         setMessage(
           "Connecte-toi avant de soumettre."
