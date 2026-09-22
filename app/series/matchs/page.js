@@ -3795,10 +3795,28 @@ const liveQbData =
         />
       )}
 
-      {/* ================= QB ================= */}
+      {/* =========================================================
+          BLOC PRINCIPAL — QB + PRÉDICTION SUPER BOWL
+          ========================================================= */}
 
-      <section
-        className="card"
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns:
+            isDesktop &&
+            submittedGames.length > 0
+              ? "minmax(0, 2fr) minmax(340px, 1fr)"
+              : "minmax(0, 1fr)",
+          gap: isDesktop
+            ? 18
+            : 14,
+          alignItems: "stretch",
+        }}
+      >
+        {/* ================= QB ================= */}
+
+        <section
+          className="card"
         style={{
           border: qbGameIsLive
             ? "1px solid rgba(248,113,113,0.70)"
@@ -5926,277 +5944,422 @@ const liveQbData =
           </>
         )}
       </section>
-        {/* =========================================================
-          PRÉDICTION SUPER BOWL
-          ========================================================= */}
+                {/* =========================================================
+            PRÉDICTION SUPER BOWL
+            ========================================================= */}
 
-      {(
-        <section className="card">
-          <h2
+        {submittedGames.length > 0 ? (
+          /* =======================================================
+             VERSION POST-SOUMISSION
+             ======================================================= */
+
+          <section
+            className="card"
             style={{
-              color: "#22c55e",
-              marginTop: 0,
-              marginBottom: 8,
+              display: "flex",
+              flexDirection: "column",
+              height: "100%",
+              boxSizing: "border-box",
             }}
           >
-            2. Prédiction Super Bowl 🏆
-          </h2>
-
-          <p
-            style={{
-              color: "#94a3b8",
-              marginTop: 0,
-              marginBottom: 18,
-              lineHeight: 1.5,
-            }}
-          >
-            Choisis l&apos;équipe que tu prédis gagnante du Super Bowl.
-          </p>
-
-          <div
-            style={{
-              position: "relative",
-              zIndex: superBowlMenuOpen
-                ? 100
-                : 1,
-              width: "100%",
-            }}
-          >
-                       <button
-              type="button"
-              className="input"
-              disabled={
-                submittedGames.length > 0
-              }
-              onClick={() => {
-                if (
-                  submittedGames.length > 0
-                ) {
-                  return;
-                }
-
-                setSuperBowlMenuOpen(
-                  (prev) => !prev
-                );
-              }}
+            <h2
               style={{
-                width: "100%",
-                minWidth: 0,
-                minHeight: 58,
-                display: "flex",
-                alignItems: "center",
-                justifyContent:
-                  "space-between",
-                gap: 12,
-                               cursor:
-                  submittedGames.length > 0
-                    ? "default"
-                    : "pointer",
-                textAlign: "left",
-                overflow: "hidden",
-                paddingLeft: 16,
-                paddingRight: 16,
+                color: "#22c55e",
+                marginTop: 0,
+                marginBottom: 18,
               }}
             >
-              {superBowlPrediction ? (
+              Prédiction Super Bowl 🏆
+            </h2>
+
+            <div
+              style={{
+                flex: 1,
+                minHeight: isDesktop
+                  ? 170
+                  : 120,
+                display: "flex",
+                alignItems: "center",
+                padding: isMobile
+                  ? 18
+                  : 24,
+                borderRadius: 18,
+                border:
+                  "1px solid rgba(34,197,94,0.45)",
+                background:
+                  "linear-gradient(135deg, rgba(34,197,94,0.13), rgba(15,23,42,0.72))",
+                boxSizing: "border-box",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: isMobile
+                    ? 18
+                    : 24,
+                  width: "100%",
+                  minWidth: 0,
+                }}
+              >
+                {getTeamLogo(
+                  superBowlPrediction
+                ) && (
+                  <img
+                    src={getTeamLogo(
+                      superBowlPrediction
+                    )}
+                    alt={
+                      superBowlPrediction
+                    }
+                    style={{
+                      width: isMobile
+                        ? 62
+                        : 82,
+                      height: isMobile
+                        ? 62
+                        : 82,
+                      objectFit:
+                        "contain",
+                      flexShrink: 0,
+                    }}
+                  />
+                )}
+
                 <div
                   style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 12,
                     minWidth: 0,
-                    flex: 1,
                   }}
                 >
-                  {getTeamLogo(
-                    superBowlPrediction
-                  ) && (
-                    <img
-                      src={getTeamLogo(
-                        superBowlPrediction
-                      )}
-                      alt={
-                        superBowlPrediction
-                      }
-                      style={{
-                        width: isMobile
-                          ? 30
-                          : 34,
-                        height: isMobile
-                          ? 30
-                          : 34,
-                        objectFit:
-                          "contain",
-                        flexShrink: 0,
-                      }}
-                    />
-                  )}
-
-                  <strong
+                  <div
                     style={{
-                      fontSize: isMobile
-                        ? 15
-                        : 16,
-                      overflow: "hidden",
+                      color:
+                        "#22c55e",
+                      fontSize:
+                        isMobile
+                          ? 12
+                          : 14,
+                      fontWeight: 900,
+                      letterSpacing:
+                        "0.04em",
+                      marginBottom: 6,
+                    }}
+                  >
+                    CHOIX SOUMIS
+                  </div>
+
+                  <div
+                    style={{
+                      color:
+                        "#f8fafc",
+                      fontSize:
+                        isMobile
+                          ? 24
+                          : 28,
+                      lineHeight: 1.1,
+                      fontWeight: 900,
+                      overflow:
+                        "hidden",
                       textOverflow:
                         "ellipsis",
                       whiteSpace:
                         "nowrap",
                     }}
                   >
-                    {superBowlPrediction}
-                  </strong>
+                    {
+                      superBowlPrediction
+                    }
+                  </div>
                 </div>
-              ) : (
-                <span
-                  style={{
-                    color: "#cbd5e1",
-                    fontSize: 15,
-                  }}
-                >
-                  -- Sélectionner une équipe --
-                </span>
-              )}
+              </div>
+            </div>
+          </section>
+        ) : (
+          /* =======================================================
+             VERSION AVANT SOUMISSION
+             ======================================================= */
 
-              <span
+          <section className="card">
+            <h2
+              style={{
+                color: "#22c55e",
+                marginTop: 0,
+                marginBottom: 8,
+              }}
+            >
+              2. Prédiction Super Bowl 🏆
+            </h2>
+
+            <p
+              style={{
+                color: "#94a3b8",
+                marginTop: 0,
+                marginBottom: 18,
+                lineHeight: 1.5,
+              }}
+            >
+              Choisis l&apos;équipe que tu prédis gagnante du Super Bowl.
+            </p>
+
+            <div
+              style={{
+                position: "relative",
+                zIndex:
+                  superBowlMenuOpen
+                    ? 100
+                    : 1,
+                width: "100%",
+              }}
+            >
+              <button
+                type="button"
+                className="input"
+                onClick={() =>
+                  setSuperBowlMenuOpen(
+                    (prev) =>
+                      !prev
+                  )
+                }
                 style={{
-                  marginLeft: 4,
-                  flexShrink: 0,
+                  width: "100%",
+                  minWidth: 0,
+                  minHeight: 58,
+                  display: "flex",
+                  alignItems:
+                    "center",
+                  justifyContent:
+                    "space-between",
+                  gap: 12,
+                  cursor:
+                    "pointer",
+                  textAlign:
+                    "left",
+                  overflow:
+                    "hidden",
+                  paddingLeft: 16,
+                  paddingRight: 16,
                 }}
               >
-                {superBowlMenuOpen
-                  ? "▲"
-                  : "▼"}
-              </span>
-            </button>
+                {superBowlPrediction ? (
+                  <div
+                    style={{
+                      display:
+                        "flex",
+                      alignItems:
+                        "center",
+                      gap: 12,
+                      minWidth: 0,
+                      flex: 1,
+                    }}
+                  >
+                    {getTeamLogo(
+                      superBowlPrediction
+                    ) && (
+                      <img
+                        src={getTeamLogo(
+                          superBowlPrediction
+                        )}
+                        alt={
+                          superBowlPrediction
+                        }
+                        style={{
+                          width:
+                            isMobile
+                              ? 30
+                              : 34,
+                          height:
+                            isMobile
+                              ? 30
+                              : 34,
+                          objectFit:
+                            "contain",
+                          flexShrink: 0,
+                        }}
+                      />
+                    )}
 
-            {superBowlMenuOpen &&
-              submittedGames.length === 0 && (
-              <div
-                style={{
-                  position: "absolute",
-                  top:
-                    "calc(100% + 6px)",
-                  left: 0,
-                  right: 0,
-                  zIndex: 9999,
-                  maxHeight: isMobile
-                    ? 300
-                    : 360,
-                  overflowY: "auto",
-                  borderRadius: 14,
-                  border:
-                    "1px solid rgba(148,163,184,0.20)",
-                  background:
-                    "rgba(2,6,23,0.98)",
-                  boxShadow:
-                    "0 18px 45px rgba(0,0,0,0.45)",
-                }}
-              >
-                {playoffTeams.map(
-                  (team) => (
-                    <button
-                      key={team}
-                      type="button"
-                      onClick={() => {
-                        setSuperBowlPrediction(
-                          team
-                        );
-
-                        setSuperBowlMenuOpen(
-                          false
-                        );
-                      }}
+                    <strong
                       style={{
-                        width: "100%",
-                        minWidth: 0,
-                        display: "flex",
-                        alignItems:
-                          "center",
-                        gap: 12,
-                        padding:
-                          "12px 18px",
-                        background:
-                          superBowlPrediction ===
-                          team
-                            ? "rgba(34,197,94,0.12)"
-                            : "transparent",
-                        border: "none",
-                        borderBottom:
-                          "1px solid rgba(148,163,184,0.10)",
-                        color:
-                          "#f8fafc",
-                        cursor:
-                          "pointer",
-                        textAlign:
-                          "left",
+                        fontSize:
+                          isMobile
+                            ? 15
+                            : 16,
+                        overflow:
+                          "hidden",
+                        textOverflow:
+                          "ellipsis",
+                        whiteSpace:
+                          "nowrap",
                       }}
                     >
-                      {getTeamLogo(
-                        team
-                      ) && (
-                        <img
-                          src={getTeamLogo(
-                            team
-                          )}
-                          alt={team}
-                          style={{
-                            width: isMobile
-                              ? 30
-                              : 34,
-                            height: isMobile
-                              ? 30
-                              : 34,
-                            objectFit:
-                              "contain",
-                            flexShrink: 0,
-                          }}
-                        />
-                      )}
+                      {
+                        superBowlPrediction
+                      }
+                    </strong>
+                  </div>
+                ) : (
+                  <span
+                    style={{
+                      color:
+                        "#cbd5e1",
+                      fontSize: 15,
+                    }}
+                  >
+                    -- Sélectionner une équipe --
+                  </span>
+                )}
 
-                      <strong
+                <span
+                  style={{
+                    marginLeft: 4,
+                    flexShrink: 0,
+                  }}
+                >
+                  {superBowlMenuOpen
+                    ? "▲"
+                    : "▼"}
+                </span>
+              </button>
+
+              {superBowlMenuOpen && (
+                <div
+                  style={{
+                    position:
+                      "absolute",
+                    top:
+                      "calc(100% + 6px)",
+                    left: 0,
+                    right: 0,
+                    zIndex: 9999,
+                    maxHeight:
+                      isMobile
+                        ? 300
+                        : 360,
+                    overflowY:
+                      "auto",
+                    borderRadius: 14,
+                    border:
+                      "1px solid rgba(148,163,184,0.20)",
+                    background:
+                      "rgba(2,6,23,0.98)",
+                    boxShadow:
+                      "0 18px 45px rgba(0,0,0,0.45)",
+                  }}
+                >
+                  {playoffTeams.map(
+                    (team) => (
+                      <button
+                        key={team}
+                        type="button"
+                        onClick={() => {
+                          setSuperBowlPrediction(
+                            team
+                          );
+
+                          setSuperBowlMenuOpen(
+                            false
+                          );
+                        }}
                         style={{
+                          width:
+                            "100%",
                           minWidth: 0,
-                          fontSize: 16,
-                          overflow:
-                            "hidden",
-                          textOverflow:
-                            "ellipsis",
-                          whiteSpace:
-                            "nowrap",
+                          display:
+                            "flex",
+                          alignItems:
+                            "center",
+                          gap: 12,
+                          padding:
+                            "12px 18px",
+                          background:
+                            superBowlPrediction ===
+                            team
+                              ? "rgba(34,197,94,0.12)"
+                              : "transparent",
+                          border:
+                            "none",
+                          borderBottom:
+                            "1px solid rgba(148,163,184,0.10)",
+                          color:
+                            "#f8fafc",
+                          cursor:
+                            "pointer",
+                          textAlign:
+                            "left",
                         }}
                       >
-                        {team}
-                      </strong>
+                        {getTeamLogo(
+                          team
+                        ) && (
+                          <img
+                            src={getTeamLogo(
+                              team
+                            )}
+                            alt={team}
+                            style={{
+                              width:
+                                isMobile
+                                  ? 30
+                                  : 34,
+                              height:
+                                isMobile
+                                  ? 30
+                                  : 34,
+                              objectFit:
+                                "contain",
+                              flexShrink: 0,
+                            }}
+                          />
+                        )}
 
-                      {superBowlPrediction ===
-                        team && (
-                        <span
+                        <strong
                           style={{
-                            marginLeft:
-                              "auto",
-                            color:
-                              "#22c55e",
-                            fontWeight:
-                              900,
+                            minWidth: 0,
+                            fontSize: 16,
+                            overflow:
+                              "hidden",
+                            textOverflow:
+                              "ellipsis",
+                            whiteSpace:
+                              "nowrap",
                           }}
                         >
-                          ✓
-                        </span>
-                      )}
-                    </button>
-                  )
-                )}
-              </div>
-            )}
-          </div>
-        </section>
-      )}
+                          {team}
+                        </strong>
+
+                        {superBowlPrediction ===
+                          team && (
+                          <span
+                            style={{
+                              marginLeft:
+                                "auto",
+                              color:
+                                "#22c55e",
+                              fontWeight:
+                                900,
+                            }}
+                          >
+                            ✓
+                          </span>
+                        )}
+                      </button>
+                    )
+                  )}
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* =========================================================
+            FIN PRÉDICTION SUPER BOWL
+            ========================================================= */}
+
+      </div>
 
       {/* =========================================================
-          FIN PRÉDICTION SUPER BOWL
+          FIN BLOC PRINCIPAL — QB + PRÉDICTION SUPER BOWL
           ========================================================= */}
-
       {/* ================= MATCHS À CHOISIR ================= */}
 
       {gamesToPick.length > 0 && (
