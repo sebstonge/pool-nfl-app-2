@@ -5931,7 +5931,7 @@ const liveQbData =
           PRÉDICTION SUPER BOWL
           ========================================================= */}
 
-      {!existingQbPick && (
+        {(
         <section className="card">
           <h2
             style={{
@@ -6029,7 +6029,7 @@ const liveQbData =
               </strong>
             </div>
           )}
-        </section>
+           </section>
       )}
 
       {/* =========================================================
