@@ -1903,57 +1903,104 @@ export default function Matchs() {
       teamsData || []
     );
 
-    /* =========================================================
-       TOUS LES MATCHS NFL DE LA SEMAINE
+        /* =========================================================
+       SÉRIES — RONDE WILD CARD 2026
+       =========================================================
+       
+       /series/matchs ne lit maintenant plus les matchs
+       affichés depuis la table régulière "games".
+       
+       On récupère d'abord la ronde Wild Card, puis les
+       matchs associés dans "playoff_games".
+       
+       currentWeek reste temporairement présent ailleurs
+       dans la page pour éviter de casser l'ancienne logique
+       QB pendant notre migration progressive.
        ========================================================= */
 
     const {
-      data: allWeekGamesData,
-      error: allWeekGamesError,
+      data: playoffRound,
+      error: playoffRoundError,
     } =
       await supabase
-        .from("games")
+        .from("playoff_rounds")
         .select("*")
         .eq(
-          "week",
-          week
+          "season",
+          2026
         )
-        .order(
-          "game_date",
-          {
-            ascending: true,
-          }
-        );
+        .eq(
+          "round_key",
+          "wild_card"
+        )
+        .single();
 
-    if (allWeekGamesError) {
+    if (playoffRoundError) {
       console.error(
-        "Erreur chargement horaire NFL :",
-        allWeekGamesError.message
+        "Erreur chargement ronde Wild Card :",
+        playoffRoundError.message
       );
     }
 
+    let playoffSchedule = [];
+
+    if (playoffRound?.id) {
+      const {
+        data: playoffGamesData,
+        error: playoffGamesError,
+      } =
+        await supabase
+          .from("playoff_games")
+          .select("*")
+          .eq(
+            "round_id",
+            playoffRound.id
+          )
+          .order(
+            "game_date",
+            {
+              ascending: true,
+            }
+          );
+
+      if (playoffGamesError) {
+        console.error(
+          "Erreur chargement matchs Wild Card :",
+          playoffGamesError.message
+        );
+      }
+
+      playoffSchedule =
+        playoffGamesData || [];
+    }
+
+    /*
+     * Dans les séries, tous les matchs de la ronde
+     * sont admissibles au pool.
+     *
+     * On ajoute temporairement is_pool_eligible=true
+     * pour rester compatible avec les composants
+     * existants de Mes choix pendant la migration.
+     */
     const weekSchedule =
-      allWeekGamesData || [];
+      playoffSchedule.map(
+        (game) => ({
+          ...game,
+          is_pool_eligible: true,
+        })
+      );
 
     setAllWeekGames(
       weekSchedule
     );
 
-    /*
-     * L'interface Mes choix continue
-     * d'afficher seulement les matchs
-     * admissibles au pool.
-     */
-    const poolGames =
-      weekSchedule.filter(
-        (game) =>
-          game.is_pool_eligible ===
-          true
-      );
-
     setGames(
-      poolGames
+      weekSchedule
     );
+
+    /* =========================================================
+       FIN CHARGEMENT MATCHS SÉRIES
+       ========================================================= */
 
     /* ================= QB ACTIFS ================= */
 
