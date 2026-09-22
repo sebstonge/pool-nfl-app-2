@@ -1,0 +1,64 @@
+.tree { min-width: 0; max-width: 100%; margin-bottom: 18px; padding: 24px; border: 1px solid rgba(148,163,184,.18); border-radius: 24px; background: linear-gradient(145deg,#0d1932,#081028 55%); color: #f8fafc; }
+.intro { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 26px; }
+.intro h2 { font-size: 24px; margin: 7px 0 0; }
+.intro p { max-width: 340px; color: #94a3b8; font-size: 13px; line-height: 1.6; margin: 0; }
+.eyebrow { font-size: 10px; font-weight: 800; letter-spacing: 1.5px; color: #4ade80; }
+.scroller { max-width: 100%; overflow-x: auto; padding-bottom: 8px; scrollbar-color: #334155 #081028; }
+.columns { display: grid; grid-template-columns: repeat(4,minmax(230px,1fr)); gap: 20px; }
+.round { min-width: 0; }
+.roundHeader { display: flex; align-items: center; position: relative; gap: 8px; min-height: 48px; border-bottom: 1px solid #26334a; margin-bottom: 16px; }
+.roundHeader h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .6px; margin: 0; }
+.roundNumber { color: #4ade80; font-size: 11px; font-weight: 800; }
+.roundArrow { margin-left: auto; color: #4ade80; font-size: 20px; }
+.games { display: grid; gap: 12px; }
+.game { padding: 16px; border: 1px solid rgba(148,163,184,.16); border-radius: 16px; background: rgba(15,23,42,.75); }
+.date { display: block; font-size: 11px; color: #86efac; margin-bottom: 14px; }
+.matchup { display: grid; grid-template-columns: minmax(0,1fr) 18px minmax(0,1fr); align-items: center; text-align: center; gap: 5px; }
+.matchup > div { display: flex; flex-direction: column; align-items: center; gap: 7px; min-width: 0; }
+.matchup strong { font-size: 13px; overflow-wrap: anywhere; }
+.logo { width: 42px; height: 42px; object-fit: contain; }
+.logoFallback { width: 42px; height: 42px; display: inline-flex; align-items: center; justify-content: center; background: #1e293b; border-radius: 12px; font-weight: 800; }
+.at { color: #64748b; }
+.pick { border-top: 1px solid rgba(148,163,184,.12); margin-top: 16px; padding-top: 12px; display: grid; gap: 6px; }
+.pick strong { font-size: 14px; overflow-wrap: anywhere; }
+.label { color: #94a3b8; font-size: 11px; }
+.path { border-top: 1px solid rgba(148,163,184,.15); margin-top: 18px; padding-top: 15px; }
+.savedPath { border: 1px solid rgba(74,222,128,.28); border-radius: 14px; padding: 12px 14px; background: rgba(34,197,94,.07); }
+.savedPath > .label { color: #86efac; font-weight: 700; }
+.pathIdentity { display: grid; gap: 4px; }
+.multiplier { justify-self: start; border-radius: 6px; padding: 2px 7px; background: rgba(34,197,94,.13); color: #86efac; font-size: 12px; font-weight: 800; }
+.pathTeam { display: flex; align-items: center; gap: 8px; margin-top: 6px; font-size: 14px; }
+.muted { color: #94a3b8; font-size: 13px; margin: 10px 0 0; }
+.future { border: 1px dashed #334155; border-radius: 16px; min-height: 170px; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; text-align: center; color: #94a3b8; }
+.future > span { font-size: 28px; color: #475569; }
+.future p { font-size: 14px; line-height: 1.6; max-width: 160px; }
+.mobileNav,.paging,.mobileTitle { display: none; }
+.tree button { font: inherit; cursor: pointer; }
+.tree button:focus-visible,.scroller:focus-visible { outline: 2px solid #4ade80; outline-offset: 3px; }
+@media (max-width: 899px) {
+  .tree { padding: 18px; }
+  .games { gap: 9px; }
+  .game { padding: 10px 12px; }
+  .date { margin-bottom: 7px; }
+  .matchup > div { gap: 3px; }
+  .game .logo,.game .logoFallback { width: 34px; height: 34px; }
+  .pick { margin-top: 8px; padding-top: 7px; gap: 3px; }
+  .intro { display: block; margin-bottom: 20px; }
+  .intro h2 { font-size: 22px; }
+  .intro p { margin-top: 12px; }
+  .mobileNav { display: flex; margin-bottom: 14px; gap: 4px; }
+  .step { display: flex; align-items: center; flex: 1; gap: 4px; }
+  .stepArrow { font-size: 12px; color: #64748b; }
+  .step button { min-height: 44px; width: 100%; padding: 4px; border-radius: 10px; border: 1px solid #334155; background: #0f172a; color: #cbd5e1; font-size: 11px; font-weight: 800; }
+  .step button[aria-current] { color: #86efac; background: rgba(34,197,94,.12); border-color: rgba(34,197,94,.5); }
+  .columns { display: block; }
+  .round { display: none; }
+  .selected { display: block; }
+  .desktopTitle,.roundArrow,.roundNumber { display: none; }
+  .mobileTitle { display: inline; }
+  .roundHeader h3 { text-transform: none; font-size: 17px; letter-spacing: 0; }
+  .scroller { overflow: visible; }
+  .paging { display: flex; justify-content: space-between; gap: 12px; margin-top: 20px; }
+  .paging button { min-height: 44px; padding: 8px 10px; background: #0f172a; border: 1px solid #334155; border-radius: 12px; color: #86efac; font-size: 13px; }
+  .paging button:disabled { opacity: .4; cursor: default; }
+}

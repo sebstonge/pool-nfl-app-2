@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../../lib/supabase";
 import BottomNav from "../../components/BottomNav";
+import PersonalPlayoffTree from "../components/playoff-tree/PersonalPlayoffTree";
 
 /* =========================================================
    ORDRE OFFICIEL — SEMAINE 1
@@ -7036,6 +7037,12 @@ isDesktop={isDesktop}
           </p>
         </section>
       )}
+      <PersonalPlayoffTree
+        userId={user?.id}
+        currentRound={activePlayoffRound}
+        teams={teams}
+        refreshKey={savedPicks}
+      />
       <BottomNav />
     </main>
   );
