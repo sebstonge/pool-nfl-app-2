@@ -3795,7 +3795,7 @@ const liveQbData =
         />
       )}
 
-      {/* =========================================================
+            {/* =========================================================
           BLOC PRINCIPAL — QB + PRÉDICTION SUPER BOWL
           ========================================================= */}
 
@@ -3811,14 +3811,21 @@ const liveQbData =
             ? 18
             : 14,
           alignItems: "stretch",
+          marginBottom:
+            isDesktop &&
+            submittedGames.length > 0
+              ? 18
+              : 14,
         }}
       >
         {/* ================= QB ================= */}
 
-        <section
+        <        <section
           className="card"
-        style={{
-          border: qbGameIsLive
+          style={{
+            marginBottom: 0,
+
+            border: qbGameIsLive
             ? "1px solid rgba(248,113,113,0.70)"
             : undefined,
 
@@ -5953,13 +5960,15 @@ const liveQbData =
              VERSION POST-SOUMISSION
              ======================================================= */
 
-          <section
+                   <section
             className="card"
             style={{
               display: "flex",
               flexDirection: "column",
               height: "100%",
+              minHeight: 0,
               boxSizing: "border-box",
+              marginBottom: 0,
             }}
           >
             <h2
