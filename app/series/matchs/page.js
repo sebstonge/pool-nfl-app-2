@@ -2893,7 +2893,10 @@ export default function Matchs() {
       const gamesToMonitor =
         allWeekGames.filter(
           (game) =>
-            game.external_game_id
+            game.external_game_id &&
+            !String(
+              game.external_game_id
+            ).startsWith("TEST-")
         );
 
       if (
