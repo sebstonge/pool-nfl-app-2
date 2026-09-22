@@ -5962,14 +5962,23 @@ const liveQbData =
               width: "100%",
             }}
           >
-            <button
+                       <button
               type="button"
               className="input"
-              onClick={() =>
+              disabled={
+                submittedGames.length > 0
+              }
+              onClick={() => {
+                if (
+                  submittedGames.length > 0
+                ) {
+                  return;
+                }
+
                 setSuperBowlMenuOpen(
                   (prev) => !prev
-                )
-              }
+                );
+              }}
               style={{
                 width: "100%",
                 minWidth: 0,
@@ -5979,7 +5988,10 @@ const liveQbData =
                 justifyContent:
                   "space-between",
                 gap: 12,
-                cursor: "pointer",
+                               cursor:
+                  submittedGames.length > 0
+                    ? "default"
+                    : "pointer",
                 textAlign: "left",
                 overflow: "hidden",
                 paddingLeft: 16,
@@ -6058,7 +6070,8 @@ const liveQbData =
               </span>
             </button>
 
-            {superBowlMenuOpen && (
+            {superBowlMenuOpen &&
+              submittedGames.length === 0 && (
               <div
                 style={{
                   position: "absolute",
