@@ -45,13 +45,15 @@ function PersonalTeamPath({ round, teams }) {
 // Layout is independent of personal data loading. Future collective summaries can
 // supply these two render slots without duplicating rounds, games or navigation.
 export default function PlayoffTree({ rounds, teams = [], currentRoundKey,
+  selectedRoundKey, onRoundChange,
   renderGameSummary = game => <PersonalPickSummary game={game} />,
   renderRoundSummary = round => <PersonalTeamPath round={round} teams={teams} />,
 }) {
   const [selected, setSelected] = useState(currentRoundKey || 'wild_card');
   const id = useId();
   useEffect(() => { setSelected(currentRoundKey || 'wild_card'); }, [currentRoundKey]);
-  const index = Math.max(0, rounds.findIndex(round => round.key === selected));
+  const index = Math.max(0, rounds.findIndex(round => round.key === (selectedRoundKey ?? selected)));
+  const selectRound = key => { setSelected(key); onRoundChange?.(key); };
   return <section className={styles.tree} aria-labelledby={`${id}-title`}>
     <header className={styles.intro}>
       <div><span className={styles.eyebrow}>LE PARCOURS VERS LE TITRE</span>
@@ -62,7 +64,7 @@ export default function PlayoffTree({ rounds, teams = [], currentRoundKey,
       {rounds.map((round, i) => <div className={styles.step} key={round.key}>
         {i > 0 && <span aria-hidden="true" className={styles.stepArrow}>→</span>}
         <button type="button" aria-label={round.title} aria-current={i === index ? 'step' : undefined}
-          aria-controls={`${id}-${round.key}`} onClick={() => setSelected(round.key)}>{round.short}</button>
+          aria-controls={`${id}-${round.key}`} onClick={() => selectRound(round.key)}>{round.short}</button>
       </div>)}
     </nav>
     <div className={styles.scroller} tabIndex={0} role="region" aria-label="Les quatre rondes des séries">
@@ -95,8 +97,8 @@ export default function PlayoffTree({ rounds, teams = [], currentRoundKey,
       </div>
     </div>
     <nav className={styles.paging} aria-label="Changer de ronde">
-      <button type="button" disabled={index === 0} onClick={() => setSelected(rounds[index - 1].key)}>← Précédente</button>
-      <button type="button" disabled={index === rounds.length - 1} onClick={() => setSelected(rounds[index + 1].key)}>Suivante →</button>
+      <button type="button" disabled={index === 0} onClick={() => selectRound(rounds[index - 1].key)}>← Précédente</button>
+      <button type="button" disabled={index === rounds.length - 1} onClick={() => selectRound(rounds[index + 1].key)}>Suivante →</button>
     </nav>
   </section>;
 }
