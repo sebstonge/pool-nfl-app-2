@@ -48,8 +48,12 @@ function DetailDialog({ detail, players, teams, onClose }) {
       {detail.kind === 'game' ? <div>
         {!detail.rows.length && <p className={styles.muted}>Aucun choix soumis.</p>}
         {submissionOrder(detail.rows).map(row => <div className={styles.playerRow} key={row.id}>
-          <div className={styles.participant}><Photo name={row.picked_team} src={logo(row.picked_team, teams)} /><PlayerIdentity player={byUser[row.user_id]} /></div>
-          <span>{row.picked_team} par {row.predicted_spread ?? '—'}</span>
+          <PlayerIdentity player={byUser[row.user_id]} />
+          <div className={styles.pickChoice}><Photo name={row.picked_team} src={logo(row.picked_team, teams)} />
+            <strong>{row.picked_team} par {row.predicted_spread ?? '—'}</strong>
+            {/* No validated playoff pick points are supplied by the loader. */}
+            <span className={styles.pointsBadge} title="Points non validés" aria-label="Points du match non validés">⚪</span>
+          </div>
         </div>)}
       </div> : detail.groups.map(group => <section key={group.team}>
         <h3>{group.team} — {group.rows.length} choix</h3>
@@ -89,24 +93,33 @@ export function CollectiveView({ data, liveGames = {}, liveError = false, seedSn
   const players = Object.fromEntries(data.players.map(player => [player.id, player]));
   return <main className={styles.page}>
     <header className={styles.header}>
-      <h1>Tous les choix</h1><p>Séries NFL{data.season != null ? ` · ${data.season}` : ''} · {current.title}</p>
+      <h1>Tous les choix</h1><p>Séries NFL{data.season != null ? ` · ${data.season}` : ''}</p>
 
     </header>
+      <nav className={styles.qbNavigation} aria-label="Ronde des QB">
+        <button className={styles.roundArrow} aria-label="QB — ronde précédente" disabled={qbIndex === 0} onClick={() => setQbKey(rounds[qbIndex - 1].key)}>‹</button>
+        <div aria-live="polite"><strong>{qbRound.title}</strong><small>{qbRound.key === activeKey ? 'Ronde active' : 'QB de cette ronde'}</small></div>
+        <button className={styles.roundArrow} aria-label="QB — ronde suivante" disabled={qbIndex === rounds.length - 1} onClick={() => setQbKey(rounds[qbIndex + 1].key)}>›</button>
+      </nav>
     {!data.rounds.length && <p className={styles.muted}>Aucune ronde de séries disponible pour le moment.</p>}
     <section className={styles.section} aria-labelledby="collective-qbs">
-      <h2 id="collective-qbs">QB de la ronde</h2>
-      <nav className={styles.qbNavigation} aria-label="Ronde des QB">
-        <button className={styles.button} aria-label="QB — ronde précédente" disabled={qbIndex === 0} onClick={() => setQbKey(rounds[qbIndex - 1].key)}>←</button>
-        <strong aria-live="polite">{qbRound.title}</strong>
-        <button className={styles.button} aria-label="QB — ronde suivante" disabled={qbIndex === rounds.length - 1} onClick={() => setQbKey(rounds[qbIndex + 1].key)}>→</button>
-      </nav>
+      <div className={styles.qbSectionHeader}><h2 id="collective-qbs">🏈 QB de la ronde</h2>
+        <p>{qbs.length} sélection{qbs.length !== 1 ? 's' : ''} soumise{qbs.length !== 1 ? 's' : ''}</p></div>
+
       {!qbs.length ? <p className={styles.muted}>Aucun QB soumis pour cette ronde.</p> : <div className={styles.grid}>
         {qbs.map(pick => {
           const qb = pick.qbs;
           return <article className={styles.qbCard} key={pick.id}>
-            <Photo qb name={qb?.name} src={qb?.espn_athlete_id ? `https://a.espncdn.com/i/headshots/nfl/players/full/${qb.espn_athlete_id}.png` : null} />
-            <div className={styles.qbInfo}><strong>{qb?.name || 'QB indisponible'}</strong><span className={styles.qbTeam}><Photo name={qb?.team} src={logo(qb?.team, data.teams)} />{qb?.team}</span>
-              <PlayerIdentity player={players[pick.user_id]} /></div>
+            <PlayerIdentity player={players[pick.user_id]} />
+            <div className={styles.qbBody}>
+              <Photo qb name={qb?.name} src={qb?.espn_athlete_id ? `https://a.espncdn.com/i/headshots/nfl/players/full/${qb.espn_athlete_id}.png` : null} />
+              <div className={styles.qbInfo}>
+                <div className={styles.qbName}><Photo name={qb?.team} src={logo(qb?.team, data.teams)} /><strong>{qb?.name || 'QB indisponible'}</strong></div>
+                <div className={styles.qbStats} title="Statistiques QB non disponibles pour cette ronde">
+                  <div>Rating <strong>—</strong></div><div>Moyenne <strong>—</strong></div>
+                </div>
+              </div>
+            </div>
           </article>;
         })}
       </div>}
@@ -121,7 +134,6 @@ export function CollectiveView({ data, liveGames = {}, liveError = false, seedSn
           {summary.total ? <>
             <div className={styles.countRow}><span>{game.away_team}</span><strong>{summary.away.length}</strong></div>
             <div className={styles.countRow}><span>{game.home_team}</span><strong>{summary.home.length}</strong></div>
-            <span className={styles.muted}>{summary.total} choix soumis</span>
           </> : <p className={styles.muted}>Aucun choix soumis.</p>}
           <button type="button" className={`${styles.button} ${styles.detailButton}`} aria-label={`Voir les choix : ${game.away_team} @ ${game.home_team}`}
             onClick={() => setDetail({ kind: 'game', title: `${game.away_team} @ ${game.home_team}`, rows: data.picks.filter(pick => pick.game_id === game.id) })}>Voir les choix</button>

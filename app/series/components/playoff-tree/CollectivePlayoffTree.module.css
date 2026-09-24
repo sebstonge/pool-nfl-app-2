@@ -1,8 +1,8 @@
 .page { width: 100%; max-width: 760px; margin: 0 auto; padding: 16px 14px 110px; color: #f8fafc; }
 .header,.section { background: #081028; border: 1px solid rgba(148,163,184,.16); border-radius: 24px; padding: 22px; margin-bottom: 18px; min-width: 0; }
-.header { background: radial-gradient(circle at top left,rgba(37,99,235,.25),transparent 60%),#081028; }
-.header h1 { margin: 0; font-size: 32px; }
-.header p,.muted { color: #94a3b8; font-size: 13px; line-height: 1.5; }
+.header { background: radial-gradient(circle at top left,rgba(37,99,235,.35),transparent 40%),linear-gradient(135deg,#0f172a,#020617); border-radius: 28px; padding: 28px; margin-bottom: 20px; }
+.header h1 { margin: 0; font-size: 48px; font-weight: 900; }
+.muted { color: #94a3b8; font-size: 13px; line-height: 1.5; }
 .section h2 { margin: 0 0 14px; font-size: 20px; }
 .toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 16px; }
 .toolbar label { display: grid; gap: 6px; font-size: 12px; color: #94a3b8; }
@@ -16,13 +16,24 @@
 .countRow span:last-child { text-align: right; color: #94a3b8; }
 .detailButton { width: 100%; margin-top: 6px; }
 .score { font-size: 12px; color: #86efac; margin: 8px 0; line-height: 1.5; }
-.grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(190px,1fr)); gap: 10px; }
-.qbCard { display: flex; align-items: center; gap: 12px; border: 1px solid rgba(148,163,184,.15); border-radius: 16px; padding: 12px; background: #0f172a; min-width: 0; }
-.qbCard img,.qbFallback { width: 58px; height: 58px; object-fit: contain; flex-shrink: 0; }
+.grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; }
+.qbCard { min-width: 0; padding: 14px; border-radius: 14px; background: rgba(15,23,42,.72); border: 1px solid rgba(148,163,184,.13); }
+.qbBody { display: grid; grid-template-columns: 62px minmax(0,1fr); gap: 12px; align-items: center; margin-top: 7px; }
+.qbBody > img,.qbFallback { width: 62px; height: 62px; object-fit: contain; }
 .qbFallback { display: grid; place-items: center; background: #1e293b; border-radius: 12px; }
-.qbInfo { min-width: 0; display: grid; gap: 5px; font-size: 14px; overflow-wrap: anywhere; }
-.identity { display: grid; gap: 3px; font-size: 13px; overflow-wrap: anywhere; }
-.identity small { color: #94a3b8; font-size: 11px; }
+.qbInfo { min-width: 0; }
+.qbName { display: flex; align-items: center; gap: 5px; min-width: 0; }
+.qbName strong { font-size: 14px; line-height: 1.15; overflow-wrap: anywhere; }
+.qbName .logo { width: 19px; height: 19px; flex-shrink: 0; }
+.qbStats { margin-top: 4px; font-size: 10px; line-height: 1.25; color: #94a3b8; }
+.qbStats div + div { margin-top: 2px; }
+.qbStats strong { color: #64748b; }
+.identity { min-width: 0; display: grid; gap: 2px; font-size: 13px; line-height: 1.15; overflow-wrap: anywhere; }
+.identity strong { font-weight: 900; }
+.identity small { color: #94a3b8; font-size: 10px; font-weight: 500; }
+.qbSectionHeader { margin-bottom: 12px; }
+.qbSectionHeader h2 { margin: 0; color: #22c55e; font-size: 24px; }
+.qbSectionHeader p { margin: 5px 0 0; font-size: 12px; color: #94a3b8; }
 .predictions { display: grid; grid-template-columns: repeat(auto-fit,minmax(150px,1fr)); gap: 10px; }
 .teamButton { display: flex; align-items: center; gap: 10px; text-align: left; }
 .teamButton span { flex: 1; }
@@ -34,15 +45,30 @@
 .dialogBody { padding: 8px 22px 22px; }
 .dialogBody h3 { font-size: 14px; color: #86efac; margin-top: 24px; }
 .playerRow { display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 12px 0; border-bottom: 1px solid rgba(148,163,184,.12); }
-.playerRow > span { text-align: right; font-size: 13px; flex-shrink: 0; max-width: 55%; }
+.playerRow > .identity { text-align: left; flex: 1; }
+.pickChoice { display: flex; align-items: center; justify-content: flex-end; gap: 7px; min-width: 0; }
+.pickChoice strong { font-size: 12px; }
+.pickChoice .logo { width: 26px; height: 26px; flex-shrink: 0; }
+.pointsBadge { font-size: 16px; margin-left: 1px; }
 .roundNote { color: #94a3b8; font-size: 12px; padding-top: 12px; }
 .page button:focus-visible,.page select:focus-visible,.dialog button:focus-visible { outline: 2px solid #4ade80; outline-offset: 3px; }
-@media(min-width:900px) { .page { width: calc(100% - 48px); max-width: 1280px; padding: 112px 16px 32px; } .header h1 { font-size: 40px; } }
+@media(min-width:900px) { .page { width: calc(100% - 48px); max-width: 1280px; padding: 112px 16px 32px; } .grid { grid-template-columns: repeat(4,minmax(0,1fr)); } }
 @media(max-width:899px) { .dialog { margin: auto 0 0; width: 100%; max-width: 100%; max-height: 88dvh; border-radius: 24px 24px 0 0; padding-bottom: env(safe-area-inset-bottom); } .dialogHeader { padding: 16px; } .dialogBody { padding: 0 16px 20px; } }
 
-.qbNavigation { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; text-align: center; }
-.qbTeam,.participant { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.qbTeam { font-size: 12px; color: #94a3b8; }
-.qbCard .logo { width: 28px; height: 28px; }
-.participant .logo { flex-shrink: 0; }
+.qbNavigation { display: grid; grid-template-columns: 48px minmax(0,1fr) 48px; gap: 10px; align-items: center; padding: 12px; margin-bottom: 18px; background: #081028; border: 1px solid rgba(148,163,184,.16); border-radius: 24px; text-align: center; }
+.qbNavigation strong { display: block; font-size: 18px; }
+.qbNavigation small { font-size: 12px; color: #94a3b8; }
+.roundArrow { height: 44px; border-radius: 14px; border: 1px solid rgba(148,163,184,.18); background: rgba(34,197,94,.10); color: #86efac; font-size: 24px; font-weight: 900; cursor: pointer; }
+.roundArrow:disabled { background: rgba(148,163,184,.05); color: #475569; cursor: default; }
 .roundNote .logo { width: 24px; height: 24px; vertical-align: middle; }
+.header p { margin-top: 10px; color: #94a3b8; font-size: 20px; }
+@media(max-width:700px) {
+ .grid { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
+ .qbCard { padding: 10px; }
+ .qbBody { grid-template-columns: 46px minmax(0,1fr); gap: 8px; }
+ .qbBody > img,.qbFallback { width: 46px; height: 46px; }
+ .qbName strong { font-size: 11px; }
+ .qbSectionHeader h2 { font-size: 20px; }
+ .playerRow { gap: 8px; padding: 11px 0; }
+ .pickChoice { max-width: 56%; flex-wrap: wrap; }
+}
