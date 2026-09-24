@@ -211,5 +211,5 @@ export default function CollectivePlayoffTree() {
   if (data.requiresSignIn) return <main className={styles.page}><section className={styles.section}>
     <h1>Tous les choix — Séries</h1><p>Connecte-toi pour consulter les choix des participants.</p><a className={styles.button} href="/">Connexion</a>
   </section></main>;
-  return <CollectiveView data={data} liveGames={liveGames} liveError={liveError} />;
+  return <CollectiveView data={data} seedSnapshot={data.seedSnapshot} liveGames={liveGames} liveError={liveError} />;
 }

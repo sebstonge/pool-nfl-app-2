@@ -1,3 +1,4 @@
+import { seedSnapshot } from '../../../../lib/playoffs/seeds.mjs';
 import { ROUNDS } from './treeData.mjs';
 
 export function playerName(player) {
@@ -70,7 +71,16 @@ export async function loadCollectiveData(client, requestedSeason) {
   ]);
   const picks = games.length ? await read(client.from('playoff_picks')
     .select('id, user_id, game_id, picked_team, predicted_spread, created_at').in('game_id', games.map(game => game.id)).order('created_at', { ascending: true }), 'playoff_picks') : [];
-  return { season, seasons, rounds, games, teams, players, paths, qbPicks, picks };
+  let snapshot;
+  if (season != null) {
+    const { data: seedRows, error: seedError } = await client.from('playoff_seeds').select('*').eq('season', season);
+    // Staged rollout: migration is awaiting approval. Only missing-table errors
+    // are tolerated; permissions, network and validation failures remain errors.
+    if (seedError && !['42P01', 'PGRST205'].includes(seedError.code)) throw new Error(`playoff_seeds: ${seedError.message}`);
+    if (seedError) console.warn('[Collective playoffs] Migration playoff_seeds non installée');
+    else snapshot = seedSnapshot(seedRows || [], season);
+  }
+  return { season, seasons, rounds, games, teams, players, paths, qbPicks, picks, seedSnapshot: snapshot };
 }
 
 export function espnSummaryUrl(game) {

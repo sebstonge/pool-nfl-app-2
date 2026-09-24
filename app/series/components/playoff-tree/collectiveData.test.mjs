@@ -54,11 +54,11 @@ test('collective loader uses playoff tables, all participants, and latest season
   const calls = [];
   const tables = {
     playoff_rounds: [{id:'wc',season:2026,round_key:'wild_card',round_order:1,status:'open'},{id:'old',season:2025,round_key:'wild_card'}],
-    playoff_games:[game], playoff_picks:picks, playoff_qb_picks:[{id:1,qb_id:'same'},{id:2,qb_id:'same'}], playoff_team_paths:[], users:[], teams:[],
+    playoff_seeds:[], playoff_games:[game], playoff_picks:picks, playoff_qb_picks:[{id:1,qb_id:'same'},{id:2,qb_id:'same'}], playoff_team_paths:[], users:[], teams:[],
   };
   const client = {auth: {getSession: async () => ({data: {session: {user: {id:'me'}}}})}, from(table) {
     assert.ok(table in tables); calls.push(table);
-    const q = {select(){return q;},order(){return q;},in(key, ids){assert.ok(!ids.includes('old'));return q;},then(resolve){return Promise.resolve({data:tables[table],error:null}).then(resolve);}};
+    const q = {select(){return q;},eq(){return q;},order(){return q;},in(key, ids){assert.ok(!ids.includes('old'));return q;},then(resolve){return Promise.resolve({data:tables[table],error:null}).then(resolve);}};
     return q;
   }};
   const data = await loadCollectiveData(client);
@@ -80,4 +80,15 @@ test('submission list uses created_at, never team or name ordering', () => {
  assert.equal(rows[0].id,1);
  assert.equal(playerName({display_name:'Club',real_name:'Séb'}), 'Club');
  assert.equal(playerName({real_name:'Séb'}), 'Séb');
+});
+
+test('seed migration rollout tolerates only absent table, and wires finalized rows', async () => {
+  const seeds = ['AFC','NFC'].flatMap((conference,c)=>Array.from({length:7},(_,i)=>({season:2026,team:`${conference}${i+1}`,espn_team_id:String(c*7+i+1),conference,seed:i+1,finalized_at:'2027-01-10T00:00:00Z'})));
+  const client = (error, rows = seeds) => ({auth:{getSession:async()=>({data:{session:{user:{id:'me'}}}})},from(table){
+    const q={select(){return q;},eq(){return q;},in(){return q;},order(){return q;},then(resolve){return Promise.resolve(table==='playoff_seeds'?{data:rows,error}:{data:table==='playoff_rounds'?[{id:'wc',season:2026,round_key:'wild_card'}]:[]}).then(resolve);}};return q;
+  }});
+  assert.equal((await loadCollectiveData(client(null))).seedSnapshot.frozen,true);
+  assert.equal((await loadCollectiveData(client(null,seeds.map(row=>({...row,finalized_at:null}))))).seedSnapshot,undefined);
+  assert.equal((await loadCollectiveData(client({code:'PGRST205',message:'absent'}))).seedSnapshot,undefined);
+  await assert.rejects(loadCollectiveData(client({code:'42501',message:'denied'})),/playoff_seeds: denied/);
 });

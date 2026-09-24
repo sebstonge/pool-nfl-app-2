@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import BottomNav from "../components/BottomNav";
+import { fetchEspnStandings } from "../../lib/espnStandings.mjs";
 
 /* =========================================================
    ORDRE OFFICIEL QB — SEMAINE 1
@@ -876,18 +877,7 @@ const [isDesktop, setIsDesktop] = useState(false);
      ========================================================= */
 
   async function updateTeamStandingsFromEspn() {
-    const url =
-      "https://site.web.api.espn.com/apis/v2/sports/football/nfl/standings?seasontype=2&type=0&level=3";
-
-    const response = await fetch(url);
-
-    if (!response.ok) {
-      throw new Error(
-        `Standings ESPN : ${response.status}`
-      );
-    }
-
-    const data = await response.json();
+    const data = await fetchEspnStandings();
 
     const foundTeams = [];
 
