@@ -1,21 +1,21 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { consensus, teamPathGroups, initialRound, collectiveRounds, fetchLiveGame, espnSummaryUrl, loadCollectiveData } from './collectiveData.mjs';
+import { consensus, teamPathGroups, initialRound, collectiveRounds, fetchLiveGame, espnSummaryUrl, loadCollectiveData, submissionOrder, playerName } from './collectiveData.mjs';
 const game = { id: 'g', round_id: 'wc', away_team: 'A', home_team: 'B' };
 const picks = Array.from({ length: 13 }, (_, i) => ({ id: i, user_id: i, game_id: 'g', picked_team: i < 4 ? 'A' : 'B', predicted_spread: i }));
 
-test('consensus is scoped to the game, 4/9 = 31/69, and input remains unchanged', () => {
+test('consensus is scoped to the game, raw counts only, and input remains unchanged', () => {
   const input = [...picks, { game_id: 'another', picked_team: 'A' }];
   const before = JSON.stringify(input);
   const result = consensus(game, input);
   assert.equal(result.total, 13); assert.equal(result.away.length, 4); assert.equal(result.home.length, 9);
-  assert.equal(result.awayPercent, 31); assert.equal(result.homePercent, 69);
+  assert.deepEqual(Object.keys(result).sort(), ['away', 'home', 'total']);
   assert.equal(JSON.stringify(input), before);
 });
 test('zero, unanimous and tied selections do not produce NaN', () => {
-  assert.equal(consensus(game, []).awayPercent, null);
-  assert.equal(consensus(game, picks.slice(0, 4)).awayPercent, 100);
-  assert.equal(consensus(game, [picks[0], picks[4]]).homePercent, 50);
+  assert.equal(consensus(game, []).total, 0);
+  assert.equal(consensus(game, picks.slice(0, 4)).away.length, 4);
+  assert.equal(consensus(game, [picks[0], picks[4]]).home.length, 1);
   assert.equal(consensus(game, [{ game_id: 'g', picked_team: 'invalid' }]).total, 0);
 });
 test('team paths are scoped by round and preserve stored multipliers', () => {
@@ -56,7 +56,7 @@ test('collective loader uses playoff tables, all participants, and latest season
     playoff_rounds: [{id:'wc',season:2026,round_key:'wild_card',round_order:1,status:'open'},{id:'old',season:2025,round_key:'wild_card'}],
     playoff_games:[game], playoff_picks:picks, playoff_qb_picks:[{id:1,qb_id:'same'},{id:2,qb_id:'same'}], playoff_team_paths:[], users:[], teams:[],
   };
-  const client = {from(table) {
+  const client = {auth: {getSession: async () => ({data: {session: {user: {id:'me'}}}})}, from(table) {
     assert.ok(table in tables); calls.push(table);
     const q = {select(){return q;},order(){return q;},in(key, ids){assert.ok(!ids.includes('old'));return q;},then(resolve){return Promise.resolve({data:tables[table],error:null}).then(resolve);}};
     return q;
@@ -66,6 +66,18 @@ test('collective loader uses playoff tables, all participants, and latest season
   assert.ok(calls.includes('playoff_team_paths'));
 });
 test('read failures remain errors, not empty consensus', async () => {
-  const client = {from(){const q={select(){return q;},order(){return Promise.resolve({error:new Error('denied')});}};return q;}};
+  const client = {auth: {getSession: async () => ({data: {session: {user: {id:'me'}}}})}, from(){const q={select(){return q;},order(){return Promise.resolve({error:new Error('denied')});}};return q;}};
   await assert.rejects(loadCollectiveData(client), /denied/);
+});
+
+test('no session stops all table reads rather than pretending playoffs are empty', async () => {
+ const client = {auth: {getSession: async () => ({data: {session: null}})}, from(){throw Error('must not query');}};
+ assert.deepEqual(await loadCollectiveData(client), {requiresSignIn: true});
+});
+test('submission list uses created_at, never team or name ordering', () => {
+ const rows = [{id:1,created_at:'2026-01-02',picked_team:'A'}, {id:2,created_at:'2026-01-01',picked_team:'B'}];
+ assert.deepEqual(submissionOrder(rows).map(r=>r.id), [2,1]);
+ assert.equal(rows[0].id,1);
+ assert.equal(playerName({display_name:'Club',real_name:'Séb'}), 'Club');
+ assert.equal(playerName({real_name:'Séb'}), 'Séb');
 });

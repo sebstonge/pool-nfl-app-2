@@ -9,8 +9,7 @@ export function consensus(game, picks) {
   const away = rows.filter(pick => pick.picked_team === game.away_team);
   const home = rows.filter(pick => pick.picked_team === game.home_team);
   const total = away.length + home.length;
-  const awayPercent = total ? Math.round(100 * away.length / total) : null;
-  return { away, home, total, awayPercent, homePercent: total ? 100 - awayPercent : null };
+  return { away, home, total };
 }
 
 export function teamPathGroups(paths, roundId) {
@@ -43,28 +42,34 @@ export function collectiveRounds(rounds, games) {
   });
 }
 
-async function read(query) {
+async function read(query, source) {
   const { data, error } = await query;
-  if (error) throw error;
+  if (error) {
+    console.error('[Collective playoffs]', source, error.code, error.message);
+    throw new Error(`${source}: ${error.message}`, { cause: error });
+  }
   return data || [];
 }
 
 export async function loadCollectiveData(client, requestedSeason) {
+  const { data: auth, error: authError } = await client.auth.getSession();
+  if (authError) throw authError;
+  if (!auth.session) return { requiresSignIn: true };
   const allRounds = await read(client.from('playoff_rounds')
-    .select('id, season, round_key, round_name, round_order, status').order('round_order'));
+    .select('id, season, round_key, round_name, round_order, status').order('round_order'), 'playoff_rounds');
   const seasons = [...new Set(allRounds.map(round => Number(round.season)))].filter(Number.isFinite).sort((a, b) => b - a);
   const season = seasons.includes(Number(requestedSeason)) ? Number(requestedSeason) : seasons[0];
   const rounds = allRounds.filter(round => Number(round.season) === season);
   const roundIds = rounds.map(round => round.id);
   const [teams, players, games, paths, qbPicks] = await Promise.all([
-    read(client.from('teams').select('name, espn_abbr, logo')),
-    read(client.from('users').select('id, display_name, real_name')),
-    roundIds.length ? read(client.from('playoff_games').select('id, round_id, external_game_id, game_date, away_team, home_team, away_score, home_score').in('round_id', roundIds).order('game_date')) : [],
-    roundIds.length ? read(client.from('playoff_team_paths').select('id, user_id, round_id, team, multiplier, continues_previous_path').in('round_id', roundIds)) : [],
-    roundIds.length ? read(client.from('playoff_qb_picks').select('id, user_id, round_id, qb_id, qbs(id, name, team, espn_athlete_id)').in('round_id', roundIds)) : [],
+    read(client.from('teams').select('name, espn_abbr, logo'), 'teams'),
+    read(client.from('users').select('id, display_name, real_name'), 'users'),
+    roundIds.length ? read(client.from('playoff_games').select('id, round_id, external_game_id, game_date, away_team, home_team, away_score, home_score').in('round_id', roundIds).order('game_date'), 'playoff_games') : [],
+    roundIds.length ? read(client.from('playoff_team_paths').select('id, user_id, round_id, team, multiplier, continues_previous_path').in('round_id', roundIds), 'playoff_team_paths') : [],
+    roundIds.length ? read(client.from('playoff_qb_picks').select('id, user_id, round_id, qb_id, qbs(id, name, team, espn_athlete_id)').in('round_id', roundIds), 'playoff_qb_picks') : [],
   ]);
   const picks = games.length ? await read(client.from('playoff_picks')
-    .select('id, user_id, game_id, picked_team, predicted_spread').in('game_id', games.map(game => game.id))) : [];
+    .select('id, user_id, game_id, picked_team, predicted_spread, created_at').in('game_id', games.map(game => game.id)).order('created_at', { ascending: true }), 'playoff_picks') : [];
   return { season, seasons, rounds, games, teams, players, paths, qbPicks, picks };
 }
 
@@ -89,4 +94,8 @@ export async function fetchLiveGame(game, fetcher, signal) {
   const awayScore = Number(away.score), homeScore = Number(home.score);
   if (!Number.isFinite(awayScore) || !Number.isFinite(homeScore)) return null;
   return { awayScore, homeScore, state, detail: competition.status?.type?.shortDetail || '' };
+}
+
+export function submissionOrder(rows) {
+  return [...rows].sort((a, b) => (Date.parse(a.created_at) || Infinity) - (Date.parse(b.created_at) || Infinity));
 }
