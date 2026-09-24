@@ -2599,6 +2599,7 @@ async function resetUserPassword() {
         }
       >
         <h1>Admin ⚙️</h1>
+        <p><a href="/admin/playoffs" style={{ color: "#86efac" }}>Séries / Playoffs →</a></p>
 
         <p>
           Saison{" "}
