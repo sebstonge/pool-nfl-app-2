@@ -18,22 +18,43 @@
   align-items: center;
   justify-content: space-between;
   gap: 24px;
+  min-height: 0;
+  padding-top: 22px;
+  padding-bottom: 22px;
 }
 
-.hero h1 {
+.heroIdentity {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.heroTitle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.heroTitle > span {
+  font-size: 1.45rem;
+}
+
+.heroTitle h1 {
   margin: 0;
+  font-size: clamp(1.65rem, 2vw, 2.1rem);
+  line-height: 1.05;
+  white-space: nowrap;
 }
 
-.hero p {
-  margin: 6px 0 0;
-  opacity: 0.7;
+.heroIdentity p {
+  margin: 0;
+  opacity: 0.65;
 }
 
 .heroActions {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  flex-wrap: wrap;
   gap: 10px;
 }
 
@@ -43,42 +64,7 @@
 
 
 /* =========================================================
-   DESKTOP — STRUCTURE PRINCIPALE
-   ========================================================= */
-
-.adminDesktopGrid {
-  display: grid;
-  grid-template-columns:
-    minmax(320px, 0.78fr)
-    minmax(0, 1.42fr);
-  gap: 18px;
-  align-items: start;
-}
-
-.seedControlColumn {
-  display: grid;
-  gap: 18px;
-  min-width: 0;
-}
-
-.roundControlColumn {
-  display: grid;
-  gap: 10px;
-  min-width: 0;
-}
-
-.desktopSectionHeading {
-  padding: 2px 4px 0;
-}
-
-.desktopSectionHeading h2 {
-  margin: 0;
-  font-size: 1.2rem;
-}
-
-
-/* =========================================================
-   COMMON HEADINGS
+   COMMON
    ========================================================= */
 
 .cardHeading {
@@ -86,7 +72,6 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 10px;
 }
 
 .cardHeading h2 {
@@ -103,7 +88,7 @@
 }
 
 .mutedText {
-  opacity: 0.68;
+  opacity: 0.65;
 }
 
 .helperText {
@@ -111,11 +96,6 @@
   font-size: 0.86rem;
   opacity: 0.62;
 }
-
-
-/* =========================================================
-   STATUS
-   ========================================================= */
 
 .error {
   padding: 12px 14px;
@@ -145,7 +125,7 @@
   border-radius: 999px;
   font-size: 0.72rem;
   font-weight: 800;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
   white-space: nowrap;
 }
@@ -162,50 +142,62 @@
 
 
 /* =========================================================
-   SNAPSHOT
+   ACTIONS PRINCIPALES
    ========================================================= */
 
-.meta {
+.primaryGrid {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 10px;
-  margin: 18px 0;
+  grid-template-columns:
+    minmax(0, 1fr)
+    minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
 }
 
-.meta div {
-  display: grid;
-  gap: 3px;
-}
-
-.meta dt {
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  opacity: 0.55;
-}
-
-.meta dd {
-  margin: 0;
-  font-weight: 700;
-}
-
-
-/* =========================================================
-   ACTIONS
-   ========================================================= */
-
-.actions {
+.primaryCard {
   display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 16px;
+  flex-direction: column;
+  min-width: 0;
 }
 
-.operationAction {
-  margin-top: auto;
-  padding-top: 16px;
+.primaryAction {
+  margin-top: 20px;
+}
+
+.snapshotSummary {
+  display: grid;
+  grid-template-columns:
+    minmax(0, 2fr)
+    repeat(3, minmax(72px, 0.65fr));
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.snapshotSummary > div {
+  display: grid;
+  align-content: center;
+  gap: 4px;
+  min-height: 64px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.snapshotSummary span {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.52;
+}
+
+.snapshotSummary strong {
+  font-size: 0.92rem;
+}
+
+.roundColumn {
+  min-width: 0;
 }
 
 
@@ -223,7 +215,6 @@
   grid-template-columns:
     repeat(2, minmax(0, 1fr));
   gap: 18px;
-  align-items: stretch;
 }
 
 .operationCard {
@@ -251,11 +242,11 @@
   display: grid;
   grid-template-columns:
     repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  gap: 8px;
   margin: 18px 0 4px;
 }
 
-.roundMeta div {
+.roundMeta > div {
   min-width: 0;
   padding: 10px 12px;
   border: 1px solid rgba(255, 255, 255, 0.07);
@@ -268,7 +259,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  opacity: 0.55;
+  opacity: 0.52;
 }
 
 .roundMeta dd {
@@ -277,15 +268,21 @@
 }
 
 .roundBlocked {
+  margin: 16px 0 0;
   padding: 10px 12px;
   border: 1px solid rgba(255, 205, 90, 0.13);
   border-radius: 10px;
   background: rgba(255, 190, 70, 0.04);
 }
 
+.operationAction {
+  margin-top: auto;
+  padding-top: 16px;
+}
+
 
 /* =========================================================
-   MATCHS DE LA RONDE
+   MATCHS
    ========================================================= */
 
 .gamesCard {
@@ -336,7 +333,7 @@
 
 
 /* =========================================================
-   CONFERENCES
+   CONFÉRENCES
    ========================================================= */
 
 .conferences {
@@ -367,7 +364,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 46px;
+  min-width: 48px;
   padding: 5px 10px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 999px;
@@ -378,59 +375,98 @@
 
 .seedList {
   display: grid;
-  grid-template-columns:
-    repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  grid-template-columns: 1fr;
+  gap: 7px;
 }
 
 .seed {
   display: grid;
   grid-template-columns:
-    30px
-    36px
-    minmax(0, 1fr);
+    42px
+    38px
+    minmax(0, 1fr)
+    auto;
   align-items: center;
-  gap: 9px;
-  min-height: 48px;
-  padding: 7px 9px;
+  gap: 10px;
+  min-height: 50px;
+  padding: 7px 12px;
   border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 11px;
   background: rgba(255, 255, 255, 0.025);
 }
 
-.seed > strong:first-child {
-  opacity: 0.55;
+.seedNumber {
+  font-weight: 800;
+  opacity: 0.5;
 }
 
 .seed img {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   object-fit: contain;
 }
 
-.seed > span {
+.seed > span:not(.seedNumber):not(.byeBadge) {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
 }
 
-.seed div {
-  display: grid;
-  gap: 2px;
+.seedTeam {
   min-width: 0;
-}
-
-.seed div strong {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.seed small {
-  font-size: 0.7rem;
-  opacity: 0.58;
+.byeBadge {
+  padding: 4px 8px;
+  border: 1px solid rgba(255, 205, 90, 0.16);
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  white-space: nowrap;
+  opacity: 0.72;
+}
+
+
+/* =========================================================
+   FINALISATION
+   ========================================================= */
+
+.finalizeCard {
+  min-width: 0;
+}
+
+.finalizeContent {
+  display: grid;
+  grid-template-columns:
+    minmax(0, 1fr)
+    auto;
+  align-items: center;
+  gap: 32px;
+}
+
+.finalizeContent h2 {
+  margin: 0 0 10px;
+}
+
+.finalizeContent p {
+  max-width: 720px;
+}
+
+.finalizeAction {
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+}
+
+.finalizeAction small {
+  max-width: 220px;
+  text-align: right;
+  opacity: 0.55;
 }
 
 
@@ -439,7 +475,7 @@
    ========================================================= */
 
 .activationCard {
-  margin-top: 2px;
+  min-width: 0;
 }
 
 .activationContent {
@@ -452,7 +488,11 @@
 }
 
 .activationContent h2 {
-  margin-top: 0;
+  margin: 0 0 10px;
+}
+
+.activationContent p {
+  max-width: 720px;
 }
 
 .activationContent button {
@@ -465,7 +505,10 @@
    ========================================================= */
 
 .dialog {
-  width: min(560px, calc(100vw - 32px));
+  width: min(
+    560px,
+    calc(100vw - 32px)
+  );
   padding: 24px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 18px;
@@ -496,42 +539,12 @@
   margin-top: 3px;
 }
 
-
-/* =========================================================
-   EXTRA LARGE DESKTOP
-   ========================================================= */
-
-@media (min-width: 1350px) {
-  .adminDesktopGrid {
-    grid-template-columns:
-      minmax(340px, 0.72fr)
-      minmax(0, 1.48fr);
-  }
-
-  .seedList {
-    grid-template-columns:
-      repeat(2, minmax(0, 1fr));
-  }
-}
-
-
-/* =========================================================
-   MEDIUM DESKTOP / TABLET
-   ========================================================= */
-
-@media (max-width: 1100px) {
-  .adminDesktopGrid {
-    grid-template-columns: 1fr;
-  }
-
-  .seedControlColumn {
-    grid-template-columns:
-      repeat(2, minmax(0, 1fr));
-  }
-
-  .seedList {
-    grid-template-columns: 1fr;
-  }
+.actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
 }
 
 
@@ -539,27 +552,43 @@
    TABLET
    ========================================================= */
 
-@media (max-width: 850px) {
-  .seedControlColumn {
+@media (max-width: 1000px) {
+  .primaryGrid {
     grid-template-columns: 1fr;
   }
 
-  .conferences {
-    grid-template-columns: 1fr;
+  .snapshotSummary {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
   }
 
   .operations {
     grid-template-columns: 1fr;
   }
+}
 
+@media (max-width: 850px) {
+  .conferences {
+    grid-template-columns: 1fr;
+  }
+
+  .finalizeContent,
   .activationContent {
     grid-template-columns: 1fr;
     gap: 18px;
   }
 
+  .finalizeAction {
+    justify-items: stretch;
+  }
+
+  .finalizeAction small {
+    max-width: none;
+    text-align: left;
+  }
+
   .activationContent button {
     width: 100%;
-    min-width: 0;
   }
 }
 
@@ -579,6 +608,10 @@
     gap: 16px;
   }
 
+  .heroTitle h1 {
+    white-space: normal;
+  }
+
   .heroActions {
     display: grid;
     grid-template-columns: 1fr;
@@ -588,6 +621,11 @@
   .navControl {
     width: 100%;
     text-align: center;
+  }
+
+  .snapshotSummary {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
   }
 
   .cardHeading,
@@ -609,8 +647,21 @@
     grid-column: 1 / -1;
   }
 
-  .seedList {
-    grid-template-columns: 1fr;
+  .seed {
+    grid-template-columns:
+      36px
+      34px
+      minmax(0, 1fr);
+  }
+
+  .seed img {
+    width: 30px;
+    height: 30px;
+  }
+
+  .byeBadge {
+    grid-column: 3;
+    justify-self: start;
   }
 
   .actions {
