@@ -51,8 +51,7 @@ function ConfirmDialog({
 
   useEffect(() => {
     const trigger = document.activeElement;
-
-    ref.current.showModal();
+    ref.current?.showModal();
 
     return () => {
       if (trigger?.isConnected) {
@@ -68,8 +67,8 @@ function ConfirmDialog({
       ref={ref}
       className={styles.dialog}
       aria-labelledby="confirmation-title"
-      onCancel={(e) => {
-        e.preventDefault();
+      onCancel={(event) => {
+        event.preventDefault();
 
         if (!busy) {
           onCancel();
@@ -85,8 +84,8 @@ function ConfirmDialog({
       {final ? (
         <>
           <p>
-            Cette action est irréversible : elle fige les 14 seeds et
-            bloque toute future synchronisation ESPN.
+            Cette action est irréversible : elle fige les 14 seeds
+            et bloque toute future synchronisation ESPN.
           </p>
 
           <p>
@@ -98,11 +97,13 @@ function ConfirmDialog({
               type="checkbox"
               checked={ack}
               disabled={busy}
-              onChange={(e) => setAck(e.target.checked)}
+              onChange={(event) => setAck(event.target.checked)}
             />
 
-            Je confirme que la saison régulière NFL {season} est
-            terminée et que j’ai vérifié les 14 seeds.
+            <span>
+              Je confirme que la saison régulière NFL {season} est
+              terminée et que j’ai vérifié les 14 seeds.
+            </span>
           </label>
         </>
       ) : (
@@ -114,10 +115,7 @@ function ConfirmDialog({
       )}
 
       {error && (
-        <p
-          role="alert"
-          className={styles.error}
-        >
+        <p role="alert" className={styles.error}>
           {error}
         </p>
       )}
@@ -136,9 +134,7 @@ function ConfirmDialog({
           type="button"
           className="button"
           disabled={busy || (final && !ack)}
-          onClick={() =>
-            onConfirm(final ? ack : true)
-          }
+          onClick={() => onConfirm(final ? ack : true)}
         >
           {busy
             ? 'En cours…'
@@ -176,9 +172,9 @@ export function PlayoffsAdminView({
           setRows(next);
         }
       })
-      .catch((e) => {
+      .catch((err) => {
         if (active) {
-          setError(e.message);
+          setError(err.message);
         }
       });
 
@@ -187,10 +183,7 @@ export function PlayoffsAdminView({
     };
   }, [request]);
 
-  const state = snapshotState(
-    rows || [],
-    season
-  );
+  const state = snapshotState(rows || [], season);
 
   async function execute(body) {
     if (inFlight.current) {
@@ -215,12 +208,9 @@ export function PlayoffsAdminView({
             ? 'Seeds finalisés et figés.'
             : 'Snapshot rechargé.'
       );
-    } catch (e) {
+    } catch (err) {
       setPending(null);
-
-      setError(
-        `${e.message} L’opération a échoué.`
-      );
+      setError(`${err.message} L’opération a échoué.`);
 
       try {
         setRows(
@@ -231,7 +221,7 @@ export function PlayoffsAdminView({
         );
       } catch {
         setError(
-          `${e.message} Le rechargement a également échoué; le snapshot affiché est conservé. Recharge la page avant de réessayer.`
+          `${err.message} Le rechargement a également échoué; le snapshot affiché est conservé. Recharge la page avant de réessayer.`
         );
       }
     } finally {
@@ -243,31 +233,34 @@ export function PlayoffsAdminView({
   function open(action) {
     setError('');
     setMessage('');
+
     setPending({
       action,
       state,
     });
   }
 
+  const afcCount =
+    state.conferences.find(
+      (conference) => conference.name === 'AFC'
+    )?.rows.length || 0;
+
+  const nfcCount =
+    state.conferences.find(
+      (conference) => conference.name === 'NFC'
+    )?.rows.length || 0;
+
   return (
     <main className={`page ${styles.page}`}>
 
       {/* =========================================================
-          HERO
+          HERO — MÊME ESPRIT QUE L'ADMIN RÉGULIER
           ========================================================= */}
 
-      <header
-        className={`header-card ${styles.hero}`}
-      >
-        <div className={styles.heroIdentity}>
-          <div className={styles.heroTitle}>
-            <span aria-hidden="true">🏆</span>
-            <h1>Séries NFL</h1>
-          </div>
-
-          <p>
-            Saison {season} · Aperçu Admin
-          </p>
+      <header className={`header-card ${styles.hero}`}>
+        <div>
+          <h1>🏆 Séries NFL</h1>
+          <p>Saison {season} · Aperçu Admin</p>
         </div>
 
         {rows !== null && (
@@ -290,19 +283,13 @@ export function PlayoffsAdminView({
       </header>
 
       {error && !pending && (
-        <p
-          role="alert"
-          className={styles.error}
-        >
+        <p role="alert" className={styles.error}>
           {error}
         </p>
       )}
 
       {message && (
-        <p
-          role="status"
-          className={styles.success}
-        >
+        <p role="status" className={styles.success}>
           {message}
         </p>
       )}
@@ -312,7 +299,7 @@ export function PlayoffsAdminView({
           <p>
             {error
               ? 'Le snapshot n’a pas pu être chargé.'
-              : 'Chargement du snapshot…'}
+              : 'Chargement des séries…'}
           </p>
 
           {error && (
@@ -334,25 +321,19 @@ export function PlayoffsAdminView({
         <>
 
           {/* =====================================================
-              ACTIONS PRINCIPALES
+              LIGNE 1 — DEUX ACTIONS PRINCIPALES
               ===================================================== */}
 
-          <div className={styles.primaryGrid}>
+          <div className={styles.mainGrid}>
 
-            {/* ===================================================
-                SEEDS NFL
-                =================================================== */}
-
-            <section
-              className={`card ${styles.primaryCard}`}
-            >
-              <div className={styles.cardHeading}>
+            <section className={`card ${styles.actionCard}`}>
+              <div className={styles.cardTop}>
                 <div>
                   <p className={styles.eyebrow}>
                     Classement de référence
                   </p>
 
-                  <h2>Seeds NFL</h2>
+                  <h2>🏈 Seeds NFL</h2>
                 </div>
 
                 <span
@@ -370,60 +351,34 @@ export function PlayoffsAdminView({
                 </span>
               </div>
 
-              <div className={styles.snapshotSummary}>
-                <div>
-                  <span>Capturé le</span>
-                  <strong>
-                    {date(state.capturedAt)}
-                  </strong>
-                </div>
+              <p className={styles.description}>
+                Synchronise le classement NFL utilisé comme référence
+                pour les affrontements et le reseeding des séries.
+              </p>
 
-                <div>
-                  <span>Équipes</span>
-                  <strong>
-                    {rows.length} / 14
-                  </strong>
-                </div>
+              <div className={styles.inlineInfo}>
+                <span>
+                  <strong>{rows.length}/14</strong> équipes
+                </span>
 
-                <div>
-                  <span>AFC</span>
-                  <strong>
-                    {state.conferences.find(
-                      (conference) =>
-                        conference.name === 'AFC'
-                    )?.rows.length || 0}
-                    /7
-                  </strong>
-                </div>
+                <span>
+                  <strong>{afcCount}/7</strong> AFC
+                </span>
 
-                <div>
-                  <span>NFC</span>
-                  <strong>
-                    {state.conferences.find(
-                      (conference) =>
-                        conference.name === 'NFC'
-                    )?.rows.length || 0}
-                    /7
-                  </strong>
-                </div>
+                <span>
+                  <strong>{nfcCount}/7</strong> NFC
+                </span>
+
+                <span>
+                  Capture : <strong>{date(state.capturedAt)}</strong>
+                </span>
               </div>
 
-              {!rows.length && (
-                <p>
-                  Aucun snapshot enregistré.
-                </p>
-              )}
-
-              <div className={styles.primaryAction}>
+              <div className={styles.actionBottom}>
                 <button
                   className="button"
-                  disabled={
-                    busy ||
-                    state.locked
-                  }
-                  onClick={() =>
-                    open('sync')
-                  }
+                  disabled={busy || state.locked}
+                  onClick={() => open('sync')}
                 >
                   Actualiser depuis ESPN
                 </button>
@@ -431,10 +386,12 @@ export function PlayoffsAdminView({
             </section>
 
             {/* ===================================================
-                RONDE ACTIVE
+                ROUNDADMIN CONSERVÉ TEL QUEL.
+                display: contents dans le CSS permet à ses cartes
+                d'utiliser la grille desktop sans casser sa logique.
                 =================================================== */}
 
-            <div className={styles.roundColumn}>
+            <div className={styles.roundSlot}>
               <RoundAdmin
                 key={`${state.capturedAt}-${state.finalizedAt}`}
                 season={season}
@@ -443,237 +400,139 @@ export function PlayoffsAdminView({
             </div>
           </div>
 
+
           {/* =====================================================
-              CLASSEMENTS PLAYOFFS
+              LIGNE 2 — AFC / NFC
               ===================================================== */}
 
           <div className={styles.conferences}>
-            {state.conferences.map(
-              (conference) => (
-                <section
-                  className={`card ${styles.conferenceCard}`}
-                  key={conference.name}
-                >
-                  <div
-                    className={
-                      styles.conferenceHeader
-                    }
-                  >
-                    <div>
-                      <p
-                        className={
-                          styles.eyebrow
-                        }
-                      >
-                        Classement playoffs
-                      </p>
+            {state.conferences.map((conference) => (
+              <section
+                className={`card ${styles.conferenceCard}`}
+                key={conference.name}
+              >
+                <div className={styles.conferenceHeader}>
+                  <div>
+                    <p className={styles.eyebrow}>
+                      Classement playoffs
+                    </p>
 
-                      <h2>
-                        {conference.name}
-                      </h2>
-                    </div>
-
-                    <span
-                      className={
-                        styles.conferenceCount
-                      }
-                    >
-                      {
-                        conference.rows
-                          .length
-                      }
-                      /7
-                    </span>
+                    <h2>{conference.name}</h2>
                   </div>
 
-                  <div
-                    className={
-                      styles.seedList
-                    }
-                  >
-                    {Array.from(
-                      { length: 7 },
-                      (_, i) => {
-                        const row =
-                          conference.rows.find(
-                            (r) =>
-                              r.seed ===
-                              i + 1
-                          );
+                  <span className={styles.conferenceCount}>
+                    {conference.rows.length}/7
+                  </span>
+                </div>
 
-                        const team =
-                          teams.find(
-                            (t) =>
-                              t.name ===
-                              row?.team
-                          );
+                <div className={styles.seedList}>
+                  {Array.from({ length: 7 }, (_, index) => {
+                    const seed = index + 1;
 
-                        return (
-                          <div
-                            className={
-                              styles.seed
-                            }
-                            key={i}
-                          >
-                            <span
-                              className={
-                                styles.seedNumber
-                              }
-                            >
-                              #{i + 1}
-                            </span>
+                    const row = conference.rows.find(
+                      (item) => item.seed === seed
+                    );
 
-                            <Logo
-                              team={team}
-                            />
+                    const team = teams.find(
+                      (item) => item.name === row?.team
+                    );
 
-                            <strong
-                              className={
-                                styles.seedTeam
-                              }
-                            >
-                              {row?.team ||
-                                'À déterminer'}
-                            </strong>
+                    return (
+                      <div className={styles.seed} key={seed}>
+                        <strong className={styles.seedNumber}>
+                          #{seed}
+                        </strong>
 
-                            {i === 0 && (
-                              <span
-                                className={
-                                  styles.byeBadge
-                                }
-                              >
-                                BYE
-                                {!state.finalized
-                                  ? ' · indicatif'
-                                  : ''}
-                              </span>
-                            )}
-                          </div>
-                        );
-                      }
-                    )}
-                  </div>
-                </section>
-              )
-            )}
+                        <Logo team={team} />
+
+                        <strong className={styles.seedTeam}>
+                          {row?.team || 'À déterminer'}
+                        </strong>
+
+                        {seed === 1 && (
+                          <span className={styles.byeBadge}>
+                            BYE Wild Card
+                            {!state.finalized
+                              ? ' · indicatif'
+                              : ''}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            ))}
           </div>
 
+
           {/* =====================================================
-              FINALISATION
+              FINALISATION — PLEINE LARGEUR
               ===================================================== */}
 
-          <section
-            className={`card ${styles.finalizeCard}`}
-          >
-            <div
-              className={
-                styles.finalizeContent
-              }
-            >
-              <div>
-                <p
-                  className={
-                    styles.eyebrow
-                  }
-                >
-                  Validation officielle
+          <section className={`card ${styles.fullActionCard}`}>
+            <div className={styles.fullActionText}>
+              <p className={styles.eyebrow}>
+                Validation officielle
+              </p>
+
+              <h2>Finaliser les seeds</h2>
+
+              {state.finalized ? (
+                <p>
+                  Les 14 seeds sont maintenant figés comme référence
+                  officielle des séries.
                 </p>
-
-                <h2>
-                  Finaliser les seeds
-                </h2>
-
-                {state.finalized ? (
-                  <p>
-                    Les 14 seeds sont
-                    maintenant figés comme
-                    référence officielle des
-                    séries.
-                  </p>
-                ) : (
-                  <>
-                    <p>
-                      Fige les 14 seeds et
-                      empêche toute nouvelle
-                      synchronisation ESPN.
-                    </p>
-
-                    <p
-                      className={
-                        styles.mutedText
-                      }
-                    >
-                      À effectuer uniquement
-                      lorsque la saison
-                      régulière NFL est
-                      terminée et les seeds
-                      vérifiés.
-                    </p>
-                  </>
-                )}
-              </div>
-
-              {!state.finalized && (
-                <div
-                  className={
-                    styles.finalizeAction
-                  }
-                >
-                  <button
-                    className="button-secondary"
-                    disabled={
-                      busy ||
-                      !state.canFinalize
-                    }
-                    onClick={() =>
-                      open('finalize')
-                    }
-                  >
-                    Finaliser les seeds
-                  </button>
-
-                  {!state.canFinalize && (
-                    <small>
-                      Snapshot complet et
-                      cohérent requis.
-                    </small>
-                  )}
-                </div>
+              ) : (
+                <p>
+                  Fige les 14 seeds et empêche toute nouvelle
+                  synchronisation ESPN. À effectuer uniquement après
+                  la fin de la saison régulière.
+                </p>
               )}
             </div>
+
+            {!state.finalized && (
+              <div className={styles.fullActionButton}>
+                <button
+                  className="button-secondary"
+                  disabled={busy || !state.canFinalize}
+                  onClick={() => open('finalize')}
+                >
+                  Finaliser les seeds
+                </button>
+
+                {!state.canFinalize && (
+                  <small>
+                    Snapshot complet et cohérent requis.
+                  </small>
+                )}
+              </div>
+            )}
           </section>
         </>
       )}
 
+
       {/* =========================================================
-          ACTIVATION GLOBALE
+          ACTIVATION — PLEINE LARGEUR
           ========================================================= */}
 
-      <section
-        className={`card ${styles.activationCard}`}
-      >
-        <div
-          className={
-            styles.activationContent
-          }
-        >
-          <div>
-            <p className={styles.eyebrow}>
-              Étape finale
-            </p>
+      <section className={`card ${styles.fullActionCard}`}>
+        <div className={styles.fullActionText}>
+          <p className={styles.eyebrow}>
+            Étape finale
+          </p>
 
-            <h2>
-              Activation globale — à venir
-            </h2>
+          <h2>Activation globale — à venir</h2>
 
-            <p>
-              Le mode régulier reste
-              inchangé pour les participants
-              pendant la préparation des
-              séries.
-            </p>
-          </div>
+          <p>
+            Le mode régulier reste inchangé pour les participants
+            pendant la préparation des séries.
+          </p>
+        </div>
 
+        <div className={styles.fullActionButton}>
           <button
             className="button-secondary"
             disabled
@@ -682,6 +541,11 @@ export function PlayoffsAdminView({
           </button>
         </div>
       </section>
+
+
+      {/* =========================================================
+          CONFIRMATION
+          ========================================================= */}
 
       {pending && (
         <ConfirmDialog
@@ -709,23 +573,17 @@ export function PlayoffsAdminView({
 }
 
 const request = (body) =>
-  requestSnapshot(
-    supabase,
-    body
-  );
+  requestSnapshot(supabase, body);
 
 export default function PlayoffsAdminPage() {
-  const [teams, setTeams] =
-    useState([]);
+  const [teams, setTeams] = useState([]);
 
   useEffect(() => {
     let active = true;
 
     supabase
       .from('teams')
-      .select(
-        'name,espn_abbr,logo'
-      )
+      .select('name,espn_abbr,logo')
       .then(({ data, error }) => {
         if (error) {
           console.error(
