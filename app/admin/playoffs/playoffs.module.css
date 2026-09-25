@@ -43,6 +43,77 @@
 
 
 /* =========================================================
+   DESKTOP — STRUCTURE PRINCIPALE
+   ========================================================= */
+
+.adminDesktopGrid {
+  display: grid;
+  grid-template-columns:
+    minmax(320px, 0.78fr)
+    minmax(0, 1.42fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.seedControlColumn {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+
+.roundControlColumn {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.desktopSectionHeading {
+  padding: 2px 4px 0;
+}
+
+.desktopSectionHeading h2 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+
+/* =========================================================
+   COMMON HEADINGS
+   ========================================================= */
+
+.cardHeading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 10px;
+}
+
+.cardHeading h2 {
+  margin: 0;
+}
+
+.eyebrow {
+  margin: 0 0 5px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.55;
+}
+
+.mutedText {
+  opacity: 0.68;
+}
+
+.helperText {
+  margin-top: 12px;
+  font-size: 0.86rem;
+  opacity: 0.62;
+}
+
+
+/* =========================================================
    STATUS
    ========================================================= */
 
@@ -76,6 +147,7 @@
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .draft {
@@ -90,12 +162,13 @@
 
 
 /* =========================================================
-   SNAPSHOT META
+   SNAPSHOT
    ========================================================= */
 
 .meta {
   display: grid;
-  gap: 12px;
+  grid-template-columns: 1fr;
+  gap: 10px;
   margin: 18px 0;
 }
 
@@ -105,7 +178,7 @@
 }
 
 .meta dt {
-  font-size: 0.76rem;
+  font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -137,181 +210,13 @@
 
 
 /* =========================================================
-   SNAPSHOT + FINALISATION
-   DESKTOP GRID
+   ROUND ADMIN
    ========================================================= */
 
-.seedAdminGrid {
+.roundAdmin {
   display: grid;
-  grid-template-columns:
-    minmax(0, 1.1fr)
-    minmax(340px, 0.9fr);
   gap: 18px;
-  align-items: stretch;
 }
-
-.seedAdminCard {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.cardHeading {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 10px;
-}
-
-.cardHeading h2 {
-  margin: 0;
-}
-
-.eyebrow {
-  margin: 0 0 5px;
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  opacity: 0.55;
-}
-
-.mutedText {
-  opacity: 0.68;
-}
-
-.helperText {
-  margin-top: 12px;
-  font-size: 0.86rem;
-  opacity: 0.6;
-}
-
-
-/* =========================================================
-   CONFERENCES
-   ========================================================= */
-
-.conferences {
-  display: grid;
-  grid-template-columns:
-    repeat(2, minmax(0, 1fr));
-  gap: 18px;
-  align-items: start;
-}
-
-.conferenceCard {
-  min-width: 0;
-}
-
-.conferenceHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 14px;
-}
-
-.conferenceHeader h2 {
-  margin: 0;
-}
-
-.conferenceCount {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 46px;
-  padding: 5px 10px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 999px;
-  font-size: 0.78rem;
-  font-weight: 800;
-  opacity: 0.72;
-}
-
-.seedList {
-  display: grid;
-  gap: 8px;
-}
-
-.seed {
-  display: grid;
-  grid-template-columns:
-    34px
-    38px
-    minmax(0, 1fr);
-  align-items: center;
-  gap: 10px;
-  min-height: 50px;
-  padding: 7px 10px;
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.025);
-}
-
-.seed > strong:first-child {
-  opacity: 0.55;
-}
-
-.seed img {
-  width: 34px;
-  height: 34px;
-  object-fit: contain;
-}
-
-.seed > span {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-}
-
-.seed div {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
-}
-
-.seed div strong {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.seed small {
-  font-size: 0.74rem;
-  opacity: 0.58;
-}
-
-
-/* =========================================================
-   ROUND ADMIN SECTION
-   ========================================================= */
-
-.roundAdminSection {
-  display: grid;
-  gap: 12px;
-  margin-top: 2px;
-}
-
-.sectionHeading {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 0 2px;
-}
-
-.sectionHeading h2 {
-  margin: 0;
-  font-size: 1.2rem;
-}
-
-
-/* =========================================================
-   ROUND ADMIN OPERATIONS
-   ========================================================= */
 
 .operations {
   display: grid;
@@ -331,15 +236,27 @@
   margin-top: 0;
 }
 
+.roundTitleRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.roundTitleRow h2 {
+  margin: 0;
+}
+
 .roundMeta {
   display: grid;
   grid-template-columns:
     repeat(2, minmax(0, 1fr));
   gap: 10px;
-  margin: 16px 0;
+  margin: 18px 0 4px;
 }
 
 .roundMeta div {
+  min-width: 0;
   padding: 10px 12px;
   border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 10px;
@@ -347,7 +264,7 @@
 }
 
 .roundMeta dt {
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -359,10 +276,37 @@
   font-weight: 700;
 }
 
+.roundBlocked {
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 205, 90, 0.13);
+  border-radius: 10px;
+  background: rgba(255, 190, 70, 0.04);
+}
+
 
 /* =========================================================
-   ROUND GAMES
+   MATCHS DE LA RONDE
    ========================================================= */
+
+.gamesCard {
+  min-width: 0;
+}
+
+.gamesHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.gamesHeader h3 {
+  margin: 0;
+}
+
+.gamesHeader > span {
+  font-size: 0.8rem;
+  opacity: 0.55;
+}
 
 .roundGames {
   display: grid;
@@ -387,7 +331,106 @@
 }
 
 .roundGames li strong {
+  font-size: 0.75rem;
+}
+
+
+/* =========================================================
+   CONFERENCES
+   ========================================================= */
+
+.conferences {
+  display: grid;
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  align-items: start;
+}
+
+.conferenceCard {
+  min-width: 0;
+}
+
+.conferenceHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.conferenceHeader h2 {
+  margin: 0;
+}
+
+.conferenceCount {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 46px;
+  padding: 5px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
   font-size: 0.78rem;
+  font-weight: 800;
+  opacity: 0.72;
+}
+
+.seedList {
+  display: grid;
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.seed {
+  display: grid;
+  grid-template-columns:
+    30px
+    36px
+    minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
+  min-height: 48px;
+  padding: 7px 9px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.seed > strong:first-child {
+  opacity: 0.55;
+}
+
+.seed img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+
+.seed > span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+}
+
+.seed div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.seed div strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.seed small {
+  font-size: 0.7rem;
+  opacity: 0.58;
 }
 
 
@@ -418,7 +461,7 @@
 
 
 /* =========================================================
-   CONFIRMATION DIALOG
+   DIALOG
    ========================================================= */
 
 .dialog {
@@ -455,11 +498,49 @@
 
 
 /* =========================================================
+   EXTRA LARGE DESKTOP
+   ========================================================= */
+
+@media (min-width: 1350px) {
+  .adminDesktopGrid {
+    grid-template-columns:
+      minmax(340px, 0.72fr)
+      minmax(0, 1.48fr);
+  }
+
+  .seedList {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+}
+
+
+/* =========================================================
+   MEDIUM DESKTOP / TABLET
+   ========================================================= */
+
+@media (max-width: 1100px) {
+  .adminDesktopGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .seedControlColumn {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+
+  .seedList {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* =========================================================
    TABLET
    ========================================================= */
 
-@media (max-width: 900px) {
-  .seedAdminGrid {
+@media (max-width: 850px) {
+  .seedControlColumn {
     grid-template-columns: 1fr;
   }
 
@@ -509,7 +590,8 @@
     text-align: center;
   }
 
-  .cardHeading {
+  .cardHeading,
+  .roundTitleRow {
     flex-direction: column;
   }
 
@@ -527,17 +609,8 @@
     grid-column: 1 / -1;
   }
 
-  .seed {
-    grid-template-columns:
-      30px
-      34px
-      minmax(0, 1fr);
-  }
-
-  .seed img,
-  .seed > span {
-    width: 30px;
-    height: 30px;
+  .seedList {
+    grid-template-columns: 1fr;
   }
 
   .actions {
