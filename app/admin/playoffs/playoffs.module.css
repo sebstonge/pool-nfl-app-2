@@ -1,8 +1,13 @@
 /* =========================================================
-   PAGE
+   PAGE — LARGEUR DESKTOP
    ========================================================= */
 
 .page {
+  width: calc(100vw - 48px);
+  max-width: 1500px !important;
+  margin-left: auto;
+  margin-right: auto;
+
   display: grid;
   gap: 18px;
   padding-bottom: 48px;
@@ -14,40 +19,25 @@
    ========================================================= */
 
 .hero {
+  width: 100%;
+  box-sizing: border-box;
+
   display: flex;
   align-items: center;
   justify-content: space-between;
+
   gap: 24px;
-  min-height: 0;
-  padding-top: 22px;
-  padding-bottom: 22px;
+  padding: 22px 26px;
 }
 
-.heroIdentity {
-  display: grid;
-  gap: 5px;
-  min-width: 0;
-}
-
-.heroTitle {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.heroTitle > span {
-  font-size: 1.45rem;
-}
-
-.heroTitle h1 {
+.hero h1 {
   margin: 0;
-  font-size: clamp(1.65rem, 2vw, 2.1rem);
-  line-height: 1.05;
-  white-space: nowrap;
+  font-size: 2rem;
+  line-height: 1.1;
 }
 
-.heroIdentity p {
-  margin: 0;
+.hero p {
+  margin: 7px 0 0;
   opacity: 0.65;
 }
 
@@ -56,6 +46,7 @@
   align-items: center;
   justify-content: flex-end;
   gap: 10px;
+  flex-shrink: 0;
 }
 
 .navControl {
@@ -64,50 +55,64 @@
 
 
 /* =========================================================
-   COMMON
+   TEXTE COMMUN
    ========================================================= */
-
-.cardHeading {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.cardHeading h2 {
-  margin: 0;
-}
 
 .eyebrow {
   margin: 0 0 5px;
+
   font-size: 0.72rem;
   font-weight: 800;
+
   letter-spacing: 0.08em;
   text-transform: uppercase;
+
   opacity: 0.55;
 }
 
+.description {
+  margin: 12px 0 0;
+  max-width: 720px;
+
+  line-height: 1.5;
+  opacity: 0.76;
+}
+
 .mutedText {
-  opacity: 0.65;
+  opacity: 0.68;
 }
 
 .helperText {
   margin-top: 12px;
+
   font-size: 0.86rem;
   opacity: 0.62;
 }
 
+
+/* =========================================================
+   MESSAGES
+   ========================================================= */
+
 .error {
+  margin: 0;
+
   padding: 12px 14px;
+
   border: 1px solid rgba(255, 100, 100, 0.3);
   border-radius: 12px;
+
   background: rgba(255, 70, 70, 0.08);
 }
 
 .success {
+  margin: 0;
+
   padding: 12px 14px;
+
   border: 1px solid rgba(90, 220, 140, 0.25);
   border-radius: 12px;
+
   background: rgba(70, 200, 120, 0.08);
 }
 
@@ -120,13 +125,19 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+
   width: fit-content;
+
   padding: 5px 10px;
+
   border-radius: 999px;
+
   font-size: 0.72rem;
   font-weight: 800;
+
   letter-spacing: 0.05em;
   text-transform: uppercase;
+
   white-space: nowrap;
 }
 
@@ -142,61 +153,77 @@
 
 
 /* =========================================================
-   ACTIONS PRINCIPALES
+   LIGNE PRINCIPALE
+   SEEDS + ADMIN RONDE
    ========================================================= */
 
-.primaryGrid {
+.mainGrid {
   display: grid;
+
   grid-template-columns:
-    minmax(0, 1fr)
-    minmax(0, 1fr);
+    repeat(2, minmax(0, 1fr));
+
   gap: 18px;
-  align-items: start;
+  align-items: stretch;
 }
 
-.primaryCard {
+.actionCard {
+  min-width: 0;
+
   display: flex;
   flex-direction: column;
-  min-width: 0;
+
+  box-sizing: border-box;
 }
 
-.primaryAction {
-  margin-top: 20px;
+.cardTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+
+  gap: 18px;
 }
 
-.snapshotSummary {
-  display: grid;
-  grid-template-columns:
-    minmax(0, 2fr)
-    repeat(3, minmax(72px, 0.65fr));
+.cardTop h2 {
+  margin: 0;
+}
+
+.inlineInfo {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+
   gap: 8px;
-  margin-top: 20px;
+
+  margin-top: 18px;
 }
 
-.snapshotSummary > div {
-  display: grid;
-  align-content: center;
+.inlineInfo > span {
+  display: inline-flex;
+  align-items: center;
   gap: 4px;
-  min-height: 64px;
-  padding: 10px 12px;
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  border-radius: 11px;
+
+  padding: 6px 10px;
+
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+
   background: rgba(255, 255, 255, 0.025);
+
+  font-size: 0.78rem;
+  white-space: nowrap;
 }
 
-.snapshotSummary span {
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  opacity: 0.52;
+.inlineInfo strong {
+  font-weight: 800;
 }
 
-.snapshotSummary strong {
-  font-size: 0.92rem;
+.actionBottom {
+  margin-top: auto;
+  padding-top: 20px;
 }
 
-.roundColumn {
+.roundSlot {
   min-width: 0;
 }
 
@@ -208,71 +235,30 @@
 .roundAdmin {
   display: grid;
   gap: 18px;
+
+  min-width: 0;
 }
 
 .operations {
   display: grid;
+
   grid-template-columns:
     repeat(2, minmax(0, 1fr));
+
   gap: 18px;
 }
 
 .operationCard {
+  min-width: 0;
+
   display: flex;
   flex-direction: column;
-  min-width: 0;
+
+  box-sizing: border-box;
 }
 
 .operationCard h2 {
   margin-top: 0;
-}
-
-.roundTitleRow {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.roundTitleRow h2 {
-  margin: 0;
-}
-
-.roundMeta {
-  display: grid;
-  grid-template-columns:
-    repeat(2, minmax(0, 1fr));
-  gap: 8px;
-  margin: 18px 0 4px;
-}
-
-.roundMeta > div {
-  min-width: 0;
-  padding: 10px 12px;
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.025);
-}
-
-.roundMeta dt {
-  font-size: 0.68rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  opacity: 0.52;
-}
-
-.roundMeta dd {
-  margin: 4px 0 0;
-  font-weight: 700;
-}
-
-.roundBlocked {
-  margin: 16px 0 0;
-  padding: 10px 12px;
-  border: 1px solid rgba(255, 205, 90, 0.13);
-  border-radius: 10px;
-  background: rgba(255, 190, 70, 0.04);
 }
 
 .operationAction {
@@ -280,19 +266,90 @@
   padding-top: 16px;
 }
 
+.roundTitleRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+
+  gap: 16px;
+}
+
+.roundTitleRow h2 {
+  margin: 0;
+}
+
 
 /* =========================================================
-   MATCHS
+   MÉTADONNÉES RONDE
+   ========================================================= */
+
+.roundMeta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+
+  gap: 8px;
+
+  margin: 18px 0 4px;
+}
+
+.roundMeta > div {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+
+  min-width: 0;
+
+  padding: 6px 9px;
+
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 999px;
+
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.roundMeta dt {
+  font-size: 0.68rem;
+  font-weight: 700;
+
+  text-transform: uppercase;
+
+  opacity: 0.52;
+}
+
+.roundMeta dd {
+  margin: 0;
+
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.roundBlocked {
+  margin: 16px 0 0;
+
+  padding: 10px 12px;
+
+  border: 1px solid rgba(255, 205, 90, 0.13);
+  border-radius: 10px;
+
+  background: rgba(255, 190, 70, 0.04);
+}
+
+
+/* =========================================================
+   MATCHS DE LA RONDE
    ========================================================= */
 
 .gamesCard {
   min-width: 0;
+  box-sizing: border-box;
 }
 
 .gamesHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
+
   gap: 12px;
 }
 
@@ -307,28 +364,54 @@
 
 .roundGames {
   display: grid;
+
+  grid-template-columns:
+    repeat(3, minmax(0, 1fr));
+
   gap: 8px;
+
   padding: 0;
   margin: 14px 0 0;
+
   list-style: none;
 }
 
 .roundGames li {
   display: grid;
+
   grid-template-columns:
     minmax(0, 1fr)
-    auto
     auto;
+
   align-items: center;
-  gap: 14px;
+
+  gap: 8px;
+
+  min-width: 0;
+
   padding: 10px 12px;
+
   border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 10px;
+
   background: rgba(255, 255, 255, 0.025);
 }
 
+.roundGames li > span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .roundGames li strong {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
+}
+
+.roundGames li > span:last-child:not(:first-child) {
+  grid-column: 1 / -1;
+
+  font-size: 0.78rem;
+  opacity: 0.72;
 }
 
 
@@ -338,21 +421,26 @@
 
 .conferences {
   display: grid;
+
   grid-template-columns:
     repeat(2, minmax(0, 1fr));
+
   gap: 18px;
   align-items: start;
 }
 
 .conferenceCard {
   min-width: 0;
+  box-sizing: border-box;
 }
 
 .conferenceHeader {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
+
   gap: 12px;
+
   margin-bottom: 14px;
 }
 
@@ -364,45 +452,73 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+
   min-width: 48px;
+
   padding: 5px 10px;
+
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 999px;
+
   font-size: 0.78rem;
   font-weight: 800;
+
   opacity: 0.72;
 }
 
+
+/* =========================================================
+   SEEDS
+   7 ÉQUIPES SUR UNE SEULE LIGNE DESKTOP
+   ========================================================= */
+
 .seedList {
   display: grid;
-  grid-template-columns: 1fr;
+
+  grid-template-columns:
+    repeat(7, minmax(0, 1fr));
+
   gap: 7px;
 }
 
 .seed {
-  display: grid;
-  grid-template-columns:
-    42px
-    38px
-    minmax(0, 1fr)
-    auto;
+  position: relative;
+
+  min-width: 0;
+  min-height: 96px;
+
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 10px;
-  min-height: 50px;
-  padding: 7px 12px;
+  justify-content: center;
+
+  gap: 5px;
+
+  padding: 8px 6px;
+
   border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 11px;
+
   background: rgba(255, 255, 255, 0.025);
+
+  text-align: center;
 }
 
 .seedNumber {
-  font-weight: 800;
+  position: absolute;
+
+  top: 6px;
+  left: 7px;
+
+  font-size: 0.7rem;
+
   opacity: 0.5;
 }
 
 .seed img {
   width: 34px;
   height: 34px;
+
   object-fit: contain;
 }
 
@@ -410,93 +526,91 @@
   display: flex;
   align-items: center;
   justify-content: center;
+
   width: 34px;
   height: 34px;
 }
 
 .seedTeam {
-  min-width: 0;
+  width: 100%;
+
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+
+  font-size: 0.75rem;
 }
 
 .byeBadge {
-  padding: 4px 8px;
+  max-width: 100%;
+
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  padding: 2px 6px;
+
   border: 1px solid rgba(255, 205, 90, 0.16);
   border-radius: 999px;
-  font-size: 0.68rem;
+
+  font-size: 0.56rem;
   font-weight: 800;
-  white-space: nowrap;
+
   opacity: 0.72;
 }
 
 
 /* =========================================================
-   FINALISATION
+   ACTIONS PLEINE LARGEUR
    ========================================================= */
 
-.finalizeCard {
+.fullActionCard {
+  width: 100%;
+  min-width: 0;
+
+  box-sizing: border-box;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 36px;
+}
+
+.fullActionText {
   min-width: 0;
 }
 
-.finalizeContent {
-  display: grid;
-  grid-template-columns:
-    minmax(0, 1fr)
-    auto;
-  align-items: center;
-  gap: 32px;
+.fullActionText h2 {
+  margin: 0 0 8px;
 }
 
-.finalizeContent h2 {
-  margin: 0 0 10px;
+.fullActionText p:last-child {
+  max-width: 900px;
+  margin-bottom: 0;
+
+  opacity: 0.72;
 }
 
-.finalizeContent p {
-  max-width: 720px;
-}
+.fullActionButton {
+  flex-shrink: 0;
 
-.finalizeAction {
   display: grid;
   justify-items: end;
-  gap: 8px;
+
+  gap: 7px;
 }
 
-.finalizeAction small {
-  max-width: 220px;
-  text-align: right;
-  opacity: 0.55;
-}
-
-
-/* =========================================================
-   ACTIVATION GLOBALE
-   ========================================================= */
-
-.activationCard {
-  min-width: 0;
-}
-
-.activationContent {
-  display: grid;
-  grid-template-columns:
-    minmax(0, 1fr)
-    auto;
-  align-items: center;
-  gap: 32px;
-}
-
-.activationContent h2 {
-  margin: 0 0 10px;
-}
-
-.activationContent p {
-  max-width: 720px;
-}
-
-.activationContent button {
+.fullActionButton button {
   min-width: 210px;
+}
+
+.fullActionButton small {
+  max-width: 230px;
+
+  text-align: right;
+
+  opacity: 0.55;
 }
 
 
@@ -509,9 +623,12 @@
     560px,
     calc(100vw - 32px)
   );
+
   padding: 24px;
+
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 18px;
+
   background: #101827;
   color: inherit;
 }
@@ -528,9 +645,12 @@
 .ack {
   display: flex;
   align-items: flex-start;
+
   gap: 10px;
+
   margin-top: 18px;
   padding: 12px;
+
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 10px;
 }
@@ -543,52 +663,105 @@
   display: flex;
   align-items: center;
   flex-wrap: wrap;
+
   gap: 10px;
+
   margin-top: 16px;
 }
 
 
 /* =========================================================
-   TABLET
+   GRAND DESKTOP
    ========================================================= */
 
-@media (max-width: 1000px) {
-  .primaryGrid {
-    grid-template-columns: 1fr;
+@media (min-width: 1500px) {
+  .page {
+    max-width: 1600px !important;
   }
 
-  .snapshotSummary {
+  .hero {
+    padding-left: 30px;
+    padding-right: 30px;
+  }
+
+  .seed {
+    min-height: 102px;
+  }
+
+  .seed img {
+    width: 38px;
+    height: 38px;
+  }
+}
+
+
+/* =========================================================
+   DESKTOP / PETIT LAPTOP
+   ========================================================= */
+
+@media (max-width: 1200px) {
+  .page {
+    width: calc(100vw - 36px);
+  }
+
+  .seedList {
+    grid-template-columns:
+      repeat(4, minmax(0, 1fr));
+  }
+
+  .roundGames {
     grid-template-columns:
       repeat(2, minmax(0, 1fr));
+  }
+}
+
+
+/* =========================================================
+   TABLETTE
+   ========================================================= */
+
+@media (max-width: 950px) {
+  .page {
+    width: calc(100vw - 28px);
+  }
+
+  .mainGrid {
+    grid-template-columns: 1fr;
   }
 
   .operations {
     grid-template-columns: 1fr;
   }
-}
 
-@media (max-width: 850px) {
   .conferences {
     grid-template-columns: 1fr;
   }
 
-  .finalizeContent,
-  .activationContent {
-    grid-template-columns: 1fr;
+  .seedList {
+    grid-template-columns:
+      repeat(7, minmax(0, 1fr));
+  }
+
+  .fullActionCard {
+    align-items: flex-start;
+    flex-direction: column;
+
     gap: 18px;
   }
 
-  .finalizeAction {
+  .fullActionButton {
+    width: 100%;
+
     justify-items: stretch;
   }
 
-  .finalizeAction small {
-    max-width: none;
-    text-align: left;
+  .fullActionButton button {
+    width: 100%;
   }
 
-  .activationContent button {
-    width: 100%;
+  .fullActionButton small {
+    max-width: none;
+    text-align: left;
   }
 }
 
@@ -599,59 +772,84 @@
 
 @media (max-width: 640px) {
   .page {
+    width: calc(100vw - 20px);
+
     gap: 14px;
   }
 
   .hero {
     align-items: stretch;
     flex-direction: column;
+
     gap: 16px;
+
+    padding: 18px;
   }
 
-  .heroTitle h1 {
-    white-space: normal;
+  .hero h1 {
+    font-size: 1.7rem;
   }
 
   .heroActions {
     display: grid;
     grid-template-columns: 1fr;
+
     width: 100%;
   }
 
   .navControl {
     width: 100%;
+
     text-align: center;
   }
 
-  .snapshotSummary {
-    grid-template-columns:
-      repeat(2, minmax(0, 1fr));
-  }
-
-  .cardHeading,
+  .cardTop,
   .roundTitleRow {
     flex-direction: column;
   }
 
+  .inlineInfo {
+    align-items: flex-start;
+  }
+
   .roundMeta {
+    align-items: flex-start;
+  }
+
+  .roundGames {
     grid-template-columns: 1fr;
   }
 
-  .roundGames li {
-    grid-template-columns:
-      minmax(0, 1fr)
-      auto;
-  }
+  .seedList {
+    grid-template-columns: 1fr;
 
-  .roundGames li > span:last-child {
-    grid-column: 1 / -1;
+    gap: 7px;
   }
 
   .seed {
+    min-height: 50px;
+
+    display: grid;
+
     grid-template-columns:
       36px
       34px
-      minmax(0, 1fr);
+      minmax(0, 1fr)
+      auto;
+
+    justify-content: initial;
+
+    gap: 9px;
+
+    padding: 7px 10px;
+
+    text-align: left;
+  }
+
+  .seedNumber {
+    position: static;
+
+    font-size: 0.75rem;
   }
 
   .seed img {
@@ -659,9 +857,12 @@
     height: 30px;
   }
 
+  .seedTeam {
+    font-size: 0.82rem;
+  }
+
   .byeBadge {
-    grid-column: 3;
-    justify-self: start;
+    font-size: 0.58rem;
   }
 
   .actions {
