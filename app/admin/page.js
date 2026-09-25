@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import BottomNav from "../components/BottomNav";
+import previewStyles from "./previewNavigation.module.css";
 import { fetchEspnStandings } from "../../lib/espnStandings.mjs";
 
 /* =========================================================
@@ -2588,7 +2589,7 @@ async function resetUserPassword() {
           ===================================================== */}
 
       <section
-        className="header-card"
+        className={`header-card ${previewStyles.hero}`}
         style={
           isDesktop
             ? {
@@ -2599,7 +2600,7 @@ async function resetUserPassword() {
         }
       >
         <h1>Admin ⚙️</h1>
-        <p><a href="/admin/playoffs" style={{ color: "#86efac" }}>Séries / Playoffs →</a></p>
+        <a href="/admin/playoffs" className={previewStyles.previewButton}>👁 Prévisualiser le mode séries</a>
 
         <p>
           Saison{" "}

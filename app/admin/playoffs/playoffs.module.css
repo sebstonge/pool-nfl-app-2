@@ -22,3 +22,24 @@
 .ack input { width: 20px; height: 20px; flex-shrink: 0; }
 @media(min-width:900px){.page { padding-top: 60px; }}
 @media(max-width:700px){.conferences { grid-template-columns: 1fr; gap: 0; }.page h1 { font-size: 38px; }.actions button { width: 100%; }}
+
+.roundGames { list-style: none; padding: 0; margin: 20px 0; }
+.roundGames li { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 12px 0; border-bottom: 1px solid rgba(148,163,184,.12); }
+.roundGames li > span:first-child { flex: 1 1 200px; }
+.roundGames strong { font-size: 12px; color: #94a3b8; }
+
+.hero { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
+.heroActions { display: flex; flex-direction: column; gap: 10px; }
+.page .navControl { display: inline-flex; justify-content: center; padding: 12px 16px; font-size: 13px; text-align: center; color: #e2e8f0; }
+.operations { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 18px; align-items: stretch; }
+.operationCard { min-width: 0; display: flex; flex-direction: column; }
+.operationCard h2 { font-size: 22px; line-height: 1.35; }
+.operationCard h3 { margin: 0 0 12px; }
+.operationCard .badge { align-self: flex-start; }
+.operationAction { margin-top: auto; padding-top: 14px; }
+.operationAction button { width: 100%; }
+.roundMeta { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; margin: 20px 0; }
+.roundMeta dt { font-size: 12px; color: #94a3b8; margin-bottom: 6px; }
+.roundMeta dd { margin: 0; line-height: 1.4; }
+.roundReload { margin: 0 0 20px; }
+@media(max-width:899px){.hero { flex-direction: column; }.heroActions { width: 100%; }.operations { grid-template-columns: minmax(0,1fr); gap: 0; }}

@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { snapshotState, confirmationRequest, requestSnapshot } from './snapshotAdmin.mjs';
 import styles from './playoffs.module.css';
+import RoundAdmin, { requestRound } from './RoundAdmin';
 const season = 2026;
 function date(value) {
   return value ? new Date(value).toLocaleString('fr-CA',{dateStyle:'long',timeStyle:'short'}) : '—';
@@ -28,7 +29,7 @@ function ConfirmDialog({ pending, busy, error, onCancel, onConfirm }) {
   </dialog>;
 }
 // Injectable transport for local visual tests; production always uses the protected API.
-export function PlayoffsAdminView({ request, teams=[] }) {
+export function PlayoffsAdminView({ request, teams=[], roundRequest=requestRound }) {
   const [rows,setRows]=useState(null),[error,setError]=useState(''),[message,setMessage]=useState(''),[busy,setBusy]=useState(false),[pending,setPending]=useState(null);
   const inFlight=useRef(false);
   useEffect(()=>{let active=true;request({action:'read',season}).then(next=>{if(active)setRows(next);}).catch(e=>{if(active)setError(e.message);});return ()=>{active=false;};},[request]);
@@ -37,23 +38,41 @@ export function PlayoffsAdminView({ request, teams=[] }) {
     if(inFlight.current)return;
     inFlight.current=true;setBusy(true);setError('');setMessage('');
     try {const next=await request(body);setRows(next);setPending(null);setMessage(body.action==='sync'?'Snapshot provisoire actualisé depuis ESPN.':body.action==='finalize'?'Seeds finalisés et figés.':'Snapshot rechargé.');}
-    catch(e){setError(`${e.message} Le snapshot affiché est conservé. Relis le snapshot avant une nouvelle tentative de finalisation.`);}
+    catch(e){
+      setPending(null);
+      setError(`${e.message} L’opération a échoué.`);
+      try { setRows(await request({action:'read',season})); }
+      catch { setError(`${e.message} Le rechargement a également échoué; le snapshot affiché est conservé. Recharge la page avant de réessayer.`); }
+    }
     finally {inFlight.current=false;setBusy(false);}
   }
   function open(action){setError('');setMessage('');setPending({action,state});}
   return <main className={`page ${styles.page}`}>
-    <header className="header-card"><h1>Séries NFL</h1><p>Saison {season}</p><a href="/admin">← Retour à l’Admin</a></header>
+    <header className={`header-card ${styles.hero}`}>
+      <div><h1>Séries NFL</h1><p>Saison {season} · Aperçu Admin</p></div>
+      {rows!==null&&<div className={styles.heroActions}>
+        <a className={`button-secondary ${styles.navControl}`} href="/admin">← Retour au mode régulier</a>
+        <a className={`button-secondary ${styles.navControl}`} href="/series/matchs">👁 Voir l’app Séries</a>
+      </div>}
+    </header>
     {error && !pending && <p role="alert" className={styles.error}>{error}</p>}
     {message && <p role="status" className={styles.success}>{message}</p>}
     {rows===null ? <section className="card"><p>{error?'Le snapshot n’a pas pu être chargé.':'Chargement du snapshot…'}</p>{error && <button className="button-secondary" disabled={busy} onClick={()=>execute({action:'read',season})}>Réessayer</button>}</section> : <>
       <section className="card"><span className={`${styles.badge} ${state.finalized?styles.final:styles.draft}`}>{state.finalized?'FINALISÉ':state.locked?'ÉTAT INCOHÉRENT':'PROVISOIRE'}</span>
         <dl className={styles.meta}><div><dt>Capturé le</dt><dd>{date(state.capturedAt)}</dd></div>{state.finalized && <div><dt>Finalisé le</dt><dd>{date(state.finalizedAt)}</dd></div>}<div><dt>Équipes</dt><dd>{rows.length} au total · {state.conferences.map(c=>`${c.rows.length} ${c.name}`).join(' · ')}</dd></div></dl>
         {!rows.length && <p>Aucun snapshot enregistré.</p>}
-        <div className={styles.actions}><button className="button" disabled={busy||state.locked} onClick={()=>open('sync')}>Actualiser depuis ESPN</button><button className="button-secondary" disabled={busy} onClick={()=>execute({action:'read',season})}>Relire le snapshot</button></div>
+        <div className={styles.actions}><button className="button" disabled={busy||state.locked} onClick={()=>open('sync')}>Actualiser depuis ESPN</button></div>
       </section>
       <div className={styles.conferences}>{state.conferences.map(conference=><section className="card" key={conference.name}><h2>{conference.name}</h2>{Array.from({length:7},(_,i)=>{const row=conference.rows.find(r=>r.seed===i+1);return <div className={styles.seed} key={i}><strong>#{i+1}</strong><Logo team={teams.find(t=>t.name===row?.team)} /><div><strong>{row?.team || 'À déterminer'}</strong>{i===0 && <small>BYE Wild Card{!state.finalized?' · indicatif':''}</small>}</div></div>;})}</section>)}</div>
       <section className="card"><h2>Finaliser les seeds</h2>{state.finalized ? <p>Les seeds sont désormais figés. Aucune modification ni synchronisation ESPN n’est possible.</p> : <><p>La finalisation fige les 14 seeds comme référence officielle des playoffs et empêche les futures synchronisations ESPN. Le système pourra alors utiliser ces seeds et les byes #1.</p><p>À effectuer uniquement après la fin de la saison régulière. Un snapshot provisoire n’active aucun bye dans l’arbre public.</p><button className="button-secondary" disabled={busy||!state.canFinalize} onClick={()=>open('finalize')}>Finaliser les seeds</button>{!state.canFinalize && <p>Un snapshot complet, cohérent et non finalisé est requis.</p>}</>}</section>
+      <RoundAdmin key={`${state.capturedAt}-${state.finalizedAt}`} season={season} request={roundRequest}/>
     </>}
+    <section className="card">
+      <h2>Activation globale — à venir</h2>
+      <p>L’aperçu est réservé à l’Admin. Le mode régulier reste inchangé pour les participants.</p>
+      <button className="button-secondary" disabled>🏆 PASSER EN SÉRIES</button>
+      <p>Disponible uniquement lorsque l’application Séries sera prête : cette future action activera les séries pour tous et préservera la saison régulière terminée.</p>
+    </section>
     {pending && <ConfirmDialog pending={pending} busy={busy} error={error} onCancel={()=>{setPending(null);setError('');}} onConfirm={confirmed=>execute(confirmationRequest(pending.action,season,pending.state,confirmed))} />}
   </main>;
 }
