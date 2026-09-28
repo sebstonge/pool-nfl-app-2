@@ -52,7 +52,7 @@ async function read(query, source) {
   return data || [];
 }
 
-export async function loadCollectiveData(client, requestedSeason) {
+export async function loadCollectiveData(client, requestedSeason, { includeGameStatus = false } = {}) {
   const { data: auth, error: authError } = await client.auth.getSession();
   if (authError) throw authError;
   if (!auth.session) return { requiresSignIn: true };
@@ -65,7 +65,7 @@ export async function loadCollectiveData(client, requestedSeason) {
   const [teams, players, games, paths, qbPicks] = await Promise.all([
     read(client.from('teams').select('name, espn_abbr, logo'), 'teams'),
     read(client.from('users').select('id, display_name, real_name'), 'users'),
-    roundIds.length ? read(client.from('playoff_games').select('id, round_id, external_game_id, game_date, away_team, home_team, away_score, home_score').in('round_id', roundIds).order('game_date'), 'playoff_games') : [],
+    roundIds.length ? read(client.from('playoff_games').select(includeGameStatus ? '*' : 'id, round_id, external_game_id, game_date, away_team, home_team, away_score, home_score').in('round_id', roundIds).order('game_date'), 'playoff_games') : [],
     roundIds.length ? read(client.from('playoff_team_paths').select('id, user_id, round_id, team, multiplier, continues_previous_path').in('round_id', roundIds), 'playoff_team_paths') : [],
     roundIds.length ? read(client.from('playoff_qb_picks').select('id, user_id, round_id, qb_id, qbs(id, name, team, espn_athlete_id)').in('round_id', roundIds), 'playoff_qb_picks') : [],
   ]);
@@ -80,7 +80,7 @@ export async function loadCollectiveData(client, requestedSeason) {
     if (seedError) console.warn('[Collective playoffs] Migration playoff_seeds non installée');
     else snapshot = seedSnapshot(seedRows || [], season);
   }
-  return { season, seasons, rounds, games, teams, players, paths, qbPicks, picks, seedSnapshot: snapshot };
+  return { season, seasons, rounds, games, teams, players, paths, qbPicks, picks, userId: auth.session.user?.id, seedSnapshot: snapshot };
 }
 
 export function espnSummaryUrl(game) {

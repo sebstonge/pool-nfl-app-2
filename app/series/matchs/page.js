@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "../../../lib/supabase";
-import BottomNav from "../../components/BottomNav";
 import PersonalPlayoffTree from "../components/playoff-tree/PersonalPlayoffTree";
 
 /* =========================================================
@@ -6945,7 +6944,7 @@ const liveQbData =
         teams={teams}
         refreshKey={savedPicks}
       />
-      <BottomNav />
+
     </main>
   );
 }
