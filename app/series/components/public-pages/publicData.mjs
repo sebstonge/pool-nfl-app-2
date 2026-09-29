@@ -44,3 +44,13 @@ export function pickStatistics(games,picks) {
   }
   return {evaluated,correct,exact,accuracy:evaluated?Math.round(correct/evaluated*100):null};
 }
+
+// Navigation follows the regular page: stop at the active round.
+export function rankingRounds(data) {
+  const active=selectedRound(data).key;
+  return ROUNDS.slice(0,ROUNDS.findIndex(r=>r.key===active)+1);
+}
+export function seriesQBGroups(data) {
+  const ids=new Set(data.rounds.map(r=>r.id));
+  return qbGroups({...data,qbPicks:data.qbPicks.filter(p=>ids.has(p.round_id)).map(p=>({...p,round_id:'series'}))},{id:'series'});
+}

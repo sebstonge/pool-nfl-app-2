@@ -48,3 +48,30 @@
 .game > div { min-width: 0; max-width: 100%; }
 .game > div > .identity { flex-wrap: wrap; }
 .identity strong { overflow-wrap: anywhere; }
+
+.rankingPanel { padding:20px; }
+.panelHeading { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:16px; }
+.panelHeading h2 { margin:0; font-size:21px; }
+.panelHeading p { margin:5px 0 0; color:#94a3b8; font-size:12px; }
+.panelHeading > span { font-size:24px; }
+.roundArrows { display:flex; gap:10px; align-items:center; }
+.roundArrows button { width:34px; height:34px; flex-shrink:0; border-radius:10px; border:1px solid rgba(148,163,184,.18); background:rgba(148,163,184,.08); color:#f8fafc; font-size:18px; font-weight:900; cursor:pointer; }
+.roundArrows button:disabled { color:#475569; background:rgba(148,163,184,.03); cursor:default; }
+.progressAxis { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); border-top:1px solid rgba(148,163,184,.18); padding-top:12px; gap:12px; color:#94a3b8; font-size:12px; text-align:center; }
+.seriesQB { display:grid; grid-template-columns:42px 104px minmax(0,1fr); gap:16px; align-items:center; }
+.qbRank { text-align:center; font-size:26px; color:#94a3b8; }
+.qbRank small { display:block; font-size:12px; }
+.qbName { min-width:0; }
+.qbName h2 { margin:0 0 9px; font-size:22px; line-height:1.1; overflow-wrap:anywhere; }
+.qbName .identity { gap:8px; font-size:13px; color:#94a3b8; }
+.qbName .logo { width:34px; height:34px; }
+.qbName p { font-size:12px; }
+.ratingColumns { grid-column:1 / -1; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
+.ratingBlock { min-width:0; padding:16px 12px; border-radius:18px; background:rgba(148,163,184,.08); border:1px solid rgba(148,163,184,.14); text-align:center; }
+.ratingBlock > span { text-transform:uppercase; font-size:11px; font-weight:900; letter-spacing:.04em; color:#94a3b8; }
+.ratingBlock > strong { display:block; font-size:30px; margin-top:8px; }
+.ratingBlock p { margin:6px 0; color:#94a3b8; font-size:12px; }
+.ratingBlock small { color:#64748b; font-size:11px; }
+.best > span { color:#22c55e; }.worst > span { color:#f87171; }
+@media(min-width:900px){ .seriesQB { padding:18px 20px; grid-template-columns:58px 110px minmax(190px,.85fr) minmax(0,2.15fr); }.ratingColumns { grid-column:auto; }.qbRank { align-self:start; padding-top:5px; } }
+@media(max-width:480px){ .seriesQB { gap:10px; grid-template-columns:32px 90px minmax(0,1fr); }.seriesQB .photo {width:90px;height:90px;}.qbName h2 {font-size:20px;}.ratingColumns {gap:8px;}.ratingBlock {padding:14px 6px;}.roundArrows h2 {font-size:18px;} }
