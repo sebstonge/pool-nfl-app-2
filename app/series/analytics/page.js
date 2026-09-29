@@ -1,2 +1,2 @@
-import { PublicPage } from '../components/public-pages/PublicPages';
-export default function SeriesAnalytics(){return <PublicPage kind="analytics"/>;}
+import SeriesAnalytics from '../components/analytics/RegularAnalytics';
+export default function Page(){return <SeriesAnalytics/>;}
