@@ -2,10 +2,11 @@
 import { useState, useEffect } from 'react';
 import { ROUNDS } from '../playoff-tree/treeData.mjs';
 import { consensus, playerName, teamPathGroups } from '../playoff-tree/collectiveData.mjs';
-import { homeSummary, selectedRound, roundData, qbGroups, seriesQBGroups, rankingRounds, pickStatistics } from './publicData.mjs';
+import { homeSummary, selectedRound, roundData, qbGroups, rankingRounds, pickStatistics } from './publicData.mjs';
 import { usePlayoffData } from './usePlayoffData';
 import styles from './PublicPages.module.css';
 
+import {processedPlayoffResults} from './processedResults.mjs';
 import {SeriesQBRow} from './RegularQB';
 import RegularUserCard from './RegularUserCard';
 import RankProgressionChart from './RegularProgression';
@@ -74,19 +75,19 @@ function RankingContent({data}){
     <p className={styles.muted}>En attente des scores officiels des séries.</p>
    </section>
   </div>
-  <RankProgressionChart isDesktop={isDesktop} playerCount={data.players.length} progression={{weeks:ROUNDS.map(r=>r.key),rows:[]}}/>
+  <RankProgressionChart isDesktop={isDesktop} playerCount={data.players.length} progression={processedPlayoffResults().progression}/>
 
  </>;
 }
 export function RankingsView(props){return <Shell title="Classements 🏆" subtitle="Ronde et séries complètes" {...props}>{props.data&&!props.data.requiresSignIn&&<RankingContent data={props.data}/>}</Shell>;}
 function QBContent({data}){
  const {isDesktop}=useViewport();
- const groups=seriesQBGroups(data);
- return <>{!groups.length?<section className="card"><p>Aucun QB choisi dans les séries pour le moment.</p></section>:groups.map(g=>{
- const qb=g.qb || {id:g.id,name:'QB enregistré',team:''};
+ const rows=processedPlayoffResults().qbRows;
+ return <>{!rows.length?<section className="card"><p>Aucun rating QB validé pour le moment.</p></section>:rows.map(row=>{
+ const qb=row.qb;
  const team=data.teams.find(t=>t.name?.trim().toLowerCase()===qb.team?.trim().toLowerCase());
  const logo=team?.espn_abbr?`https://a.espncdn.com/i/teamlogos/nfl/500/${team.espn_abbr.toLowerCase()}.png`:team?.logo;
- return <SeriesQBRow key={g.id} row={{qb,best:null,average:null,worst:null}} teamLogo={logo} isDesktop={isDesktop}/>;
+ return <SeriesQBRow key={qb.id} row={row} teamLogo={logo} isDesktop={isDesktop}/>;
  })}</>;
 }
 export function QBView(props){return <Shell regular="qb" title="QB Ratings 📊" subtitle="Ratings et moyenne de chaque QB pendant les séries." {...props}>{props.data&&!props.data.requiresSignIn&&<QBContent data={props.data}/>}</Shell>;}
