@@ -2600,7 +2600,9 @@ async function resetUserPassword() {
         }
       >
         <h1>Admin ⚙️</h1>
-        <a href="/admin/playoffs" className={previewStyles.previewButton}>👁 Prévisualiser le mode séries</a>
+       <a href="/series">
+  Prévisualiser le mode Séries
+</a>
 
         <p>
           Saison{" "}
