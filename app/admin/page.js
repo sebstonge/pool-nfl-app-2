@@ -2600,9 +2600,7 @@ async function resetUserPassword() {
         }
       >
         <h1>Admin ⚙️</h1>
-       <a href="/series">
-  Prévisualiser le mode Séries
-</a>
+        <a href="/series" className={previewStyles.previewButton}>👁 Prévisualiser le mode Séries</a>
 
         <p>
           Saison{" "}
