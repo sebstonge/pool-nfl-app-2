@@ -17,9 +17,9 @@ export async function POST(request) {
     if(profileError)throw profileError;
     if(profile?.is_admin!==true)return NextResponse.json({error:'Accès administrateur requis'},{status:403});
     const {action,season,roundKey,confirmed}=await request.json();
-    if(!Number.isInteger(season)||season<2000||season>9999||!['read','prepare','update','advance'].includes(action)||
+    if(!Number.isInteger(season)||season<2000||season>9999||!['read','prepare','update','advance','finalize'].includes(action)||
       (action!=='read'&&!ROUNDS.some(r=>r.key===roundKey)))return NextResponse.json({error:'Action, saison ou ronde invalide'},{status:400});
-    if(['prepare','advance'].includes(action)&&confirmed!==true)return NextResponse.json({error:'Confirmation requise'},{status:400});
+    if(['prepare','advance','finalize'].includes(action)&&confirmed!==true)return NextResponse.json({error:'Confirmation requise'},{status:400});
     return NextResponse.json(await manageRound(admin,{action,season,roundKey}));
   } catch(error) {
     console.error('[Playoff rounds admin]',error.message);

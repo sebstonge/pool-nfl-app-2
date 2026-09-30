@@ -9,6 +9,7 @@ import styles from './PublicPages.module.css';
 import {processedPlayoffResults} from './processedResults.mjs';
 import {SeriesQBRow} from './RegularQB';
 import RegularUserCard from './RegularUserCard';
+import ResultRows from './RegularRanking';
 import RankProgressionChart from './RegularProgression';
 import {supabase} from '../../../../lib/supabase';
 import {isPreviewAdmin} from '../admin-preview/previewAdmin.mjs';
@@ -58,7 +59,8 @@ function RankingContent({data}){
  const available=rankingRounds(data);
  const [key,setKey]=useState(null),[tab,setTab]=useState('round');
  const index=Math.max(0,available.findIndex(r=>r.key===(key || selectedRound(data).key)));
- const round=available[index];
+ const round={...available[index],...data.rounds.find(r=>r.round_key===available[index].key)};
+ const results=processedPlayoffResults(data);
  return <>
   <section className={`card ${styles.tabs}`} aria-label="Portée du classement"><button className={tab==='round'?'button':'button-secondary'} aria-pressed={tab==='round'} onClick={()=>setTab('round')}>Ronde</button><button className={tab==='series'?'button':'button-secondary'} aria-pressed={tab==='series'} onClick={()=>setTab('series')}>Séries</button></section>
   <div className={styles.columns}>
@@ -68,21 +70,21 @@ function RankingContent({data}){
      <h2>{round.title}</h2>
      <button aria-label="Ronde suivante" disabled={index===available.length-1} onClick={()=>setKey(available[index+1].key)}>→</button>
     </div><p>Classement de la ronde{index===available.length-1?' · ronde active':''}</p></div><span>📅</span></div>
-    <p className={styles.muted}>En attente des scores officiels de la ronde.</p>
+    <ResultRows isDesktop={isDesktop} rows={results.roundRows(round.id)} empty="En attente des scores officiels de la ronde."/>
    </section>
    <section className={`card ${styles.rankingPanel} ${tab!=='series'?styles.rankHidden:''}`}>
     <div className={styles.panelHeading}><div><h2>Séries complètes</h2><p>Classement cumulatif</p></div><span>🏆</span></div>
-    <p className={styles.muted}>En attente des scores officiels des séries.</p>
+    <ResultRows isDesktop={isDesktop} rows={results.cumulativeRows} empty="En attente des scores officiels des séries."/>
    </section>
   </div>
-  <RankProgressionChart isDesktop={isDesktop} playerCount={data.players.length} progression={processedPlayoffResults().progression}/>
+  <RankProgressionChart isDesktop={isDesktop} playerCount={data.players.length} progression={processedPlayoffResults(data).progression}/>
 
  </>;
 }
 export function RankingsView(props){return <Shell title="Classements 🏆" subtitle="Ronde et séries complètes" {...props}>{props.data&&!props.data.requiresSignIn&&<RankingContent data={props.data}/>}</Shell>;}
 function QBContent({data}){
  const {isDesktop}=useViewport();
- const rows=processedPlayoffResults().qbRows;
+ const rows=processedPlayoffResults(data).qbRows;
  return <>{!rows.length?<section className="card"><p>Aucun rating QB validé pour le moment.</p></section>:rows.map(row=>{
  const qb=row.qb;
  const team=data.teams.find(t=>t.name?.trim().toLowerCase()===qb.team?.trim().toLowerCase());

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "../../../lib/supabase";
+import { availableQBs } from "../../../lib/playoffs/scoring.mjs";
 import PersonalPlayoffTree from "../components/playoff-tree/PersonalPlayoffTree";
 
 /* =========================================================
@@ -1697,6 +1698,8 @@ marginTop:
    ========================================================= */
 
 export default function Matchs() {
+  const [lockedPath, setLockedPath] = useState(null);
+  const [byeTeams, setByeTeams] = useState([]);
   const [
     user,
     setUser,
@@ -1884,6 +1887,7 @@ export default function Matchs() {
       null;
 
     setUser(currentUser);
+    if (!currentUser) return;
 
     /* ================= SEMAINE ================= */
 
@@ -1915,44 +1919,20 @@ export default function Matchs() {
       teamsData || []
     );
 
-        /* =========================================================
-       SÉRIES — RONDE WILD CARD 2026
-       =========================================================
-       
-       /series/matchs ne lit maintenant plus les matchs
-       affichés depuis la table régulière "games".
-       
-       On récupère d'abord la ronde Wild Card, puis les
-       matchs associés dans "playoff_games".
-       
-       currentWeek reste temporairement présent ailleurs
-       dans la page pour éviter de casser l'ancienne logique
-       QB pendant notre migration progressive.
-       ========================================================= */
-
-    const {
-      data: playoffRound,
-      error: playoffRoundError,
-    } =
-      await supabase
-        .from("playoff_rounds")
-        .select("*")
-        .eq(
-          "season",
-          2026
-        )
-        .eq(
-          "round_key",
-          "wild_card"
-        )
-        .single();
-
-    if (playoffRoundError) {
-      console.error(
-        "Erreur chargement ronde Wild Card :",
-        playoffRoundError.message
-      );
-    }
+    // Current Playoffs round and validated usage history only.
+    const { data: playoffRounds, error: playoffRoundError } = await supabase.from("playoff_rounds").select("*").order("season", {ascending:false}).order("round_order");
+    if (playoffRoundError) { setMessage("Impossible de charger les rondes."); return; }
+    const season = playoffRounds?.[0]?.season;
+    const seasonRounds = (playoffRounds || []).filter(r=>r.season===season);
+    const playoffRound = seasonRounds.find(r=>['open','locked','scored'].includes(r.status)) || [...seasonRounds].reverse().find(r=>r.status==='finalized') || seasonRounds[0];
+    if (!playoffRound) { setMessage("Aucune ronde disponible."); return; }
+    const {data: processedRows, error: processedError} = await supabase.from("playoff_round_results").select("*").eq("user_id",currentUser.id).in("round_id",seasonRounds.map(r=>r.id));
+    if(processedError && !['42P01','PGRST205'].includes(processedError.code)) {setMessage("Résultats Playoffs indisponibles."); return;}
+    const previousResults = (processedRows || []).filter(r=>r.round_order<playoffRound.round_order);
+    const previous = [...previousResults].sort((a,b)=>a.round_order-b.round_order).at(-1);
+    setLockedPath(previous?.path_alive ? previous.path_team : null);
+    const {data: seeds} = await supabase.from("playoff_seeds").select("team,seed,finalized_at").eq("season",season);
+    setByeTeams(playoffRound.round_key==='wild_card' ? (seeds||[]).filter(s=>s.seed===1&&s.finalized_at).map(s=>s.team) : []);
     setActivePlayoffRound(
       playoffRound || null
     );
@@ -2344,7 +2324,7 @@ export default function Matchs() {
 
     setSuperBowlPrediction(
       existingTeamPathData
-        ?.team || ""
+        ?.team || (previous?.path_alive ? previous.path_team : "")
     );
 
     /* =========================================================
@@ -2405,46 +2385,8 @@ export default function Matchs() {
        RATING OFFICIEL DU QB
        ========================================================= */
 
-    let officialRating =
-      null;
-
-    if (
-      existingQbPickData
-        ?.qb_id
-    ) {
-      const {
-        data: ratingData,
-        error: ratingError,
-      } =
-        await supabase
-          .from(
-            "qb_ratings"
-          )
-          .select("*")
-          .eq(
-            "week",
-            week
-          )
-          .eq(
-            "qb_id",
-            existingQbPickData
-              .qb_id
-          )
-          .maybeSingle();
-
-      if (
-        ratingError
-      ) {
-        console.error(
-          "Erreur chargement rating QB :",
-          ratingError.message
-        );
-      }
-
-      officialRating =
-        ratingData ||
-        null;
-    }
+    const processedQB = (processedRows || []).find(r=>r.round_id===playoffRound.id)?.qb_result;
+    const officialRating = processedQB || null;
 
     setQbRating(
       officialRating
@@ -2587,78 +2529,8 @@ export default function Matchs() {
     );
 
 
-    /* =========================================================
-       QB DÉJÀ UTILISÉS PAR CE JOUEUR — SÉRIES
-       =========================================================
-       
-       Wild Card = première ronde.
-       
-       Aucun QB utilisé pendant la saison régulière
-       ne compte ici.
-       
-       Pour les rondes suivantes, cette requête lira
-       uniquement les choix des rondes précédentes
-       dans playoff_qb_picks.
-       
-       La règle DNP / remplacement sera branchée
-       lorsque nous créerons les résultats QB Séries.
-       ========================================================= */
-
-    const {
-      data:
-        previousPlayoffQbPicks,
-      error:
-        previousPlayoffQbPicksError,
-    } =
-      await supabase
-        .from(
-          "playoff_qb_picks"
-        )
-        .select(`
-          qb_id,
-          round_id,
-          playoff_rounds (
-            round_order
-          )
-        `)
-        .eq(
-          "user_id",
-          currentUser.id
-        );
-
-    if (
-      previousPlayoffQbPicksError
-    ) {
-      console.error(
-        "Erreur chargement anciens QB des séries :",
-        previousPlayoffQbPicksError.message
-      );
-    }
-
-    const usedQbIds =
-      new Set(
-        (
-          previousPlayoffQbPicks ||
-          []
-        )
-          .filter(
-            (pick) =>
-              Number(
-                pick
-                  .playoff_rounds
-                  ?.round_order
-              ) <
-              Number(
-                playoffRound
-                  .round_order
-              )
-          )
-          .map(
-            (pick) =>
-              pick.qb_id
-          )
-          .filter(Boolean)
-      );
+    // Only selected QBs with confirmed participation are consumed.
+    const usedQbIds = new Set(previousResults.filter(r=>r.qb_consumed).map(r=>r.selected_qb_id));
 
     const usedQbIdList =
       Array.from(
@@ -2714,43 +2586,7 @@ export default function Matchs() {
        QB DISPONIBLES
        ========================================================= */
 
-    const filteredQbs =
-      (
-        qbsData ||
-        []
-      ).filter(
-        (qb) => {
-          const teamIsPlaying =
-            playingTeams.has(
-              normalizeName(
-                qb.team
-              )
-            );
-
-                  /* =====================================================
-             SÉRIES — DISPONIBILITÉ QB
-             =====================================================
-
-             Plusieurs joueurs peuvent sélectionner
-             le même QB pendant une même ronde.
-
-             La seule restriction individuelle est
-             qu'un joueur ne peut pas réutiliser un
-             QB qu'il a déjà consommé lors d'une
-             ronde précédente des séries.
-             ===================================================== */
-
-          const alreadyUsed =
-            usedQbIds.has(
-              qb.id
-            );
-
-          return (
-            teamIsPlaying &&
-            !alreadyUsed
-          );
-        }
-      );
+    const filteredQbs = availableQBs(qbsData || [],weekSchedule,previousResults);
 
     setAvailableQbs(
       filteredQbs
@@ -3426,7 +3262,7 @@ const liveQbData =
 
   const submitEverything =
     async () => {
-      alert("TEST — submitEverything déclenché");
+
 
       if (!user) {
         setMessage(
@@ -3445,6 +3281,8 @@ const liveQbData =
 
         return;
       }
+
+      if (activePlayoffRound.status !== "open") {setMessage("Cette ronde est fermée aux soumissions.");return;}
 
       const gamesToSubmit =
         games.filter(
@@ -3544,7 +3382,7 @@ const liveQbData =
 
       const confirmation =
         window.confirm(
-          "Confirmer la soumission Wild Card? Tes choix seront irréversibles."
+          `Confirmer la soumission ${activePlayoffRound.round_name}? Tes choix seront irréversibles.`
         );
 
       if (
@@ -3553,148 +3391,20 @@ const liveQbData =
         return;
       }
 
-      /* =====================================================
-         1. QB — PLAYOFF_QB_PICKS
-         ===================================================== */
-
-      if (
-        !existingQbPick
-      ) {
-        const {
-          error: qbError,
-        } =
-          await supabase
-            .from(
-              "playoff_qb_picks"
-            )
-            .insert({
-              user_id:
-                user.id,
-
-              round_id:
-                activePlayoffRound.id,
-
-              qb_id:
-                selectedQbId,
-            });
-
-        if (qbError) {
-          setMessage(
-            "Erreur QB séries : " +
-              qbError.message
-          );
-
-          return;
-        }
-      }
-
-      /* =====================================================
-         2. PRÉDICTION SUPER BOWL — TEAM PATH
-         ===================================================== */
-
-      const {
-        error:
-          pathError,
-      } =
-        await supabase
-          .from(
-            "playoff_team_paths"
-          )
-          .insert({
-            user_id:
-              user.id,
-
-            round_id:
-              activePlayoffRound.id,
-
-            team:
-              superBowlPrediction,
-
-            multiplier: 1,
-
-            continues_previous_path:
-              false,
-          });
-
-      if (pathError) {
-        setMessage(
-          "Erreur prédiction Super Bowl : " +
-            pathError.message
-        );
-
-        return;
-      }
-
-      /* =====================================================
-         3. MATCHS — PLAYOFF_PICKS
-         ===================================================== */
-
-      const pickRows =
-        gamesToSubmit.map(
-          (game) => ({
-            user_id:
-              user.id,
-
-            game_id:
-              game.id,
-
-            picked_team:
-              draftPicks[
-                game.id
-              ].picked_team,
-
-            predicted_spread:
-              Number(
-                draftPicks[
-                  game.id
-                ]
-                  .predicted_spread
-              ),
-
-            updated_at:
-              new Date()
-                .toISOString(),
-          })
-        );
-
-      if (
-        pickRows.length >
-        0
-      ) {
-        const {
-          error:
-            picksError,
-        } =
-          await supabase
-            .from(
-              "playoff_picks"
-            )
-            .upsert(
-              pickRows,
-              {
-                onConflict:
-                  "user_id,game_id",
-              }
-            );
-
-        if (
-          picksError
-        ) {
-          setMessage(
-            "Erreur choix séries : " +
-              picksError.message
-          );
-
-          return;
-        }
-      }
+      const {error: submissionError} = await supabase.rpc("submit_playoff_round", {
+        p_round_id: activePlayoffRound.id,
+        p_qb_id: selectedQbId,
+        p_team: superBowlPrediction,
+        p_picks: gamesToSubmit.map(game=>({game_id:game.id,picked_team:draftPicks[game.id].picked_team,predicted_spread:Number(draftPicks[game.id].predicted_spread)})),
+      });
+      if (submissionError) {setMessage("Soumission refusée : " + submissionError.message);return;}
 
       /* =====================================================
          SOUMISSION TERMINÉE
          ===================================================== */
 
       setMessage(
-        "Choix Wild Card soumis ✅"
+        `Choix ${activePlayoffRound.round_name} soumis ✅`
       );
 
       await loadData();
@@ -3731,14 +3441,9 @@ const liveQbData =
      contiennent accidentellement plusieurs références.
      ========================================================= */
 
-  const playoffTeams = Array.from(
+  const playoffTeams = lockedPath ? [lockedPath] : Array.from(
     new Set(
-      games
-        .flatMap((game) => [
-          game.away_team,
-          game.home_team,
-        ])
-        .filter(Boolean)
+      [...games.flatMap(game=>[game.away_team,game.home_team]), ...byeTeams].filter(Boolean)
     )
   ).sort((a, b) =>
     String(a).localeCompare(String(b))
