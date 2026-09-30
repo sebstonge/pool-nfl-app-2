@@ -37,7 +37,7 @@ where conrelid in ('public.playoff_rounds'::regclass,'public.playoff_games'::reg
 select to_regprocedure('public.manage_playoff_round(integer,text,text,jsonb,jsonb)');
 ```
 
-Prérequis testés : IDs de rondes/matchs/QB compatibles bigint, utilisateurs UUID, `qbs.active` et `is_active_starter` booléens, statut de ronde acceptant `scored`, `game_status` déjà installé avec contrainte de scores FINAL. Les colonnes de choix sont celles utilisées par la page existante. Si le schéma réel diffère, **arrêter avant application** et adapter la migration, sans modifier les données de production.
+Prérequis testés : IDs de rondes/matchs compatibles bigint; `qbs.id`, `playoff_qb_picks.qb_id`, `playoff_round_results.selected_qb_id` et le paramètre `p_qb_id` du RPC sont UUID, utilisateurs UUID, `qbs.active` et `is_active_starter` booléens, statut de ronde acceptant `scored`, `game_status` déjà installé avec contrainte de scores FINAL. Les colonnes de choix sont celles utilisées par la page existante. Si le schéma réel diffère, **arrêter avant application** et adapter la migration, sans modifier les données de production.
 
 Après vérification et approbation, dans le dépôt, avec une connexion propriétaire PostgreSQL fournie par l’opérateur :
 
@@ -109,3 +109,9 @@ Les IDs doivent correspondre au référentiel QB de **cette base de test**. Les 
 ## Migration complémentaire des rappels
 
 Appliquer ensuite seulement `202609300001_notification_reminders.sql`, après le contrôle du schéma de la file push existante. Procédure, configuration, garanties et limites dans `lib/notifications/REMINDERS.md`. Les deux fichiers sont non appliqués à distance. La version précédente de la migration scoring ne doit pas être installée : utiliser la version finale de ce commit sur une base où elle n’a jamais été appliquée.
+
+## Correction du contrat UUID interne QB
+
+La tentative manuelle distante précédente a échoué dans sa transaction sur la FK QB (information fournie par l’opérateur). Cette version corrige directement la migration non installée, sans nouvelle migration corrective. `submit_playoff_round(bigint,uuid,text,jsonb,integer)` et ses ACL utilisent UUID; le chargement JSON conserve les chaînes et la publication `jsonb_populate_recordset` utilise le type UUID de la table cible. Aucun cast numérique du QB interne dans le frontend, le moteur ou les contrôles de consommation. Les IDs ESPN restent les valeurs numériques/textuelles ESPN, notamment `actual_espn_athlete_id`; ils ne sont jamais convertis en UUID.
+
+Les bigint restants concernent uniquement rondes, matchs et sommes d’erreurs de marge. Les fixtures et le schéma PostgreSQL local utilisent désormais des UUID QB réalistes; un contrôle des catalogues vérifie types, FK et signature RPC, ainsi que l’absence de surcharge numérique. Les tests bout en bout conservent le même UUID de la soumission à la publication et l’ID ESPN distinct. Les anciennes migrations et celle des notifications ne changent pas. Aucune inspection ni écriture Supabase distante n’a été effectuée pour cette correction.

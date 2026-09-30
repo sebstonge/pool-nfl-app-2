@@ -5,7 +5,7 @@ import {readFileSync} from 'node:fs';
 
 test('no publication means no historical rows for any submission or raw result',()=>{
  for(const status of ['draft','open','locked','scored','finalized']){
-  const raw={players:[{id:'u'}],rounds:[{id:1,status}],picks:[{user_id:'u'}],qbPicks:[{qb_id:1,passer_rating:158.3}],paths:[{team:'BUF'}],games:[{game_status:'post',home_score:21,away_score:7}],live:{passer_rating:158.3}};
+  const raw={players:[{id:'u'}],rounds:[{id:1,status}],picks:[{user_id:'u'}],qbPicks:[{qb_id:'8c152b40-54b7-4e09-9a7c-000000000001',passer_rating:158.3}],paths:[{team:'BUF'}],games:[{game_status:'post',home_score:21,away_score:7}],live:{passer_rating:158.3}};
   const result=processedPlayoffResults(raw);
   assert.deepEqual(result.qbRows,[]);assert.deepEqual(result.progression.rows,[]);
   assert.deepEqual(result.progression.weeks,['wild_card','divisional','conference','super_bowl']);

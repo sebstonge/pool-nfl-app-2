@@ -5,7 +5,7 @@ import { buildRounds, hasCompleteSubmission, loadPersonalTree } from './treeData
 const games = [1, 2, 3].map(id => ({ id, round_id: 'wc', external_game_id: `TEST-${id}`, away_team: 'Packers', home_team: 'Bears' }));
 const picks = games.map(game => ({ user_id: 'me', game_id: game.id, picked_team: 'Bears', predicted_spread: 7 }));
 const paths = [{ user_id: 'me', round_id: 'wc', team: 'Bears', multiplier: 1 }];
-const qbPicks = [{ user_id: 'me', round_id: 'wc', qb_id: 'qb' }];
+const qbPicks = [{ user_id: 'me', round_id: 'wc', qb_id: '8c152b40-54b7-4e09-9a7c-000000000001' }];
 const complete = { userId: 'me', roundId: 'wc', games, picks, paths, qbPicks };
 
 test('only a full persisted submission opens the tree', () => {

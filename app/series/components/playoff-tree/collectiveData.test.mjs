@@ -54,7 +54,7 @@ test('collective loader uses playoff tables, all participants, and latest season
   const calls = [];
   const tables = {
     playoff_rounds: [{id:'wc',season:2026,round_key:'wild_card',round_order:1,status:'open'},{id:'old',season:2025,round_key:'wild_card'}],
-    playoff_seeds:[], playoff_games:[game], playoff_picks:picks, playoff_qb_picks:[{id:1,qb_id:'same'},{id:2,qb_id:'same'}], playoff_team_paths:[], users:[], teams:[],
+    playoff_seeds:[], playoff_games:[game], playoff_picks:picks, playoff_qb_picks:[{id:1,qb_id:'8c152b40-54b7-4e09-9a7c-000000000001'},{id:2,qb_id:'8c152b40-54b7-4e09-9a7c-000000000001'}], playoff_team_paths:[], users:[], teams:[],
   };
   const client = {auth: {getSession: async () => ({data: {session: {user: {id:'me'}}}})}, from(table) {
     assert.ok(table in tables); calls.push(table);

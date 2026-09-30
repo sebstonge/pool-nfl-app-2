@@ -28,7 +28,7 @@ create table if not exists public.playoff_round_results (
   path_base_points integer not null check(path_base_points between 0 and 2),
   path_adjusted_points integer not null,
   subtotal integer not null,
-  selected_qb_id bigint not null references public.qbs(id),
+  selected_qb_id uuid not null references public.qbs(id),
   qb_consumed boolean not null,
   qb_result jsonb not null,
   qb_multiplier numeric(6,3) not null check(qb_multiplier between 0 and 1.583),
@@ -263,8 +263,8 @@ grant execute on function public.manage_playoff_round(integer,text,text,jsonb,js
 -- eligibility or edit choices after publication. auth.uid() is supplied by JWT.
 revoke all on public.playoff_picks,public.playoff_qb_picks,public.playoff_team_paths from public,anon,authenticated;
 grant select on public.playoff_picks,public.playoff_qb_picks,public.playoff_team_paths to authenticated;
-drop function if exists public.submit_playoff_round(bigint,bigint,text,jsonb);
-create or replace function public.submit_playoff_round(p_round_id bigint,p_qb_id bigint,p_team text,p_picks jsonb,p_super_bowl_total integer default null)
+drop function if exists public.submit_playoff_round(bigint,uuid,text,jsonb);
+create or replace function public.submit_playoff_round(p_round_id bigint,p_qb_id uuid,p_team text,p_picks jsonb,p_super_bowl_total integer default null)
 returns void language plpgsql security definer set search_path='' as $$
 declare uid uuid:=auth.uid(); r public.playoff_rounds; previous public.playoff_round_results; games integer; played integer:=0; continued boolean:=false; chosen_game bigint;
 begin
@@ -302,8 +302,8 @@ begin
  insert into public.playoff_picks(user_id,game_id,picked_team,predicted_spread)
    select uid,(p->>'game_id')::bigint,p->>'picked_team',(p->>'predicted_spread')::integer from jsonb_array_elements(p_picks) p;
 end $$;
-revoke all on function public.submit_playoff_round(bigint,bigint,text,jsonb,integer) from public,anon;
-grant execute on function public.submit_playoff_round(bigint,bigint,text,jsonb,integer) to authenticated;
+revoke all on function public.submit_playoff_round(bigint,uuid,text,jsonb,integer) from public,anon;
+grant execute on function public.submit_playoff_round(bigint,uuid,text,jsonb,integer) to authenticated;
 create or replace function public.read_playoff_results(p_round_ids bigint[])
 returns jsonb language sql stable set search_path='' as $$
 select jsonb_build_object(
