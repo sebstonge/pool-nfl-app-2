@@ -1698,6 +1698,7 @@ marginTop:
    ========================================================= */
 
 export default function Matchs() {
+  const [superBowlTotal, setSuperBowlTotal] = useState("");
   const [lockedPath, setLockedPath] = useState(null);
   const [byeTeams, setByeTeams] = useState([]);
   const [
@@ -2373,6 +2374,7 @@ export default function Matchs() {
       );
     }
 
+    setSuperBowlTotal(existingQbPickData?.super_bowl_total ?? "");
     setExistingQbPick(
       existingQbPickData ||
         null
@@ -3380,6 +3382,9 @@ const liveQbData =
         }
       }
 
+      if (activePlayoffRound.round_key === "super_bowl" && (superBowlTotal === "" || !Number.isInteger(Number(superBowlTotal)) || Number(superBowlTotal)<0 || Number(superBowlTotal)>2147483647)) {
+        setMessage("Indique un total de points entier positif ou nul pour le Super Bowl.");return;
+      }
       const confirmation =
         window.confirm(
           `Confirmer la soumission ${activePlayoffRound.round_name}? Tes choix seront irréversibles.`
@@ -3395,6 +3400,7 @@ const liveQbData =
         p_round_id: activePlayoffRound.id,
         p_qb_id: selectedQbId,
         p_team: superBowlPrediction,
+        p_super_bowl_total: activePlayoffRound.round_key === "super_bowl" ? Number(superBowlTotal) : null,
         p_picks: gamesToSubmit.map(game=>({game_id:game.id,picked_team:draftPicks[game.id].picked_team,predicted_spread:Number(draftPicks[game.id].predicted_spread)})),
       });
       if (submissionError) {setMessage("Soumission refusée : " + submissionError.message);return;}
@@ -6620,7 +6626,14 @@ const liveQbData =
       {(gamesToPick.length > 0 ||
         !existingQbPick) && (
         <section className="card">
-          <button
+          {activePlayoffRound?.round_key === "super_bowl" && (
+          <div style={{marginBottom:16}}>
+            <label htmlFor="super-bowl-total">Total de points dans le match</label>
+            <input id="super-bowl-total" className="input" type="number" min="0" max="2147483647" step="1" required
+              value={superBowlTotal} onChange={e=>setSuperBowlTotal(e.target.value)} disabled={!!existingQbPick}/>
+          </div>
+        )}
+        <button
             className="button"
             onClick={submitEverything}
             style={{

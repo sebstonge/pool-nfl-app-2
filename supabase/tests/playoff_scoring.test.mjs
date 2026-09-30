@@ -24,6 +24,10 @@ test('scoring migration and atomic lifecycle in isolated PostgreSQL',{skip:!proc
  grant all on public.playoff_picks,public.playoff_qb_picks,public.playoff_team_paths to authenticated;`);
  for(const file of ['202609240001_playoff_seeds.sql','202609250001_playoff_round_admin.sql','202609290001_playoff_scoring.sql'])await db.exec(await readFile(new URL('../migrations/'+file,import.meta.url),'utf8'));
  await t.test('new migration can be reapplied without replaying earlier migrations',async()=>await db.exec(await readFile(new URL('../migrations/202609290001_playoff_scoring.sql',import.meta.url),'utf8')));
+ await db.exec(`create table push_notification_events(event_key text primary key,user_id uuid,notification_type text,week integer,scheduled_for timestamptz,status text,sent_at timestamptz);
+ create table settings(current_week integer);create table qb_selection_weeks(week integer,started_at timestamptz);
+ create table qb_picks(week integer,user_id uuid);create table games(week integer,is_pool_eligible boolean,game_date timestamptz);`);
+ await db.exec(await readFile(new URL('../migrations/202609300001_notification_reminders.sql',import.meta.url),'utf8'));
  await db.exec(`insert into public.playoff_rounds(season,round_key,round_name,round_order,status) values(2099,'wild_card','Wild Card',1,'open');
  insert into public.playoff_games(round_id,external_game_id,game_date,home_team,away_team,game_status) values(1,'TEST-WC','2100-01-01','A','B','pre');`);
  const snapshot=async()=>(await db.query('select public.playoff_scoring_state(2099) as state')).rows[0].state;
@@ -100,15 +104,18 @@ test('scoring migration and atomic lifecycle in isolated PostgreSQL',{skip:!proc
       const payload=JSON.stringify(b.picks.filter(p=>p.user_id===uid));
       const pathTeam=b.paths.find(p=>p.user_id===uid).team;
       if(i>0){
-        await assert.rejects(db.query('select public.submit_playoff_round($1,100,$2,$3::jsonb)',[b.round.id,pathTeam,payload]),/QB already used/);
-        if(uid===f.users[0])await assert.rejects(db.query('select public.submit_playoff_round($1,$2,$3,$4::jsonb)',[b.round.id,b.qbPicks[0].qb_id,'NFC1',payload]),/Surviving path/);
+        await assert.rejects(db.query('select public.submit_playoff_round($1,100,$2,$3::jsonb,$4)',[b.round.id,pathTeam,payload,i===3?55:null]),/QB already used/);
+        if(uid===f.users[0])await assert.rejects(db.query('select public.submit_playoff_round($1,$2,$3,$4::jsonb,$5)',[b.round.id,b.qbPicks[0].qb_id,'NFC1',payload,i===3?55:null]),/Surviving path/);
       }
       if(i===2){
         await db.exec('begin');
         try {await db.query('select public.submit_playoff_round($1,101,$2,$3::jsonb)',[b.round.id,pathTeam,payload]);}
         finally {await db.exec('rollback');}
       }
-      await db.query('select public.submit_playoff_round($1,$2,$3,$4::jsonb)',[b.round.id,b.qbPicks[0].qb_id,pathTeam,payload]);
+      if(i===3){
+        for(const invalid of [null,-1])await assert.rejects(db.query('select public.submit_playoff_round($1,$2,$3,$4::jsonb,$5)',[b.round.id,b.qbPicks[0].qb_id,pathTeam,payload,invalid]),/Super Bowl total/);
+      }else await assert.rejects(db.query('select public.submit_playoff_round($1,$2,$3,$4::jsonb,55)',[b.round.id,b.qbPicks[0].qb_id,pathTeam,payload]),/Super Bowl total/);
+      await db.query('select public.submit_playoff_round($1,$2,$3,$4::jsonb,$5)',[b.round.id,b.qbPicks[0].qb_id,pathTeam,payload,i===3?55:null]);
       await db.exec('reset role');
     }
     for(const g of b.games)await db.query("update public.playoff_games set game_status='post',home_score=$1,away_score=$2,test_qb_results=$3::jsonb where id=$4",[g.home_score,g.away_score,JSON.stringify(g.test_qb_results),g.id]);
@@ -118,6 +125,7 @@ test('scoring migration and atomic lifecycle in isolated PostgreSQL',{skip:!proc
     await completeUpdate(client,request,()=>assert.fail('TEST retry must never fetch ESPN'));
     let state=(await client.rpc('playoff_scoring_state',{p_season:2101})).data;
     const own=state.results.filter(s=>s.round_id===b.round.id);
+    assert.ok(state.qbPicks.filter(q=>q.round_id===b.round.id).every(q=>q.super_bowl_total===(i===3?55:null)));
     assert.equal(own.length,3);assert.deepEqual(own.map(s=>s.path_multiplier),[i+1,[0,1,2,3][i],[1,2,3,1][i]]);
     if(i===1)assert.ok(own.every(s=>s.qb_consumed===false));
     const view=processedPlayoffResults({rounds:state.rounds,processed:state});assert.ok(view.progression.rows.every(row=>row.points.length===i+1));

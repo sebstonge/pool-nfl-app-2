@@ -1,6 +1,7 @@
 -- Apply manually ONCE after 202609240001 and the already-applied 202609250001.
 -- No remote application by the development agent. Transactional and re-runnable.
 begin;
+alter table public.playoff_qb_picks add column if not exists super_bowl_total integer check(super_bowl_total>=0);
 alter table public.playoff_games add column if not exists test_qb_results jsonb;
 do $$ begin
   if not exists(select 1 from pg_constraint where conname='playoff_test_qb_results' and conrelid='public.playoff_games'::regclass) then
@@ -33,6 +34,9 @@ create table if not exists public.playoff_round_results (
   qb_multiplier numeric(6,3) not null check(qb_multiplier between 0 and 1.583),
   final_score numeric(12,3) not null check(final_score>=0),
   cumulative_score numeric(12,3) not null check(cumulative_score>=0),
+  round_margin_error bigint not null check(round_margin_error>=0),
+  cumulative_margin_error bigint not null check(cumulative_margin_error>=0),
+  super_bowl_total_error integer check(super_bowl_total_error>=0),
   round_rank integer not null check(round_rank>0),
   cumulative_rank integer not null check(cumulative_rank>0),
   primary key(round_id,user_id),
@@ -259,7 +263,8 @@ grant execute on function public.manage_playoff_round(integer,text,text,jsonb,js
 -- eligibility or edit choices after publication. auth.uid() is supplied by JWT.
 revoke all on public.playoff_picks,public.playoff_qb_picks,public.playoff_team_paths from public,anon,authenticated;
 grant select on public.playoff_picks,public.playoff_qb_picks,public.playoff_team_paths to authenticated;
-create or replace function public.submit_playoff_round(p_round_id bigint,p_qb_id bigint,p_team text,p_picks jsonb)
+drop function if exists public.submit_playoff_round(bigint,bigint,text,jsonb);
+create or replace function public.submit_playoff_round(p_round_id bigint,p_qb_id bigint,p_team text,p_picks jsonb,p_super_bowl_total integer default null)
 returns void language plpgsql security definer set search_path='' as $$
 declare uid uuid:=auth.uid(); r public.playoff_rounds; previous public.playoff_round_results; games integer; played integer:=0; continued boolean:=false; chosen_game bigint;
 begin
@@ -269,6 +274,7 @@ begin
  perform pg_catalog.pg_advisory_xact_lock(20260924,r.season);
  lock table public.playoff_rounds,public.playoff_games,public.playoff_picks,public.playoff_qb_picks,public.playoff_team_paths,public.playoff_round_runs,public.playoff_round_results in share row exclusive mode;
  select * into r from public.playoff_rounds where id=p_round_id;
+ if (r.round_key='super_bowl' and (p_super_bowl_total is null or p_super_bowl_total<0)) or (r.round_key<>'super_bowl' and p_super_bowl_total is not null) then raise exception 'Super Bowl total required only in Super Bowl'; end if;
  if r.status<>'open' or exists(select 1 from public.playoff_games where round_id=r.id and (game_date<=now() or game_status in('in','post'))) then raise exception 'Round closed for submissions'; end if;
  if exists(select 1 from public.playoff_qb_picks where round_id=r.id and user_id=uid) or exists(select 1 from public.playoff_team_paths where round_id=r.id and user_id=uid) or exists(select 1 from public.playoff_picks p join public.playoff_games g on g.id=p.game_id where g.round_id=r.id and p.user_id=uid) then raise exception 'Submission already exists'; end if;
  if (select count(*) from public.playoff_rounds where season=r.season and round_order<r.round_order and status='finalized')<>r.round_order-1 then raise exception 'Previous rounds must be finalized'; end if;
@@ -291,13 +297,13 @@ begin
  else
    if not exists(select 1 from jsonb_array_elements(p_picks) p where (p->>'game_id')::bigint=chosen_game and p->>'picked_team'=p_team) then raise exception 'Path team must be picked to win'; end if;
  end if;
- insert into public.playoff_qb_picks(user_id,round_id,qb_id) values(uid,r.id,p_qb_id);
+ insert into public.playoff_qb_picks(user_id,round_id,qb_id,super_bowl_total) values(uid,r.id,p_qb_id,p_super_bowl_total);
  insert into public.playoff_team_paths(user_id,round_id,team,multiplier,continues_previous_path) values(uid,r.id,p_team,played+1,continued);
  insert into public.playoff_picks(user_id,game_id,picked_team,predicted_spread)
    select uid,(p->>'game_id')::bigint,p->>'picked_team',(p->>'predicted_spread')::integer from jsonb_array_elements(p_picks) p;
 end $$;
-revoke all on function public.submit_playoff_round(bigint,bigint,text,jsonb) from public,anon;
-grant execute on function public.submit_playoff_round(bigint,bigint,text,jsonb) to authenticated;
+revoke all on function public.submit_playoff_round(bigint,bigint,text,jsonb,integer) from public,anon;
+grant execute on function public.submit_playoff_round(bigint,bigint,text,jsonb,integer) to authenticated;
 create or replace function public.read_playoff_results(p_round_ids bigint[])
 returns jsonb language sql stable set search_path='' as $$
 select jsonb_build_object(
