@@ -4,27 +4,9 @@ import { getPlayoffContext, assertPlayoffRounds } from "../../../lib/playoffs/co
 import { useEffect, useState } from "react";
 import { supabase } from "../../../lib/supabase";
 import { availableQBs } from "../../../lib/playoffs/scoring.mjs";
+import { loadProcessedResults, publishedPlayoffResults } from "../components/public-pages/processedResults.mjs";
+import { loadRoundSubmissions, pendingPlayoffPlayers, playoffQbAverages } from "./matchData.mjs";
 import PersonalPlayoffTree from "../components/playoff-tree/PersonalPlayoffTree";
-
-/* =========================================================
-   ORDRE OFFICIEL — SEMAINE 1
-   ========================================================= */
-
-const WEEK_1_QB_ORDER = [
-  "Alexandre",
-  "Edouard",
-  "Louis-Simon",
-  "Séb",
-  "Charles",
-  "Naomie",
-  "Léa",
-  "Félix",
-  "Carolyne",
-  "Mathieu",
-  "Katy",
-  "Pierre-André",
-  "Étienne",
-];
 
 function normalizeName(value = "") {
   return String(value)
@@ -44,74 +26,6 @@ function playerRealName(player) {
     player?.email?.split("@")[0] ||
     "Joueur"
   );
-}
-
-function getWeek1Order(players) {
-  const ordered = [];
-  const usedIds = new Set();
-
-  WEEK_1_QB_ORDER.forEach((wantedName) => {
-    const wanted = normalizeName(wantedName);
-
-    let player = players.find(
-      (p) =>
-        !usedIds.has(p.id) &&
-        normalizeName(p.real_name) === wanted
-    );
-
-    if (!player) {
-      player = players.find((p) => {
-        if (usedIds.has(p.id)) return false;
-
-        const actual = normalizeName(p.real_name);
-
-        return (
-          actual.startsWith(wanted) ||
-          wanted.startsWith(actual)
-        );
-      });
-    }
-
-    if (player) {
-      ordered.push(player);
-      usedIds.add(player.id);
-    }
-  });
-
-  const leftovers = players
-    .filter((p) => !usedIds.has(p.id))
-    .sort((a, b) =>
-      playerRealName(a).localeCompare(
-        playerRealName(b),
-        "fr"
-      )
-    );
-
-  return [...ordered, ...leftovers];
-}
-
-function getWeeklyScoreValue(row) {
-  const candidates = [
-    row?.total_score,
-    row?.final_score,
-    row?.weekly_score,
-    row?.score,
-    row?.points,
-    row?.total,
-  ];
-
-  for (const value of candidates) {
-    if (
-      value !== null &&
-      value !== undefined &&
-      value !== "" &&
-      Number.isFinite(Number(value))
-    ) {
-      return Number(value);
-    }
-  }
-
-  return null;
 }
 
 /* =========================================================
@@ -915,7 +829,7 @@ function QBPhoto({
 function SelectionOrderBar({
   players,
   currentUserId,
-  currentWeek,
+  roundName,
 }) {
   /*
    * Lorsque les 13 joueurs ont soumis,
@@ -941,7 +855,7 @@ function SelectionOrderBar({
             fontSize: 22,
           }}
         >
-          🏈 Ordre de sélection
+          🏈 Soumissions de la ronde
         </h2>
 
         <p
@@ -951,7 +865,7 @@ function SelectionOrderBar({
             fontSize: 13,
           }}
         >
-          Ordre restant · Semaine {currentWeek}
+          Choix à soumettre · {roundName} · Ordre alphabétique
         </p>
       </div>
 
@@ -1046,7 +960,7 @@ function SelectionOrderBar({
                       fontWeight: 900,
                     }}
                   >
-                    PROCHAIN
+                    À SOUMETTRE
                   </span>
                 )}
 
@@ -1707,10 +1621,6 @@ export default function Matchs() {
     setUser,
   ] = useState(null);
 
-  const [
-    currentWeek,
-    setCurrentWeek,
-  ] = useState(null);
      /* =========================================================
      RONDE ACTIVE — SÉRIES
      ========================================================= */
@@ -1810,8 +1720,8 @@ export default function Matchs() {
   ] = useState("");
 
   const [
-    qbSeasonAverages,
-    setQbSeasonAverages,
+    qbPlayoffAverages,
+    setQbPlayoffAverages,
   ] = useState({});
   const [
     usedQbs,
@@ -1891,23 +1801,6 @@ export default function Matchs() {
     setUser(currentUser);
     if (!currentUser) return;
 
-    /* ================= SEMAINE ================= */
-
-    const {
-      data: settingsData,
-    } =
-      await supabase
-        .from("settings")
-        .select("*")
-        .single();
-
-    const week =
-      Number(
-        settingsData?.current_week
-      ) || 1;
-
-    setCurrentWeek(week);
-
     /* ================= ÉQUIPES ================= */
 
     const {
@@ -1928,8 +1821,15 @@ export default function Matchs() {
     const seasonRounds = assertPlayoffRounds(playoffRounds || [], season);
     const playoffRound = seasonRounds.find(r=>['open','locked','scored'].includes(r.status)) || [...seasonRounds].reverse().find(r=>r.status==='finalized') || seasonRounds[0];
     if (!playoffRound) { setMessage("Aucune ronde disponible."); return; }
-    const {data: processedRows, error: processedError} = await supabase.from("playoff_round_results").select("*").eq("user_id",currentUser.id).in("round_id",seasonRounds.map(r=>r.id));
-    if(processedError && !['42P01','PGRST205'].includes(processedError.code)) {setMessage("Résultats Playoffs indisponibles."); return;}
+    let processed;
+    try {
+      processed = await loadProcessedResults(supabase, seasonRounds, season);
+    } catch {
+      setMessage("Résultats Playoffs indisponibles."); return;
+    }
+    const resultContext = {season, rounds:seasonRounds, processed};
+    const processedRows = publishedPlayoffResults(resultContext).results.filter(r=>r.user_id===currentUser.id);
+    setQbPlayoffAverages(playoffQbAverages(resultContext));
     const previousResults = (processedRows || []).filter(r=>r.round_order<playoffRound.round_order);
     const previous = [...previousResults].sort((a,b)=>a.round_order-b.round_order).at(-1);
     setLockedPath(previous?.path_alive ? previous.path_team : null);
@@ -2053,174 +1953,14 @@ export default function Matchs() {
     const players =
       playersData || [];
 
-    const {
-      data: currentWeekQbPicks,
-      error: orderQbError,
-    } =
-      await supabase
-        .from("qb_picks")
-        .select(
-          "user_id"
-        )
-        .eq(
-          "week",
-          week
-        );
-
-    if (orderQbError) {
-      console.error(
-        "Erreur chargement QB picks pour l'ordre :",
-        orderQbError.message
-      );
+    // Concurrent Playoffs submissions: no regular-week selection priority.
+    try {
+      const submissions = await loadRoundSubmissions(supabase, playoffRound.id, weekSchedule);
+      setSelectionOrder(pendingPlayoffPlayers(players, submissions));
+    } catch {
+      setSelectionOrder([]);
+      setMessage("Impossible de charger les soumissions de la ronde.");
     }
-
-    /*
-     * Actuellement, le QB pick sert
-     * de marqueur de soumission.
-     *
-     * Comme QB + matchs sont soumis
-     * ensemble dans cette page,
-     * le joueur disparaît ensuite
-     * de l'ordre restant.
-     */
-    const alreadyPickedIds =
-      new Set(
-        (
-          currentWeekQbPicks ||
-          []
-        ).map(
-          (row) =>
-            row.user_id
-        )
-      );
-
-    let fullOrder = [];
-
-    if (
-      Number(week) === 1
-    ) {
-      fullOrder =
-        getWeek1Order(
-          players
-        );
-    } else {
-      const {
-        data: previousScores,
-        error: scoreError,
-      } =
-        await supabase
-          .from(
-            "weekly_scores"
-          )
-          .select("*")
-          .eq(
-            "week",
-            Number(week) - 1
-          );
-
-      if (scoreError) {
-        console.error(
-          "Erreur chargement scores précédents :",
-          scoreError.message
-        );
-      }
-
-      const scoreByUser =
-        {};
-
-      (
-        previousScores || []
-      ).forEach(
-        (row) => {
-          scoreByUser[
-            row.user_id
-          ] =
-            getWeeklyScoreValue(
-              row
-            );
-        }
-      );
-
-      fullOrder =
-        [...players].sort(
-          (a, b) => {
-            const scoreA =
-              scoreByUser[
-                a.id
-              ];
-
-            const scoreB =
-              scoreByUser[
-                b.id
-              ];
-
-            /*
-             * Les joueurs sans score
-             * sont placés après ceux
-             * qui possèdent un score.
-             */
-            if (
-              scoreA == null &&
-              scoreB == null
-            ) {
-              return playerRealName(
-                a
-              ).localeCompare(
-                playerRealName(
-                  b
-                ),
-                "fr"
-              );
-            }
-
-            if (
-              scoreA == null
-            ) {
-              return 1;
-            }
-
-            if (
-              scoreB == null
-            ) {
-              return -1;
-            }
-
-            /*
-             * Inverse du classement :
-             * plus petit score = premier.
-             */
-            if (
-              scoreA !== scoreB
-            ) {
-              return (
-                scoreA -
-                scoreB
-              );
-            }
-
-            return playerRealName(
-              a
-            ).localeCompare(
-              playerRealName(
-                b
-              ),
-              "fr"
-            );
-          }
-        );
-    }
-
-    const remainingOrder =
-      fullOrder.filter(
-        (player) =>
-          !alreadyPickedIds.has(
-            player.id
-          )
-      );
-
-    setSelectionOrder(
-      remainingOrder
-    );
 
        /* =========================================================
        CHOIX DE MATCHS DU JOUEUR — SÉRIES
@@ -2395,143 +2135,6 @@ export default function Matchs() {
       officialRating
     );
 
-    /* =========================================================
-       MOYENNES SAISON QB — STATS NFL OFFICIELLES
-       =========================================================
-       
-       IMPORTANT :
-       
-       Cette moyenne ne provient plus de qb_ratings,
-       qui contient les performances liées aux choix
-       effectués dans le pool.
-       
-       Elle provient maintenant de qb_weekly_stats.
-       
-       Cette table est alimentée uniquement lors de
-       la mise à jour Admin.
-       
-       Conséquence :
-       
-       - le passer rating du match peut continuer
-         d'évoluer en direct via ESPN;
-       
-       - la MOYENNE SAISON ne change jamais en direct;
-       
-       - elle change seulement après une mise à jour
-         Admin ayant enregistré une nouvelle performance
-         finale dans qb_weekly_stats.
-       ========================================================= */
-
-    const {
-      data:
-        weeklyQbStatsData,
-      error:
-        weeklyQbStatsError,
-    } =
-      await supabase
-        .from(
-          "qb_weekly_stats"
-        )
-        .select(
-          "week, espn_athlete_id, passer_rating"
-        );
-
-    if (
-      weeklyQbStatsError
-    ) {
-      console.error(
-        "Erreur chargement moyennes saison QB :",
-        weeklyQbStatsError.message
-      );
-    }
-
-    const ratingsByQb =
-      {};
-
-    (
-      weeklyQbStatsData || []
-    ).forEach(
-      (row) => {
-        const athleteId =
-          row
-            .espn_athlete_id;
-
-        const rating =
-          Number(
-            row
-              .passer_rating
-          );
-
-        if (
-          !athleteId ||
-          !Number.isFinite(
-            rating
-          )
-        ) {
-          return;
-        }
-
-        const key =
-          String(
-            athleteId
-          );
-
-        if (
-          !ratingsByQb[
-            key
-          ]
-        ) {
-          ratingsByQb[
-            key
-          ] = [];
-        }
-
-        ratingsByQb[
-          key
-        ].push(
-          rating
-        );
-      }
-    );
-
-    const averages =
-      {};
-
-    Object.entries(
-      ratingsByQb
-    ).forEach(
-      ([
-        athleteId,
-        values,
-      ]) => {
-        if (
-          values.length ===
-          0
-        ) {
-          return;
-        }
-
-        averages[
-          athleteId
-        ] =
-          values.reduce(
-            (
-              total,
-              value
-            ) =>
-              total +
-              value,
-            0
-          ) /
-          values.length;
-      }
-    );
-
-    setQbSeasonAverages(
-      averages
-    );
-
-
     // Only selected QBs with confirmed participation are consumed.
     const usedQbIds = new Set(previousResults.filter(r=>r.qb_consumed).map(r=>r.selected_qb_id));
 
@@ -2605,15 +2208,10 @@ export default function Matchs() {
 
   useEffect(() => {
     /*
-     * On surveille TOUS les matchs NFL
-     * de la semaine.
-     *
-     * Cela permet notamment de suivre
-     * le QB même lorsque son match
-     * n'est pas admissible au pool.
+     * Surveillance des matchs de la ronde Playoffs chargée.
      */
     if (
-      currentWeek == null ||
+      activePlayoffRound == null ||
       allWeekGames.length === 0
     ) {
       setLiveGames({});
@@ -2799,7 +2397,7 @@ export default function Matchs() {
     };
   }, [
     allWeekGames,
-    currentWeek,
+    activePlayoffRound,
   ]);
 
   /* =========================================================
@@ -3079,11 +2677,11 @@ const liveQbData =
       : null;
 
   /*
-   * Moyenne saison du QB réellement
+   * Moyenne Séries du QB réellement
    * utilisé.
    */
   const displayedQbAverage =
-    qbSeasonAverages[
+    qbPlayoffAverages[
       String(
         hasOfficialQbRating
           ? qbRating
@@ -3503,7 +3101,7 @@ const liveQbData =
         <SelectionOrderBar
           players={selectionOrder}
           currentUserId={user?.id}
-          currentWeek={currentWeek}
+          roundName={activePlayoffRound?.round_name || "Ronde à venir"}
         />
       )}
 
@@ -3782,7 +3380,7 @@ const liveQbData =
                         <br />
                       )}
 
-                      Moyenne saison :{" "}
+                      Moyenne Séries :{" "}
 
                       <strong
                         style={{
@@ -3816,7 +3414,7 @@ const liveQbData =
                             : 18,
                       }}
                     >
-                      Moyenne saison :{" "}
+                      Moyenne Séries :{" "}
 
                       <strong
                         style={{
@@ -4498,12 +4096,12 @@ const liveQbData =
                             }}
                           >
                             Moy.{" "}
-                            {qbSeasonAverages[
+                            {qbPlayoffAverages[
                               String(
                                 selectedQb.espn_athlete_id
                               )
                             ] != null
-                              ? qbSeasonAverages[
+                              ? qbPlayoffAverages[
                                   String(
                                     selectedQb.espn_athlete_id
                                   )
@@ -4578,7 +4176,7 @@ const liveQbData =
                         {availableQbs.map(
                           (qb) => {
                             const average =
-                              qbSeasonAverages[
+                              qbPlayoffAverages[
                                 String(
                                   qb.espn_athlete_id
                                 )
@@ -4846,19 +4444,19 @@ const liveQbData =
                             fontSize: 15,
                           }}
                         >
-                          Moyenne saison :{" "}
+                          Moyenne Séries :{" "}
                           <strong
                             style={{
                               color:
                                 "#cbd5e1",
                             }}
                           >
-                            {qbSeasonAverages[
+                            {qbPlayoffAverages[
                               String(
                                 selectedQb.espn_athlete_id
                               )
                             ] != null
-                              ? qbSeasonAverages[
+                              ? qbPlayoffAverages[
                                   String(
                                     selectedQb.espn_athlete_id
                                   )
@@ -5309,12 +4907,12 @@ const liveQbData =
                             }}
                           >
                             Moy.{" "}
-                            {qbSeasonAverages[
+                            {qbPlayoffAverages[
                               String(
                                 selectedQb.espn_athlete_id
                               )
                             ] != null
-                              ? qbSeasonAverages[
+                              ? qbPlayoffAverages[
                                   String(
                                     selectedQb.espn_athlete_id
                                   )
@@ -5397,7 +4995,7 @@ const liveQbData =
                         {availableQbs.map(
                           (qb) => {
                             const average =
-                              qbSeasonAverages[
+                              qbPlayoffAverages[
                                 String(
                                   qb.espn_athlete_id
                                 )

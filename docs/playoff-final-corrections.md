@@ -44,3 +44,38 @@ n'est pas requise après une publication réussie. Les composants Stats sont inc
 - Les sélections QB sans résultat restent descriptives, sans record de performance.
 - Une republication remplace les données précédentes, sans cumul en mémoire.
 - TEST-* publié est traité comme tout snapshot, sans appel ESPN.
+
+## Dépendances régulières dans Mes choix
+
+- settings.current_week : retiré. Il conditionnait encore la surveillance ESPN
+  et le contexte d'ordre ; la ronde explicitement chargée remplit ce rôle.
+- qb_picks régulier : retiré. Les soumissions restantes viennent désormais des
+  trois parties persistées de la ronde Playoffs (matchs, QB et parcours).
+- weekly_scores régulier : retiré. Aucun ordre prioritaire de choix n'existe en
+  Séries. La carte conserve ses styles et sa disposition, avec des libellés de
+  soumission et un ordre alphabétique descriptif, sans verrou de tour de joueur.
+- qb_weekly_stats : son usage de référence NFL était intentionnel, mais son
+  chargement et son alimentation actuels ne garantissent aucune saison NFL.
+  La moyenne non bornée ne peut pas être présentée comme une statistique des
+  Séries actives. Son emplacement est conservé sous « Moyenne Séries », alimenté
+  exclusivement par les performances Playoffs publiées, dédupliquées par QB réel
+  et match. Pas de publication = valeur absente, sans faux zéro.
+- teams, qbs et users restent des référentiels communs légitimes ; aucune page
+  régulière, aucun pipeline régulier ni table régulière n'est modifié.
+- normalizeName reste utilisé pour reconnaître les QB/passeurs ; seuls les
+  helpers exclusivement liés à l'ancien ordre régulier sont supprimés.
+
+## Validation locale de cette passe
+
+- Suite complète : 168 tests réussis, zéro échec, zéro ignoré, avec PGlite local.
+- Simulation intégrée existante : 4 rondes / 13 matchs TEST, orchestration et SQL,
+  bye, DNP, parcours et cumuls, réussie ; aucune donnée Supabase distante.
+- npm run build : réussi avec variables de compilation factices (Supabase sur
+  127.0.0.1:9 et clés VAPID éphémères). Le premier essai sans variables avait échoué
+  sur « supabaseUrl is required » ; aucune modification de code pour ce problème.
+- Comparaison des styles avec le commit de départ : les 192 blocs inline de Mes
+  choix et les 83 blocs inline de Stats sont identiques. Les corrections de
+  libellés et de données ne constituent pas une nouvelle validation visuelle Preview.
+- Aucun changement de la saison régulière, de vercel.json ou des notifications.
+- La migration nouvelle reste à appliquer manuellement ; aucun déploiement de
+  migration, aucune activation Playoffs/rappels, aucune écriture distante.
