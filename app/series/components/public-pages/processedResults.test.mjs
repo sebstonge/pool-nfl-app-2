@@ -32,8 +32,16 @@ test('processed QB history counts a shared QB once per round and retains zero',(
 test('loader reads one consistent publication; unavailable migration is empty, permission errors are not hidden',async()=>{
  const {loadProcessedResults}=await import('./processedResults.mjs');
  const expected={results:[],runs:[]};
- assert.deepEqual(await loadProcessedResults({rpc:()=>assert.fail('no rounds')},[]),expected);
- for(const code of ['42883','PGRST202'])assert.deepEqual(await loadProcessedResults({rpc:async()=>({error:{code}})},[1]),expected);
- await assert.rejects(loadProcessedResults({rpc:async()=>({error:{code:'42501',message:'forbidden'}})},[1]),/forbidden/);
- assert.deepEqual(await loadProcessedResults({rpc:async(name,args)=>{assert.equal(name,'read_playoff_results');assert.deepEqual(args,{p_round_ids:[1,2]});return {data:expected};}},[1,2]),expected);
+ assert.deepEqual(await loadProcessedResults({rpc:()=>assert.fail('no rounds')},[],2026),expected);
+ for(const code of ['42883','PGRST202'])assert.deepEqual(await loadProcessedResults({rpc:async()=>({error:{code}})},[{id:1,season:2026}],2026),expected);
+ await assert.rejects(loadProcessedResults({rpc:async()=>({error:{code:'42501',message:'forbidden'}})},[{id:1,season:2026}],2026),/forbidden/);
+ assert.deepEqual(await loadProcessedResults({rpc:async(name,args)=>{assert.equal(name,'read_playoff_results');assert.deepEqual(args,{p_round_ids:[1,2]});return {data:expected};}},[{id:1,season:2026},{id:2,season:2026}],2026),expected);
+});
+
+test('result loader refuses rounds outside explicit context before calling RPC',async()=>{
+ const {loadProcessedResults}=await import('./processedResults.mjs');
+ const client={rpc:()=>assert.fail('must not call mixed-season RPC')};
+ await assert.rejects(loadProcessedResults(client,[{id:1,season:2026},{id:2,season:2027}],2026),/saison/);
+ await assert.rejects(loadProcessedResults(client,[{id:2,season:2027}],2026),/saison/);
+ await assert.rejects(loadProcessedResults({rpc:async()=>({data:{results:[{round_id:999}],runs:[]}})},[{id:1,season:2026}],2026),/Publication/);
 });

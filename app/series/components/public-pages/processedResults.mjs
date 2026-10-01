@@ -1,11 +1,18 @@
+import { assertPlayoffRounds } from '../../../../lib/playoffs/context.mjs';
 import {ROUNDS} from '../playoff-tree/treeData.mjs';
 
-export async function loadProcessedResults(client,roundIds) {
+export async function loadProcessedResults(client,rounds,season) {
+  assertPlayoffRounds(rounds,season);
+  const roundIds=rounds.map(round=>round.id);
   if(!roundIds.length)return {results:[],runs:[]};
   const {data,error}=await client.rpc('read_playoff_results',{p_round_ids:roundIds});
   if(error){
     if(['42883','PGRST202'].includes(error.code))return {results:[],runs:[]};
     throw new Error(`Résultats Playoffs indisponibles : ${error.message}`);
+  }
+  if (!data || !Array.isArray(data.results) || !Array.isArray(data.runs) ||
+      [...data.results,...data.runs].some(row=>!roundIds.includes(row.round_id))) {
+    throw new Error('Publication hors des rondes de la saison demandée.');
   }
   return data;
 }
