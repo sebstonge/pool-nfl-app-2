@@ -885,7 +885,7 @@ export function AnalyticsView({data,error,retry}) {
                 icon="📈"
                 title="Réussite du consensus"
                 value={stats.consensusPct == null ? "—" : `${Math.round(stats.consensusPct)} %`}
-                subtitle={stats.consensusPct == null ? "En attente des résultats FINAL" : `${stats.consensusWins} victoires · ${stats.consensusLosses} défaites`}
+                subtitle={stats.consensusPct == null ? "En attente des résultats publiés" : `${stats.consensusWins} victoires · ${stats.consensusLosses} défaites`}
                 color="#38bdf8"
               />
 

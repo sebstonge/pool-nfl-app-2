@@ -16,11 +16,16 @@ export async function loadProcessedResults(client,rounds,season) {
   }
   return data;
 }
-export function processedPlayoffResults(data={}) {
-  const rounds=data.rounds||[],players=data.players||[];
+// Shared publication boundary for result pages and Stats. FINAL/live/picks are not publications.
+export function publishedPlayoffResults(data={}) {
+  const rounds=(data.rounds||[]).filter(r=>data.season == null || r.season===data.season);
   const runs=(data.processed?.runs||[]).filter(run=>run.processed_at&&rounds.some(r=>r.id===run.round_id))
     .sort((a,b)=>rounds.find(r=>r.id===a.round_id).round_order-rounds.find(r=>r.id===b.round_id).round_order);
   const results=(data.processed?.results||[]).filter(row=>runs.some(run=>run.round_id===row.round_id));
+  return {rounds,runs,results};
+}
+export function processedPlayoffResults(data={}) {
+  const {rounds,runs,results}=publishedPlayoffResults(data),players=data.players||[];
   const identity=id=>{const p=players.find(p=>p.id===id);return {userId:id,name:p?.display_name||p?.real_name||'Joueur',realName:p?.real_name||''};};
   const byQB=new Map(),progression=new Map();
   for(const row of results){
