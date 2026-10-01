@@ -3406,7 +3406,7 @@ const [
     >
       <section className="header-card">
         <h1>
-          Tous les choix
+          Tous les choix 👀
         </h1>
 
         <p>
