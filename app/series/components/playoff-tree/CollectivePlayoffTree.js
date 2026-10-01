@@ -1,4 +1,5 @@
 'use client';
+import { getPlayoffContext } from '../../../../lib/playoffs/context.mjs';
 
 import { useEffect, useId, useRef, useState } from 'react';
 import { supabase } from '../../../../lib/supabase';
@@ -174,7 +175,7 @@ export default function CollectivePlayoffTree() {
   useEffect(() => {
     let cancelled = false;
     setError(false);
-    loadCollectiveData(supabase).then(next => {
+    loadCollectiveData(supabase,getPlayoffContext().season).then(next => {
       if (cancelled) return;
       setData(next);
     }).catch(error => { console.error('[Collective playoffs] Chargement', error.message); if (!cancelled) setError(true); });

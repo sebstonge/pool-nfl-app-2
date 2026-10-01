@@ -1,4 +1,5 @@
 'use client';
+import { getPlayoffContext } from '../../../lib/playoffs/context.mjs';
 
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../../../lib/supabase';
@@ -10,7 +11,7 @@ import {
 import styles from './playoffs.module.css';
 import RoundAdmin, { requestRound } from './RoundAdmin';
 
-const season = 2026;
+const { season } = getPlayoffContext();
 
 function date(value) {
   return value

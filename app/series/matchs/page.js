@@ -1,4 +1,5 @@
 "use client";
+import { getPlayoffContext, assertPlayoffRounds } from "../../../lib/playoffs/context.mjs";
 
 import { useEffect, useState } from "react";
 import { supabase } from "../../../lib/supabase";
@@ -1921,10 +1922,10 @@ export default function Matchs() {
     );
 
     // Current Playoffs round and validated usage history only.
-    const { data: playoffRounds, error: playoffRoundError } = await supabase.from("playoff_rounds").select("*").order("season", {ascending:false}).order("round_order");
+    const { season } = getPlayoffContext();
+    const { data: playoffRounds, error: playoffRoundError } = await supabase.from("playoff_rounds").select("*").eq("season", season).order("round_order");
     if (playoffRoundError) { setMessage("Impossible de charger les rondes."); return; }
-    const season = playoffRounds?.[0]?.season;
-    const seasonRounds = (playoffRounds || []).filter(r=>r.season===season);
+    const seasonRounds = assertPlayoffRounds(playoffRounds || [], season);
     const playoffRound = seasonRounds.find(r=>['open','locked','scored'].includes(r.status)) || [...seasonRounds].reverse().find(r=>r.status==='finalized') || seasonRounds[0];
     if (!playoffRound) { setMessage("Aucune ronde disponible."); return; }
     const {data: processedRows, error: processedError} = await supabase.from("playoff_round_results").select("*").eq("user_id",currentUser.id).in("round_id",seasonRounds.map(r=>r.id));

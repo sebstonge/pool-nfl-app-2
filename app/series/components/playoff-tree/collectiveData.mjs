@@ -1,3 +1,4 @@
+import { validatePlayoffSeason, assertPlayoffRounds } from '../../../../lib/playoffs/context.mjs';
 import { seedSnapshot } from '../../../../lib/playoffs/seeds.mjs';
 import { ROUNDS } from './treeData.mjs';
 
@@ -52,15 +53,14 @@ async function read(query, source) {
   return data || [];
 }
 
-export async function loadCollectiveData(client, requestedSeason, { includeGameStatus = false } = {}) {
+export async function loadCollectiveData(client, season, { includeGameStatus = false } = {}) {
+  validatePlayoffSeason(season);
   const { data: auth, error: authError } = await client.auth.getSession();
   if (authError) throw authError;
   if (!auth.session) return { requiresSignIn: true };
-  const allRounds = await read(client.from('playoff_rounds')
-    .select('id, season, round_key, round_name, round_order, status').order('round_order'), 'playoff_rounds');
-  const seasons = [...new Set(allRounds.map(round => Number(round.season)))].filter(Number.isFinite).sort((a, b) => b - a);
-  const season = seasons.includes(Number(requestedSeason)) ? Number(requestedSeason) : seasons[0];
-  const rounds = allRounds.filter(round => Number(round.season) === season);
+  const rounds = assertPlayoffRounds(await read(client.from('playoff_rounds')
+    .select('id, season, round_key, round_name, round_order, status')
+    .eq('season', season).order('round_order'), 'playoff_rounds'), season);
   const roundIds = rounds.map(round => round.id);
   const [teams, players, games, paths, qbPicks] = await Promise.all([
     read(client.from('teams').select('name, espn_abbr, logo'), 'teams'),
@@ -80,7 +80,7 @@ export async function loadCollectiveData(client, requestedSeason, { includeGameS
     if (seedError) console.warn('[Collective playoffs] Migration playoff_seeds non installée');
     else snapshot = seedSnapshot(seedRows || [], season);
   }
-  return { season, seasons, rounds, games, teams, players, paths, qbPicks, picks, userId: auth.session.user?.id, seedSnapshot: snapshot };
+  return { season, rounds, games, teams, players, paths, qbPicks, picks, userId: auth.session.user?.id, seedSnapshot: snapshot };
 }
 
 export function espnSummaryUrl(game) {

@@ -1,4 +1,5 @@
 'use client';
+import { getPlayoffContext } from '../../../lib/playoffs/context.mjs';
 
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../../../lib/supabase';
@@ -113,7 +114,7 @@ function RoundConfirmation({
 }
 
 export default function RoundAdmin({
-  season = 2026,
+  season = getPlayoffContext().season,
   request = requestRound,
 }) {
   const [data, setData] =
