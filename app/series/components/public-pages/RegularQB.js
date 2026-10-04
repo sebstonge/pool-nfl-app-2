@@ -929,7 +929,7 @@ function DesktopCompactQB({
    ========================================================= */
 
 
-export function SeriesQBRow({row,teamLogo,isDesktop}) { return isDesktop ? <DesktopPodiumQB row={row} rank={null} teamLogo={teamLogo}/> : (          <section
+export function SeriesQBRow({row,teamLogo,isDesktop}) { return isDesktop ? <DesktopPodiumQB row={row} rank={row.rank} teamLogo={teamLogo}/> : (          <section
             key={row.qb.id}
             className="card"
           >
@@ -950,7 +950,7 @@ export function SeriesQBRow({row,teamLogo,isDesktop}) { return isDesktop ? <Desk
                   borderRadius: 14,
 
                   background:
-                    false
+                    row.rank <= 3
                       ? "#166534"
                       : "#1e293b",
 
@@ -962,7 +962,7 @@ export function SeriesQBRow({row,teamLogo,isDesktop}) { return isDesktop ? <Desk
                   justifyContent: "center",
                 }}
               >
-                —
+                {row.rank}
               </div>
 
               <QBPhoto

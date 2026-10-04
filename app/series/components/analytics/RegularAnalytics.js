@@ -649,14 +649,17 @@ export function AnalyticsView({data,error,retry}) {
             : 16,
         }}
       >
-        <h1
-          style={{
-            marginTop: 0,
-            marginBottom: 6,
-          }}
-        >
-          📊 Statistiques
-        </h1>
+        <div className="header-card" style={{ display: "contents" }}>
+          <h1
+            style={{
+              marginTop: 0,
+              marginBottom: 6,
+              overflowWrap: "break-word",
+            }}
+          >
+            Statistiques 📈
+          </h1>
+        </div>
 
         <p
           style={{
@@ -885,7 +888,7 @@ export function AnalyticsView({data,error,retry}) {
                 icon="📈"
                 title="Réussite du consensus"
                 value={stats.consensusPct == null ? "—" : `${Math.round(stats.consensusPct)} %`}
-                subtitle={stats.consensusPct == null ? "En attente des résultats FINAL" : `${stats.consensusWins} victoires · ${stats.consensusLosses} défaites`}
+                subtitle={stats.consensusPct == null ? "En attente des résultats publiés" : `${stats.consensusWins} victoires · ${stats.consensusLosses} défaites`}
                 color="#38bdf8"
               />
 

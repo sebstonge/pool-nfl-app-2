@@ -1,4 +1,6 @@
 'use client';
+import { getPlayoffContext } from '../../../../lib/playoffs/context.mjs';
+import { loadProcessedResults } from './processedResults.mjs';
 import { useEffect, useState } from 'react';
 import { supabase } from '../../../../lib/supabase';
 import { loadCollectiveData, fetchLiveGame, espnSummaryUrl } from '../playoff-tree/collectiveData.mjs';
@@ -6,8 +8,8 @@ import { loadCollectiveData, fetchLiveGame, espnSummaryUrl } from '../playoff-tr
 export function usePlayoffData(){
   const [data,setData]=useState(null),[error,setError]=useState(''),[version,setVersion]=useState(0);
   useEffect(()=>{const {data:{subscription}}=supabase.auth.onAuthStateChange(()=>{setData(null);setVersion(v=>v+1);});return()=>subscription.unsubscribe();},[]);
-  useEffect(()=>{let active=true;setError('');loadCollectiveData(supabase,undefined,{includeGameStatus:true})
-    .then(result=>{if(active)setData(result);}).catch(()=>{if(active)setError('Impossible de charger les données des séries. Réessaie.');});return()=>{active=false;};},[version]);
+  useEffect(()=>{let active=true;setError('');loadCollectiveData(supabase,getPlayoffContext().season,{includeGameStatus:true})
+    .then(async result=>{if(!result.requiresSignIn)result.processed=await loadProcessedResults(supabase,result.rounds,getPlayoffContext().season);if(active)setData(result);}).catch(()=>{if(active)setError('Impossible de charger les données des séries. Réessaie.');});return()=>{active=false;};},[version]);
   return {data,error,retry:()=>{setData(null);setVersion(v=>v+1);}};
 }
 export function useLiveGames(games){

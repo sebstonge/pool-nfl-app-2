@@ -1,4 +1,5 @@
 'use client';
+import { getPlayoffContext } from '../../../../lib/playoffs/context.mjs';
 
 import { useEffect, useId, useRef, useState } from 'react';
 import { supabase } from '../../../../lib/supabase';
@@ -93,7 +94,7 @@ export function CollectiveView({ data, liveGames = {}, liveError = false, seedSn
   const players = Object.fromEntries(data.players.map(player => [player.id, player]));
   return <main className={styles.page}>
     <header className={styles.header}>
-      <h1>Tous les choix</h1><p>Séries NFL{data.season != null ? ` · ${data.season}` : ''}</p>
+      <h1>Tous les choix 👀</h1><p>Séries NFL{data.season != null ? ` · ${data.season}` : ''}</p>
 
     </header>
       <nav className={styles.qbNavigation} aria-label="Ronde des QB">
@@ -174,7 +175,7 @@ export default function CollectivePlayoffTree() {
   useEffect(() => {
     let cancelled = false;
     setError(false);
-    loadCollectiveData(supabase).then(next => {
+    loadCollectiveData(supabase,getPlayoffContext().season).then(next => {
       if (cancelled) return;
       setData(next);
     }).catch(error => { console.error('[Collective playoffs] Chargement', error.message); if (!cancelled) setError(true); });

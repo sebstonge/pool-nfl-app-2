@@ -264,6 +264,7 @@ export async function GET(
             status
           `
         )
+        .not("notification_type", "in", "(regular_five_hour,playoff_open,playoff_h24,playoff_morning)")
         .eq(
           "status",
           "pending"

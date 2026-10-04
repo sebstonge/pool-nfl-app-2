@@ -1,3 +1,4 @@
+import { validatePlayoffSeason, assertPlayoffRounds } from '../../../../lib/playoffs/context.mjs';
 export const ROUNDS = [
   { key: 'wild_card', title: 'Wild Card', short: 'WC' },
   { key: 'divisional', title: 'Divisional', short: 'DIV' },
@@ -34,13 +35,16 @@ export function buildRounds({ rounds, games, picks, paths }) {
 
 // Read-only loader. Games (including TEST-*) are never sent to ESPN.
 export async function loadPersonalTree(client, { season, roundId, userId }) {
+  validatePlayoffSeason(season);
   async function read(query) {
     const { data, error } = await query;
     if (error) throw error;
     return data || [];
   }
   const rounds = await read(client.from('playoff_rounds').select('*').eq('season', season).order('round_order'));
+  assertPlayoffRounds(rounds, season);
   const roundIds = rounds.map(round => round.id);
+  if (roundIds.length && !roundIds.includes(roundId)) throw new Error('Ronde hors de la saison demandée.');
   if (!roundIds.length) return { rounds: buildRounds({ rounds: [], games: [], picks: [], paths: [] }), complete: false };
   const [games, paths, qbPicks] = await Promise.all([
     read(client.from('playoff_games').select('*').in('round_id', roundIds).order('game_date')),

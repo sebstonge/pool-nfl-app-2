@@ -1,4 +1,5 @@
 'use client';
+import { getPlayoffContext } from '../../../lib/playoffs/context.mjs';
 
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../../../lib/supabase';
@@ -81,17 +82,12 @@ function RoundConfirmation({
       <h2 id="round-confirm-title">
         {action === 'advance'
           ? 'Passer à la ronde suivante'
+          : action === 'finalize' ? 'Finaliser la ronde'
           : 'Préparer / ouvrir le Wild Card'}
       </h2>
 
       <p>
-        {action === 'advance'
-          ? 'La ronde actuelle sera clôturée sans calcul de points. Cette transition est irréversible. '
-          : ''}
-
-        {name} sera ouverte seulement si tous ses affrontements et
-        horaires officiels ESPN sont disponibles et valides. En cas
-        d’échec, la ronde et les matchs existants seront conservés.
+        {action === 'finalize' ? 'Les résultats calculés seront verrouillés définitivement. Vérifie les classements avant de confirmer.' : `${name} sera ouverte seulement si ses affrontements et horaires officiels ESPN sont disponibles. Les résultats de la ronde finalisée restent inchangés.`}
       </p>
 
       <div className={styles.actions}>
@@ -118,7 +114,7 @@ function RoundConfirmation({
 }
 
 export default function RoundAdmin({
-  season = 2026,
+  season = getPlayoffContext().season,
   request = requestRound,
 }) {
   const [data, setData] =
@@ -200,6 +196,7 @@ export default function RoundAdmin({
             [
               'prepare',
               'advance',
+              'finalize',
             ].includes(action),
         });
 
@@ -234,7 +231,7 @@ export default function RoundAdmin({
 
   const active =
     view &&
-    ['open', 'locked'].includes(
+    ['open', 'locked', 'scored'].includes(
       view.current.status
     );
 
@@ -322,10 +319,7 @@ export default function RoundAdmin({
                 </h2>
 
                 <p>
-                  Actualise les scores
-                  ESPN et les états LIVE /
-                  FINAL des matchs
-                  officiels de cette ronde.
+                  Met à jour les résultats, QB Ratings et classements de la ronde.
                 </p>
 
                 <p
@@ -333,9 +327,7 @@ export default function RoundAdmin({
                     styles.mutedText
                   }
                 >
-                  Cette action ne change
-                  pas de ronde et ne
-                  calcule aucun point.
+                  Scores ESPN · QB Ratings · Scoring · Classements. Vérifie les résultats avant de finaliser la ronde.
                 </p>
 
                 <div
@@ -359,7 +351,7 @@ export default function RoundAdmin({
                   >
                     {busy
                       ? 'En cours…'
-                      : 'Mettre à jour la ronde'}
+                      : 'Mise à jour complète'}
                   </button>
                 </div>
               </section>
@@ -519,14 +511,11 @@ export default function RoundAdmin({
                       styles.helperText
                     }
                   >
-                    Tous les matchs
-                    officiels doivent
-                    être FINAL avant de
-                    poursuivre.
+                    La ronde doit être calculée puis finalisée avant de poursuivre.
                   </p>
                 )}
 
-              {active &&
+              {(active || view.current.status === 'finalized') &&
                 index < 3 && (
                   <div
                     className={
@@ -558,6 +547,10 @@ export default function RoundAdmin({
                     </button>
                   </div>
                 )}
+
+              {view.canFinalize && <div className={styles.operationAction}>
+                <button className="button-secondary" disabled={busy} onClick={()=>setPending({action:'finalize',roundKey:view.current.round_key,name:view.definition.name})}>Finaliser la ronde</button>
+              </div>}
 
               {index === 3 && (
                 <p>
