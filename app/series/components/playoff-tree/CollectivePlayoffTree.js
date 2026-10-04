@@ -94,7 +94,7 @@ export function CollectiveView({ data, liveGames = {}, liveError = false, seedSn
   const players = Object.fromEntries(data.players.map(player => [player.id, player]));
   return <main className={styles.page}>
     <header className={styles.header}>
-      <h1>Tous les choix</h1><p>Séries NFL{data.season != null ? ` · ${data.season}` : ''}</p>
+      <h1>Tous les choix 👀</h1><p>Séries NFL{data.season != null ? ` · ${data.season}` : ''}</p>
 
     </header>
       <nav className={styles.qbNavigation} aria-label="Ronde des QB">

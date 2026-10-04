@@ -649,14 +649,17 @@ export function AnalyticsView({data,error,retry}) {
             : 16,
         }}
       >
-        <h1
-          style={{
-            marginTop: 0,
-            marginBottom: 6,
-          }}
-        >
-          📊 Statistiques
-        </h1>
+        <div className="header-card" style={{ display: "contents" }}>
+          <h1
+            style={{
+              marginTop: 0,
+              marginBottom: 6,
+              overflowWrap: "break-word",
+            }}
+          >
+            Statistiques 📈
+          </h1>
+        </div>
 
         <p
           style={{
