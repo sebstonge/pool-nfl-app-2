@@ -1815,7 +1815,9 @@ export default function Matchs() {
     );
 
     // Current Playoffs round and validated usage history only.
-    const { season } = getPlayoffContext();
+    let season;
+    try { ({ season } = await getPlayoffContext(supabase)); }
+    catch { setMessage("Contexte global indisponible."); return; }
     const { data: playoffRounds, error: playoffRoundError } = await supabase.from("playoff_rounds").select("*").eq("season", season).order("round_order");
     if (playoffRoundError) { setMessage("Impossible de charger les rondes."); return; }
     const seasonRounds = assertPlayoffRounds(playoffRounds || [], season);

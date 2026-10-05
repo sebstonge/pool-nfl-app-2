@@ -175,7 +175,7 @@ export default function CollectivePlayoffTree() {
   useEffect(() => {
     let cancelled = false;
     setError(false);
-    loadCollectiveData(supabase,getPlayoffContext().season).then(next => {
+    getPlayoffContext(supabase).then(({season})=>loadCollectiveData(supabase,season)).then(next => {
       if (cancelled) return;
       setData(next);
     }).catch(error => { console.error('[Collective playoffs] Chargement', error.message); if (!cancelled) setError(true); });

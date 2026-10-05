@@ -1,9 +1,10 @@
+import { loadLifecycle, regularIsOpen } from '../../../../lib/lifecycle/context.mjs';
 import {
   createClient,
 } from "@supabase/supabase-js";
 
 import {
-  sendPushToUser,
+  sendRegularPushToUser as sendPushToUser,
 } from "../../../../lib/pushNotifications";
 
 export const runtime =
@@ -232,6 +233,8 @@ export async function GET(
      * HEURE ACTUELLE
      * =====================================================
      */
+
+    if (!regularIsOpen(await loadLifecycle(supabaseAdmin))) return Response.json({ skipped: 'regular_closed' });
 
     const now =
       new Date()

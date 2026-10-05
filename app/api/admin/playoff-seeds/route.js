@@ -1,3 +1,4 @@
+import { requireActiveSeason } from '../../../../lib/lifecycle/context.mjs';
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { syncPlayoffSeedsFromEspn, finalizePlayoffSeeds, readPlayoffSeeds } from '../../../../lib/playoffs/seedOperations.mjs';
@@ -21,6 +22,7 @@ export async function POST(request) {
     if (!Number.isInteger(season) || season < 2000 || season > 9999 || !['read', 'sync', 'finalize'].includes(action)) {
       return NextResponse.json({ error: 'Action ou saison invalide' }, { status: 400 });
     }
+    await requireActiveSeason(admin, season);
     if (action === 'sync') await syncPlayoffSeedsFromEspn(admin, season);
     if (action === 'finalize') await finalizePlayoffSeeds(admin, season, expectedCapturedAt, regularSeasonComplete);
     return NextResponse.json({ rows: await readPlayoffSeeds(admin, season) });

@@ -11,7 +11,6 @@ import {
 import styles from './playoffs.module.css';
 import RoundAdmin, { requestRound } from './RoundAdmin';
 
-const { season } = getPlayoffContext();
 
 function date(value) {
   return value
@@ -149,6 +148,7 @@ function ConfirmDialog({
 }
 
 export function PlayoffsAdminView({
+  season,
   request,
   teams = [],
   roundRequest = requestRound,
@@ -182,7 +182,7 @@ export function PlayoffsAdminView({
     return () => {
       active = false;
     };
-  }, [request]);
+  }, [request, season]);
 
   const state = snapshotState(rows || [], season);
 
@@ -578,6 +578,14 @@ const request = (body) =>
 
 export default function PlayoffsAdminPage() {
   const [teams, setTeams] = useState([]);
+  const [context, setContext] = useState(null);
+  const [contextError, setContextError] = useState('');
+  useEffect(() => {
+    let active = true;
+    getPlayoffContext(supabase).then(value => { if(active) setContext(value); })
+      .catch(() => { if(active) setContextError('Contexte global indisponible.'); });
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -601,8 +609,10 @@ export default function PlayoffsAdminPage() {
     };
   }, []);
 
+  if (!context) return <main className="page"><p role="status">{contextError || "Chargement…"}</p></main>;
   return (
     <PlayoffsAdminView
+      season={context.season}
       request={request}
       teams={teams}
     />

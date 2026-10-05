@@ -1,5 +1,6 @@
+import { loadLifecycle, regularIsOpen } from '../../../../lib/lifecycle/context.mjs';
 import { createClient } from "@supabase/supabase-js";
-import { sendPushToUser } from "../../../../lib/pushNotifications";
+import { sendRegularPushToUser as sendPushToUser } from "../../../../lib/pushNotifications";
 
 export const runtime = "nodejs";
 
@@ -270,6 +271,8 @@ export async function POST(
      * SEMAINE ACTUELLE
      * =========================================================
      */
+
+    if (!regularIsOpen(await loadLifecycle(supabaseAdmin))) return Response.json({ skipped: 'regular_closed' });
 
     const {
       data: settings,

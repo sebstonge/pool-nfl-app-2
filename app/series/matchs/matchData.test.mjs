@@ -28,6 +28,6 @@ test('QB averages use published actual performances once, keep zero, exclude oth
 test('match page has no regular week dependencies and retains TEST ESPN protection',()=>{
  const source=readFileSync(new URL('./page.js',import.meta.url),'utf8');
  assert.doesNotMatch(source,/current_week|currentWeek|weekly_scores|qb_weekly_stats|\.from\(\s*["']qb_picks["']/);
- assert.match(source,/getPlayoffContext\(\)/);assert.match(source,/startsWith\("TEST-"\)/);
+ assert.match(source,/getPlayoffContext\(supabase\)/);assert.match(source,/startsWith\("TEST-"\)/);
  assert.match(source,/function normalizeName/);assert.match(source,/Moyenne Séries/);
 });
