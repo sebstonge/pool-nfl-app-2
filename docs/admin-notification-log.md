@@ -53,6 +53,9 @@ email, ID utilisateur brut ou erreur brute du fournisseur.
 
 Le lecteur fusionne une fenêtre bornée de file existante et de nouvelles
 observations ; les événements déjà observés sont dédupliqués par event_key + user.
+Lorsqu'une observation correspond à un événement de cette fenêtre, elle reprend
+son scheduled_for disponible. Aucun horodatage n'est inventé et une heure prévue
+absente est affichée « — ».
 Les tentatives répétées restent des observations distinctes, pour ne pas masquer
 un échec suivi d'une réussite. Maximum 50 lignes affichées, après filtrage.
 Les filtres portent sur cette fenêtre récente, pas sur tout l'historique.
@@ -94,8 +97,14 @@ brut d'un SDK. Le DTO Admin n'en expose que des explications prédéfinies.
 Aucune télémétrie ne prouve une lecture ou une livraison sur l'appareil.
 La réservation peut précéder une interruption avant l'appel réseau : une ligne
 incomplète exprime une issue inconnue, pas une acceptation.
-Une panne d'écriture de télémétrie ne bloque pas l'envoi existant et ne déclenche
-pas de retry. Par conséquent le journal peut être incomplet ; les historiques
+Chaque écriture de télémétrie est limitée à 250 ms (TELEMETRY_TIMEOUT_MS), puis
+annulée via AbortSignal. Une course avec un délai centralisé borne aussi les
+clients qui ignorent l'annulation. Les erreurs et expirations sont absorbées ;
+les rejets tardifs restent gérés et les timers sont nettoyés. Cette courte attente
+privilégie le transport sur la complétude du journal. Le transport push lui-même
+n'est pas soumis à ce timeout et conserve son résultat ou son exception originale.
+Une panne ou une requête de télémétrie suspendue ne bloque donc jamais indéfiniment
+l'envoi existant et ne déclenche pas de retry. Par conséquent le journal peut être incomplet ; les historiques
 supprimés avant cette migration ne sont pas récupérables. Aucun backfill inventé.
 
 ## Migration à revoir, non appliquée à distance
@@ -137,7 +146,7 @@ Le rating, ses règles, sa récupération ESPN et son format à une décimale so
 
 ## Validation
 
-246 tests réussis, 0 échec, 0 ignoré (231 existants + 15 nouveaux), dont :
+255 tests réussis, 0 échec, 0 ignoré (231 existants + 24 nouveaux), dont :
 autorisation route Admin / refus utilisateur ordinaire, liste vide, succès,
 échec, partiel, historique incomplet, destinataire vs appareils, filtres/scopes,
 limite 50, timezone Toronto été/hiver, exclusion de secrets, déterminants et message,
@@ -145,6 +154,13 @@ transport réel avec dépendances simulées (cleanup 410, guard, zéro abonnemen
 panne télémétrie sans changement d'envoi, interruption conservée comme inconnue,
 lecture sans migration, état désactivé des rappels, droits SQL et RLS.
 La migration est exécutée uniquement dans PostgreSQL éphémère local (PGlite).
+
+Correction P1 : huit tests supplémentaires à horloge simulée couvrent des promesses
+qui ne se résolvent jamais à la création, à attempted_at et au bilan final,
+les résultats fournisseur positifs et négatifs, l'exception originale du
+transport, le destinataire suivant, les rejets tardifs et le nettoyage des timers.
+Un test supplémentaire couvre scheduled_for après déduplication et l'absence
+de date inventée ou empruntée à un autre événement/destinataire.
 
 `npm run build` : validation avec Supabase factice et clés VAPID éphémères,
 sans appel de notification réel. Aucun test d'envoi réel / aucun appareil contacté.
