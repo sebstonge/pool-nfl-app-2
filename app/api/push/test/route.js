@@ -90,6 +90,7 @@ export async function POST(request) {
 
     const result =
       await sendPushToUser({
+        notificationLog: {type: 'test'},
         userId:
           userData.user.id,
 

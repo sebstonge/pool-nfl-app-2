@@ -417,6 +417,7 @@ export async function GET(
 
         const pushResult =
           await sendPushToUser({
+            notificationLog: {eventKey: event.event_key, type: event.notification_type},
             userId:
               event.user_id,
 

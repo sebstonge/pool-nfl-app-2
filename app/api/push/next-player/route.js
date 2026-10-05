@@ -580,6 +580,7 @@ export async function POST(
 
     const result =
   await sendPushToUser({
+    notificationLog: {eventKey, type: 'qb_turn'},
     userId:
       nextPlayer.id,
 

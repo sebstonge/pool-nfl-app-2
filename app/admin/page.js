@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
+import NotificationLog from "./components/NotificationLog";
 import BottomNav from "../components/BottomNav";
 import previewStyles from "./previewNavigation.module.css";
 import { fetchEspnStandings } from "../../lib/espnStandings.mjs";
@@ -3788,6 +3789,7 @@ async function resetUserPassword() {
         )}
       </section>
 
+      <NotificationLog scope="regular" />
       <BottomNav />
     </main>
   );

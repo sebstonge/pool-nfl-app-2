@@ -453,6 +453,7 @@ export async function POST(
         ) {
           const pushResult =
             await sendPushToUser({
+              notificationLog: {eventKey, type: 'rankings_updated'},
               userId,
 
               title:

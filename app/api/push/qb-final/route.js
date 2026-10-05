@@ -1,3 +1,4 @@
+import { finalRatingMessage } from '../../../../lib/notifications/teamFrench.mjs';
 import { loadLifecycle, regularIsOpen } from '../../../../lib/lifecycle/context.mjs';
 import {
   createClient,
@@ -838,6 +839,7 @@ export async function GET(
 
      const pushResult =
   await sendPushToUser({
+    notificationLog: {eventKey, type: 'qb_final'},
     userId:
       pick.user_id,
 
@@ -845,7 +847,7 @@ export async function GET(
       "🏈 Passer Rating final",
 
     body:
-      `${actualQB.name} a conclu son match contre ${opponent} avec un passer rating de ${ratingText}.`,
+      finalRatingMessage(actualQB.name, opponent, ratingText),
 
     url:
       "/",

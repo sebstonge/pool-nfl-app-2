@@ -1,4 +1,5 @@
 'use client';
+import NotificationLog from '../components/NotificationLog';
 import { getPlayoffContext } from '../../../lib/playoffs/context.mjs';
 
 import { useEffect, useRef, useState } from 'react';
@@ -514,6 +515,8 @@ export function PlayoffsAdminView({
         </>
       )}
 
+
+      <NotificationLog scope="playoffs" />
 
       {/* =========================================================
           ACTIVATION — PLEINE LARGEUR

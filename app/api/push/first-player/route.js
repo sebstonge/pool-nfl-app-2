@@ -437,6 +437,7 @@ export async function POST(request) {
     }
 
     const pushResult = await sendPushToUser({
+      notificationLog: {eventKey, type: 'qb_turn'},
       userId: firstPlayer.id,
       title: "⏰ C’est à ton tour",
       body:
