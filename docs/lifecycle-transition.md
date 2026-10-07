@@ -74,14 +74,15 @@ fourni à ESPN ni envoyé à Supabase distant.
   pas porter de trace d'ouverture. Les autres rondes draft sont conservées.
 - Un événement ESPN déjà utilisé dans une autre saison est refusé en transaction.
 - Seeds absents : réutilisation de sync_playoff_seeds puis finalize_playoff_seeds.
-- Seeds existants : les 14 identités doivent correspondre exactement à ESPN
-  (saison, conférence, seed, nom, ID ESPN), avec une capture uniforme.
-  Sinon, refus explicite : aucun remplacement automatique d'un snapshot provisoire
-  différent. Une synchronisation/revue séparée et autorisée devra le précéder.
-- Snapshot identique provisoire : finalisation des lignes existantes sans changer
-  leurs IDs ni captured_at. Une nouvelle validation ESPN n'est pas présentée
-  comme une nouvelle date de capture initiale.
-- Snapshot déjà uniformément finalisé et identique : conservé sans modification.
+- Snapshot existant : exactement 14 lignes, 7 par conférence et capture uniforme.
+  Un snapshot partiel, incohérent ou mêlant finalisé/non finalisé est refusé.
+- Snapshot entièrement provisoire différent : remplacé via sync_playoff_seeds
+  puis finalisé dans la même transaction. Le snapshot complet observé est comparé
+  sous verrou avant toute écriture ; une modification concurrente provoque un refus.
+  Une erreur ultérieure restaure exactement les anciennes lignes et leurs métadonnées.
+- Snapshot identique provisoire : finalisé sans changer ses IDs ni captured_at.
+- Snapshot déjà uniformément finalisé : accepté seulement si identique ; jamais
+  remplacé. Un snapshot finalisé différent est refusé.
 
 ## COMMIT — transaction unique
 
@@ -154,7 +155,7 @@ production et ne pas utiliser db push. Aucune installation n'est demandée ici.
 
 ## Validation et limites
 
-314 tests réussis, 0 échec, 0 ignoré, dont 59 tests/sous-tests ciblés nouveaux.
+328 tests réussis, 0 échec, 0 ignoré, dont 73 tests/sous-tests ciblés lifecycle-transition.
 Toutes les suites existantes sont incluses. Test SQL sur PGlite avec les vraies
 fonctions de publication 2A, seeds, gestion de ronde, scoring et guards installées
 sur des fixtures locales 2099. Aucun mock du validateur de publication côté SQL.

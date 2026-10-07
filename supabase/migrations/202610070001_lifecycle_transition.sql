@@ -78,11 +78,20 @@ begin
  if found then raise exception 'Événement ESPN déjà utilisé : % (match %, ronde %)',conflict.external_game_id,conflict.id,conflict.round_id; end if;
  select jsonb_agg(jsonb_build_object('season',season,'team',team,'espn_team_id',espn_team_id,'conference',conference,'seed',seed) order by conference,seed) into original_seeds from public.playoff_seeds where season=p_season;
  select jsonb_agg(x order by x->>'conference',(x->>'seed')::int) into desired_seeds from jsonb_array_elements(p_prepared->'seeds') x;
- if original_seeds is not null and original_seeds is distinct from desired_seeds then raise exception 'Seeds existants différents : révision explicite nécessaire, aucun remplacement automatique'; end if;
- -- Reuse existing seed RPCs. Preserve matching existing rows and their capture.
- if original_seeds is null then capture:=public.sync_playoff_seeds(p_season,p_prepared->'seeds');
+ -- Validate the observed snapshot under the existing locks before replacement.
+ if original_seeds is not null then
+  if (select count(*)<>14 or count(*) filter(where conference='AFC')<>7 or count(*) filter(where conference='NFC')<>7 or
+      count(distinct (conference,seed))<>14 or count(distinct captured_at)<>1 or
+      (count(finalized_at)<>0 and (count(finalized_at)<>14 or count(distinct finalized_at)<>1))
+      from public.playoff_seeds where season=p_season) then raise exception 'Snapshot seeds incomplet ou incohérent'; end if;
+  if exists(select 1 from public.playoff_seeds where season=p_season and finalized_at is not null) and original_seeds is distinct from desired_seeds
+   then raise exception 'Seeds finalisés différents : aucun remplacement autorisé'; end if;
+ end if;
+ -- Only an absent or wholly provisional differing snapshot is synchronized.
+ -- p_expected already protects every observed row against concurrent changes.
+ if original_seeds is null or original_seeds is distinct from desired_seeds then
+  capture:=public.sync_playoff_seeds(p_season,p_prepared->'seeds');
  else
-  if (select count(distinct captured_at)<>1 from public.playoff_seeds where season=p_season) then raise exception 'Capture seeds incohérente'; end if;
   select min(captured_at) into capture from public.playoff_seeds where season=p_season;
  end if;
  if not exists(select 1 from public.playoff_seeds where season=p_season and finalized_at is not null) then

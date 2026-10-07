@@ -64,9 +64,45 @@ test('lifecycle transition, real installed RPCs in isolated PostgreSQL',{skip:!p
    await sql("insert into playoff_rounds(season,round_key,round_name,round_order) values(2098,'wild_card','Wild Card',1);insert into playoff_games(round_id,external_game_id,game_date,home_team,away_team) select id,'900','2100-01-10','AFC2','AFC7' from playoff_rounds where season=2098");
    await assert.rejects(commit(await state(),prepared),/Événement ESPN déjà utilisé/);
   }));
-  await t.test('conflicting provisional seeds never overwritten',()=>isolated(async()=>{
-   const seeds=structuredClone(f.seeds);seeds[0].espn_team_id='555';await db.query('select sync_playoff_seeds(2099,$1)',[JSON.stringify(seeds)]);
-   await assert.rejects(commit(await state(),prepared),/Seeds existants différents/);
+  const provisional=structuredClone(f.seeds);provisional[0].espn_team_id='555';
+  const sync=rows=>db.query('select sync_playoff_seeds(2099,$1)',[JSON.stringify(rows)]);
+  const unchangedRejection=async(expected,pattern)=>{
+   const original=await state();await sql('savepoint rejected_transition');
+   await assert.rejects(commit(expected,prepared),pattern);await sql('rollback to savepoint rejected_transition');
+   assert.deepEqual(await state(),original);
+  };
+  await t.test('different provisional snapshot replaced atomically with final seeds',()=>isolated(async()=>{
+   await sync(provisional);const existing=await state();
+   const p=await prepareTransition(existing,{season:2099,revision:0,fetcher:f.fetcher});await commit(existing,p);
+   const after=await state();assert.equal(after.seeds.length,14);
+   for(const row of after.seeds){const seed=f.seeds.find(s=>s.conference===row.conference&&s.seed===row.seed);assert.equal(row.espn_team_id,seed.espn_team_id);assert.equal(row.team,seed.team);assert.ok(row.finalized_at);assert.ok(!existing.seeds.some(s=>s.id===row.id));}
+   assert.equal(after.games.length,6);assert.ok(!after.games.some(g=>['AFC1','NFC1'].some(t=>t===g.home_team||t===g.away_team)));
+   assert.equal(after.regular.settings.phase,'playoffs');assert.equal(after.regular.settings.revision,1);assert.ok(after.regular.settings.regular_finalized_at);
+   assert.equal(after.regular.settings.playoff_reminders_enabled,false);assert.equal((await one('select count(*)::int n from push_notification_events')).n,0);
+  }));
+  for(const different of [false,true])await t.test('finalized snapshot different='+different,()=>isolated(async()=>{
+   await sync(different?provisional:f.seeds);await sql('select finalize_playoff_seeds(2099,(select min(captured_at) from playoff_seeds where season=2099))');
+   const existing=await state();
+   if(different)await unchangedRejection(existing,/Seeds finalisés différents/);
+   else{await commit(existing,prepared);assert.deepEqual((await state()).seeds,existing.seeds);}
+  }));
+  for(const [name,change] of [
+   ['partial',"delete from playoff_seeds where season=2099 and conference='AFC' and seed=1"],
+   ['capture mismatch',"update playoff_seeds set captured_at=captured_at-interval '1 second' where season=2099 and conference='AFC' and seed=1"],
+   ['mixed finalization',"update playoff_seeds set finalized_at=clock_timestamp() where season=2099 and conference='AFC' and seed=1"],
+  ])await t.test('incoherent snapshot refused: '+name,()=>isolated(async()=>{
+   await sync(provisional);await sql(change);await unchangedRejection(await state(),/Snapshot seeds incomplet ou incohérent/);
+  }));
+  await t.test('concurrent seed change between prepare and commit is preserved',()=>isolated(async()=>{
+   await sync(provisional);const observed=await state();await prepareTransition(observed,{season:2099,revision:0,fetcher:f.fetcher});
+   const changed=structuredClone(provisional);changed[1].espn_team_id='556';await sync(changed);
+   await unchangedRejection(observed,/Snapshot modifié/);
+  }));
+  await t.test('late failure restores original provisional snapshot exactly',()=>isolated(async()=>{
+   await sync(provisional);const original=await state();
+   await sql("create function fail_replacement_test() returns trigger language plpgsql as $$begin if new.phase='playoffs' then raise exception 'late replacement failure';end if;return new;end$$;create trigger fail_replacement_test before update on settings for each row execute function fail_replacement_test();");
+   await unchangedRejection(original,/late replacement failure/);
+   assert.deepEqual(await state(),original);assert.equal((await one('select count(*)::int n from push_notification_events')).n,0);
   }));
   await t.test('matching provisional seeds and four existing draft rounds reused',()=>isolated(async()=>{
    await db.query('select sync_playoff_seeds(2099,$1)',[JSON.stringify(f.seeds)]);
