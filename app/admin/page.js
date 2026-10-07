@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import NotificationLog from "./components/NotificationLog";
 import BottomNav from "../components/BottomNav";
+import LifecycleActions from "./components/LifecycleActions";
 import previewStyles from "./previewNavigation.module.css";
 import { fetchEspnStandings } from "../../lib/espnStandings.mjs";
 
@@ -316,6 +317,7 @@ const [isDesktop, setIsDesktop] = useState(false);
         .select("*")
         .single();
 
+      if(currentUser && admin && settingsData?.phase === "playoffs"){window.location.replace("/admin/playoffs");return;}
       setSettings(settingsData);
 
       if (currentUser && admin && settingsData) {
@@ -2562,6 +2564,8 @@ async function resetUserPassword() {
     );
   }
 
+  if(!settings) return <main className="page"><p role="status">Chargement du contexte…</p></main>;
+
   /* =========================================================
    PAGE ADMIN
    ========================================================= */
@@ -2612,6 +2616,8 @@ async function resetUserPassword() {
             "..."}
         </p>
       </section>
+
+      <LifecycleActions />
 
       {/* =====================================================
           MESSAGE ADMIN

@@ -1,5 +1,6 @@
 import {createClient} from '@supabase/supabase-js';
 import {transitionToPlayoffs} from '../../../../lib/lifecycle-transition/operations.mjs';
+import {RoundError} from '../../../../lib/playoffs/rounds.mjs';
 import {TransitionError} from '../../../../lib/lifecycle-transition/prepare.mjs';
 export const runtime='nodejs';
 export const maxDuration=60;
@@ -16,5 +17,5 @@ export async function POST(request){
   const body=await request.json();
   if(body.confirm!==true||!Number.isInteger(body.season)||body.season<2000||body.season>9999||!Number.isSafeInteger(body.revision)||body.revision<0)return respond({error:'Confirmation, saison et révision valides requises.'},400);
   return respond(await transitionToPlayoffs(admin,{season:body.season,revision:body.revision,actor:user.id}));
- }catch(error){return respond({error:error instanceof TransitionError?error.message:'Transition refusée ou source indisponible. Aucune transition partielle.'},409);}
+ }catch(error){return respond({error:(error instanceof TransitionError||error instanceof RoundError)?error.message:'Transition refusée ou source indisponible. Aucune transition partielle.'},409);}
 }

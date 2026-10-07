@@ -113,6 +113,7 @@ function RoundConfirmation({
 }
 
 export default function RoundAdmin({
+  activeMode=false,
   season,
   request = requestRound,
 }) {
@@ -472,7 +473,7 @@ export default function RoundAdmin({
                 </p>
               )}
 
-              {initial && (
+              {initial && !activeMode && (
                 <div
                   className={
                     styles.operationAction
@@ -547,9 +548,9 @@ export default function RoundAdmin({
                   </div>
                 )}
 
-              {view.canFinalize && <div className={styles.operationAction}>
+              {view.canFinalize && <details className={styles.operationAction}><summary>Validation définitive de la ronde</summary><p>La finalisation reste une action distincte et irréversible avant l’ouverture de la ronde suivante.</p>
                 <button className="button-secondary" disabled={busy} onClick={()=>setPending({action:'finalize',roundKey:view.current.round_key,name:view.definition.name})}>Finaliser la ronde</button>
-              </div>}
+              </details>}
 
               {index === 3 && (
                 <p>

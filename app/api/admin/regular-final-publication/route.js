@@ -1,4 +1,5 @@
 import {createClient} from '@supabase/supabase-js';
+import {PublicationError} from '../../../../lib/regular-publication/espn.mjs';
 import {publishFinalRegular} from '../../../../lib/regular-publication/operations.mjs';
 export const runtime='nodejs';
 export const maxDuration=60;
@@ -17,5 +18,5 @@ export async function POST(request){
   const body=await request.json();
   if(body.confirm!==true||!Number.isInteger(body.season)||!Number.isSafeInteger(body.revision)||body.revision<0)return Response.json({error:'Confirmation, saison et révision requises.'},{status:400});
   return Response.json(await publishFinalRegular(admin,{season:body.season,revision:body.revision,actor:user.id}));
- }catch(error){console.error('[Regular final publication]',error.message);return Response.json({error:'Publication finale refusée ou source indisponible. Consulte les journaux administrateur.'},{status:409});}
+ }catch(error){console.error('[Regular final publication]',error.message);return Response.json({error:error instanceof PublicationError?error.message:'Publication finale refusée ou source indisponible. Consulte les journaux administrateur.'},{status:409});}
 }

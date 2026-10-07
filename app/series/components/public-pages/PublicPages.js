@@ -1,5 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
+import {usePublicSeriesUrls} from '../SeriesLinks';
+import {seriesHref} from '../../../../lib/lifecycle/publicRouting.mjs';
 import { ROUNDS } from '../playoff-tree/treeData.mjs';
 import { consensus, playerName, teamPathGroups } from '../playoff-tree/collectiveData.mjs';
 import { homeSummary, selectedRound, roundData, qbGroups, rankingRounds, pickStatistics } from './publicData.mjs';
@@ -42,6 +44,7 @@ function RoundSelector({round,onChange,season}){
 function Empty({title,children}){return <div className={styles.empty}><span aria-hidden="true">🏈</span><strong>{title}</strong><p>{children}</p></div>;}
 const shortcuts=[['matchs','✅','Mes choix','Faire mes prédictions','34,197,94'],['tous-les-choix','👀','Tous les choix','Voir les prédictions de tous','59,130,246'],['qb-ratings','📊','QB Ratings','Ratings des séries','236,72,153'],['classements','🏆','Classements','Ronde et séries','234,179,8'],['analytics','📈','Statistiques','Records et statistiques','59,130,246']];
 function HomeContent({data}){
+ const publicUrls=usePublicSeriesUrls();
  const viewport=useViewport();
  const [admin,setAdmin]=useState(false);
  useEffect(()=>{let active=true;isPreviewAdmin(supabase).then(value=>{if(active)setAdmin(value);});return()=>{active=false;};},[data.userId]);
@@ -49,7 +52,7 @@ function HomeContent({data}){
  return <>
   <RegularUserCard profile={profile} user={{id:data.userId}} {...viewport}/>
 
-  <section className={styles.navGrid} aria-label="Accès aux séries">{[...shortcuts,...(admin?[['../admin/playoffs','⚙️','Admin','Scores, stats et calculs','148,163,184']]:[])].map(([route,icon,title,subtitle,color])=><a key={route} href={route.startsWith('../')?'/admin/playoffs':`/series/${route}`} className="nav-card home-nav-card"><div className="nav-icon home-nav-icon" style={{background:`rgba(${color},.18)`}}>{icon}</div><div className="home-nav-text"><strong className="home-nav-title">{title}</strong><span className="home-nav-subtitle">{subtitle}</span></div></a>)}</section>
+  <section className={styles.navGrid} aria-label="Accès aux séries">{[...shortcuts,...(admin?[['../admin/playoffs','⚙️','Admin','Scores, stats et calculs','148,163,184']]:[])].map(([route,icon,title,subtitle,color])=><a key={route} href={route.startsWith('../')?'/admin/playoffs':seriesHref(`/series/${route}`,publicUrls)} className="nav-card home-nav-card"><div className="nav-icon home-nav-icon" style={{background:`rgba(${color},.18)`}}>{icon}</div><div className="home-nav-text"><strong className="home-nav-title">{title}</strong><span className="home-nav-subtitle">{subtitle}</span></div></a>)}</section>
 
  </>;
 }

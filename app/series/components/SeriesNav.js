@@ -1,8 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import {usePublicSeriesUrls} from "./SeriesLinks";
+import {seriesHref} from "../../../lib/lifecycle/publicRouting.mjs";
 
 export default function SeriesNav() {
+  const publicUrls=usePublicSeriesUrls();
   const [isDesktop, setIsDesktop] = useState(false);
 
   useEffect(() => {
@@ -64,7 +67,7 @@ export default function SeriesNav() {
     return (
       <nav className="bottom-nav">
         {links.map((link) => (
-          <a key={link.href} href={link.href}>
+          <a key={link.href} href={seriesHref(link.href,publicUrls)}>
             <strong>{link.icon}</strong>
             {link.label}
           </a>
@@ -116,7 +119,7 @@ export default function SeriesNav() {
           ===================================================== */}
 
       <a
-        href="/series"
+        href={seriesHref("/series",publicUrls)}
         style={{
           display: "flex",
           alignItems: "center",
@@ -161,7 +164,7 @@ export default function SeriesNav() {
         {links.map((link) => (
           <a
             key={link.href}
-            href={link.href}
+            href={seriesHref(link.href,publicUrls)}
             style={{
               display: "flex",
               alignItems: "center",

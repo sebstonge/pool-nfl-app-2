@@ -1,5 +1,6 @@
 'use client';
 import NotificationLog from '../components/NotificationLog';
+import {isPreviewAdmin} from '../../series/components/admin-preview/previewAdmin.mjs';
 import { getPlayoffContext } from '../../../lib/playoffs/context.mjs';
 
 import { useEffect, useRef, useState } from 'react';
@@ -149,6 +150,7 @@ function ConfirmDialog({
 }
 
 export function PlayoffsAdminView({
+  activeMode=false,
   season,
   request,
   teams = [],
@@ -163,6 +165,7 @@ export function PlayoffsAdminView({
   const inFlight = useRef(false);
 
   useEffect(() => {
+    if(activeMode)return;
     let active = true;
 
     request({
@@ -183,7 +186,7 @@ export function PlayoffsAdminView({
     return () => {
       active = false;
     };
-  }, [request, season]);
+  }, [request, season, activeMode]);
 
   const state = snapshotState(rows || [], season);
 
@@ -251,6 +254,12 @@ export function PlayoffsAdminView({
     state.conferences.find(
       (conference) => conference.name === 'NFC'
     )?.rows.length || 0;
+
+  if(activeMode)return <main className={`page ${styles.page}`}>
+    <header className={`header-card ${styles.hero}`}><h1>Admin Séries ⚙️</h1><p>Saison {season}</p><a className="button-secondary" href="/">Voir l’application</a></header>
+    <RoundAdmin season={season} request={roundRequest} activeMode/>
+    <NotificationLog scope="playoffs"/>
+  </main>;
 
   return (
     <main className={`page ${styles.page}`}>
@@ -519,35 +528,6 @@ export function PlayoffsAdminView({
       <NotificationLog scope="playoffs" />
 
       {/* =========================================================
-          ACTIVATION — PLEINE LARGEUR
-          ========================================================= */}
-
-      <section className={`card ${styles.fullActionCard}`}>
-        <div className={styles.fullActionText}>
-          <p className={styles.eyebrow}>
-            Étape finale
-          </p>
-
-          <h2>Activation globale — à venir</h2>
-
-          <p>
-            Le mode régulier reste inchangé pour les participants
-            pendant la préparation des séries.
-          </p>
-        </div>
-
-        <div className={styles.fullActionButton}>
-          <button
-            className="button-secondary"
-            disabled
-          >
-            🏆 PASSER EN SÉRIES
-          </button>
-        </div>
-      </section>
-
-
-      {/* =========================================================
           CONFIRMATION
           ========================================================= */}
 
@@ -580,6 +560,8 @@ const request = (body) =>
   requestSnapshot(supabase, body);
 
 export default function PlayoffsAdminPage() {
+  const [authorized,setAuthorized]=useState(null);
+  useEffect(()=>{let active=true;isPreviewAdmin(supabase).then(value=>{if(active)setAuthorized(value);});return()=>{active=false;};},[]);
   const [teams, setTeams] = useState([]);
   const [context, setContext] = useState(null);
   const [contextError, setContextError] = useState('');
@@ -612,9 +594,12 @@ export default function PlayoffsAdminPage() {
     };
   }, []);
 
+  if(authorized===false)return <main className="page"><p role="alert">Accès administrateur requis.</p><a href="/">Accueil / Connexion</a></main>;
+  if(authorized===null)return <main className="page"><p role="status">Vérification de l’accès…</p></main>;
   if (!context) return <main className="page"><p role="status">{contextError || "Chargement…"}</p></main>;
   return (
     <PlayoffsAdminView
+      activeMode={context.phase==='playoffs'}
       season={context.season}
       request={request}
       teams={teams}
