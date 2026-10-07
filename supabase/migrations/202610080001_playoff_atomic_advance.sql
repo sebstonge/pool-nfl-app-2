@@ -88,6 +88,11 @@ begin
    exists(select 1 from public.playoff_picks p join public.playoff_games g on g.id=p.game_id where g.round_id=dest.id) or
    exists(select 1 from public.playoff_games where round_id=dest.id and (game_status is distinct from 'pre' or game_date<=clock_timestamp() or home_score is not null or away_score is not null or coalesce(external_game_id,'') !~ '^[0-9]+$')))
  then raise exception 'Incompatible target; existing data preserved'; end if;
+ -- Recheck every prepared kickoff after locks, using wall time (now() is frozen
+ -- at transaction start). This covers new games as well as existing target games.
+ if exists(select 1 from jsonb_array_elements(p_games) g
+   where g->>'game_date' is null or (g->>'game_date')::timestamptz<=clock_timestamp())
+ then raise exception 'Prepared kickoff reached; advance refused'; end if;
  -- Reuse canonical publication validation BEFORE target changes invalidate its source snapshot.
  perform public.publish_playoff_scoring(p_season,src.id,'finalize',state,'[]',null);
  state:=public.playoff_scoring_state(p_season);

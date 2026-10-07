@@ -59,6 +59,23 @@ test('atomic advance with real scoring and notification guards, isolated Postgre
      await sql("insert into playoff_games(round_id,external_game_id,game_date,home_team,away_team,game_status) select id,'9999','2000-01-01','AFC1','AFC7','pre' from playoff_rounds where round_order=2");
      await assert.rejects(advance(r.round_key,await snapshot(),next),/Incompatible target/);
     }));
+    await t.test('transaction before kickoff, wall-clock wait past kickoff: no persistent advance',()=>isolate(async()=>{
+     const before=await full();
+     assert.equal(before.state.scoring.rounds[0].status,'scored');
+     assert.equal(before.state.scoring.games.filter(g=>g.round_id===before.state.scoring.rounds[1].id).length,0);
+     const {kickoff}=await one("select clock_timestamp()+interval '100 milliseconds' as kickoff");
+     const prepared=next.map(g=>({...g,game_date:kickoff.toISOString()}));
+     assert.equal((await one('select now() < $1::timestamptz as old_clock',[prepared[0].game_date])).old_clock,true);
+     // Simulate time spent waiting in this already-open transaction, without
+     // changing PostgreSQL's transaction timestamp or production clock.
+     await new Promise(resolve=>setTimeout(resolve,250));
+     const clocks=await one('select now() < $1::timestamptz as old_clock, clock_timestamp() >= $1::timestamptz as reached',[prepared[0].game_date]);
+     assert.deepEqual(clocks,{old_clock:true,reached:true});
+     await sql('savepoint expired_kickoff');
+     await assert.rejects(advance(r.round_key,s,prepared),/Prepared kickoff reached/);
+     await sql('rollback to savepoint expired_kickoff');
+     assert.deepEqual(await full(),before); // includes rounds, games, receipts and notification queue
+    }));
     await t.test('error AFTER finalization rolls back source, games, receipt and queue',async()=>{
      await sql("create function fail_next() returns trigger language plpgsql as $$begin if new.round_id<>(select id from public.playoff_rounds where round_order=1) then raise exception 'Injected after finalization'; end if; return new; end $$;create trigger fail_next before insert on playoff_games for each row execute function fail_next()");
      await rejectUnchanged(r.round_key,s,next,/Injected/);
