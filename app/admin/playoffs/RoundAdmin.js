@@ -86,7 +86,7 @@ function RoundConfirmation({
       </h2>
 
       <p>
-        {action === 'finalize' ? 'Les résultats calculés seront verrouillés définitivement. Vérifie les classements avant de confirmer.' : `${name} sera ouverte seulement si ses affrontements et horaires officiels ESPN sont disponibles. Les résultats de la ronde finalisée restent inchangés.`}
+        {action === 'finalize' ? 'Les résultats calculés seront verrouillés définitivement. Vérifie les classements avant de confirmer.' : action === 'advance' ? `${name} sera ouverte seulement si ses affrontements et horaires officiels ESPN sont disponibles. La ronde actuelle sera finalisée définitivement dans la même opération. Si une étape échoue, aucune de ces modifications ne sera enregistrée.` : `${name} sera ouverte seulement si ses affrontements et horaires officiels ESPN sont disponibles. Les résultats de la ronde finalisée restent inchangés.`}
       </p>
 
       <div className={styles.actions}>
@@ -511,7 +511,7 @@ export default function RoundAdmin({
                       styles.helperText
                     }
                   >
-                    La ronde doit être calculée puis finalisée avant de poursuivre.
+                    La ronde doit être calculée avant de poursuivre.
                   </p>
                 )}
 
@@ -542,13 +542,12 @@ export default function RoundAdmin({
                         })
                       }
                     >
-                      Passer à la ronde
-                      suivante
+                      PASSER À LA RONDE SUIVANTE
                     </button>
                   </div>
                 )}
 
-              {view.canFinalize && <details className={styles.operationAction}><summary>Validation définitive de la ronde</summary><p>La finalisation reste une action distincte et irréversible avant l’ouverture de la ronde suivante.</p>
+              {index === 3 && view.canFinalize && <details className={styles.operationAction}><summary>Validation définitive de la ronde</summary><p>Les résultats du Super Bowl seront verrouillés définitivement. Aucune ronde suivante ne sera ouverte.</p>
                 <button className="button-secondary" disabled={busy} onClick={()=>setPending({action:'finalize',roundKey:view.current.round_key,name:view.definition.name})}>Finaliser la ronde</button>
               </details>}
 
