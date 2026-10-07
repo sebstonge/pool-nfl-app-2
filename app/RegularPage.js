@@ -45,6 +45,8 @@ export default function HomePage({phase='regular',playoffsHome=null}) {
   const [profile, setProfile] =
     useState(null);
 
+  const [sessionResolved, setSessionResolved] = useState(false);
+
   const [authMode, setAuthMode] =
     useState("login");
 
@@ -269,6 +271,7 @@ export default function HomePage({phase='regular',playoffsHome=null}) {
       setUser(
         currentUser
       );
+      setSessionResolved(true);
 
       if (currentUser) {
         await loadProfile(
@@ -292,6 +295,7 @@ export default function HomePage({phase='regular',playoffsHome=null}) {
           setUser(
             currentUser
           );
+          setSessionResolved(true);
 
           if (currentUser) {
             await loadProfile(
@@ -1068,6 +1072,11 @@ async function handleMandatoryPasswordChange() {
    * AFFICHAGE
    * =========================================================
    */
+
+  if(phase==='playoffs' && (!sessionResolved || (user && (
+    !profile || profile.id!==user.id ||
+    (!mustChangePassword && (!profile.display_name?.trim() || !profile.real_name?.trim()))
+  )))) return <main className="page"><section className="card" role="status">Chargement…</section></main>;
 
   if(phase==='playoffs' && user && profile?.display_name?.trim() && profile?.real_name?.trim() && !mustChangePassword) return playoffsHome;
 

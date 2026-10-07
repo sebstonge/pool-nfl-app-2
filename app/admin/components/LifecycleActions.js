@@ -30,7 +30,7 @@ export default function LifecycleActions(){
   try{
    await requestLifecycleAction(supabase,{action:pending,context,confirmed});
    if(pending==='transition'){window.location.assign('/admin/playoffs');return;}
-   setMessage('Résultats finaux publiés. Tu peux maintenant demander le passage en Séries.');
+   setMessage('Résultats finaux publiés. Leur validité sera vérifiée de nouveau au moment du passage en Séries.');
    await refresh();
   }catch(e){setError(e.message);}
   finally{inFlight.current=false;setBusy(false);setPending(null);}
