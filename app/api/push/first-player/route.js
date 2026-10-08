@@ -1,3 +1,4 @@
+import {regularEventKey,regularClient,initialOrder as seasonInitialOrder} from "../../../../lib/seasons/regularClient.mjs";
 import { loadLifecycle, regularIsOpen } from '../../../../lib/lifecycle/context.mjs';
 import { createClient } from "@supabase/supabase-js";
 import { sendRegularPushToUser as sendPushToUser } from "../../../../lib/pushNotifications";
@@ -7,7 +8,7 @@ export const runtime = "nodejs";
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
+const rawAdmin = createClient(supabaseUrl, serviceRoleKey, {
   auth: {
     persistSession: false,
   },
@@ -17,21 +18,7 @@ const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
    ORDRE FIXE — SEMAINE 1
 ========================================================= */
 
-const WEEK_1_ORDER = [
-  "Alexandre",
-  "Edouard",
-  "Louis-Simon",
-  "Séb",
-  "Charles",
-  "Naomie",
-  "Léa",
-  "Félix",
-  "Carolyne",
-  "Mathieu",
-  "Katy",
-  "Pierre-André",
-  "Étienne",
-];
+
 
 /* =========================================================
    HELPERS — NOMS
@@ -181,6 +168,7 @@ function isBefore830Quebec(now = new Date()) {
 ========================================================= */
 
 export async function POST(request) {
+  const supabaseAdmin=regularClient(rawAdmin);
   try {
     /* =====================================================
        1. AUTHENTIFICATION
@@ -277,24 +265,7 @@ export async function POST(request) {
     ===================================================== */
 
     if (week === 1) {
-      orderedPlayers = WEEK_1_ORDER
-        .map((wantedName) => {
-          const wanted = normalizeName(wantedName);
-
-          return players.find((player) => {
-            const candidates = [
-              player?.display_name,
-              player?.name,
-              player?.real_name,
-            ];
-
-            return candidates.some(
-              (candidate) =>
-                normalizeName(candidate) === wanted
-            );
-          });
-        })
-        .filter(Boolean);
+      orderedPlayers = seasonInitialOrder(players);
     }
 
     /* =====================================================
@@ -306,7 +277,7 @@ export async function POST(request) {
       const { data: previousScores, error: scoresError } =
         await supabaseAdmin
           .from("weekly_scores")
-          .select("user_id, total_score")
+          .select("user_id, final_score")
           .eq("week", week - 1);
 
       if (scoresError) throw scoresError;
@@ -316,7 +287,7 @@ export async function POST(request) {
       for (const row of previousScores || []) {
         scoreMap.set(
           row.user_id,
-          Number(row.total_score ?? 0)
+          Number(row.final_score ?? 0)
         );
       }
 
@@ -357,8 +328,8 @@ export async function POST(request) {
        la notification de son tour pour la même semaine.
     ===================================================== */
 
-    const eventKey =
-      `qb-turn-week-${week}-user-${firstPlayer.id}`;
+    const eventKey = regularEventKey(await supabaseAdmin.regularSeason(),
+      `qb-turn-week-${week}-user-${firstPlayer.id}`);
 
     const now = new Date();
     const before830 = isBefore830Quebec(now);
@@ -437,6 +408,7 @@ export async function POST(request) {
     }
 
     const pushResult = await sendPushToUser({
+      season: await supabaseAdmin.regularSeason(),
       notificationLog: {eventKey, type: 'qb_turn'},
       userId: firstPlayer.id,
       title: "⏰ C’est à ton tour",

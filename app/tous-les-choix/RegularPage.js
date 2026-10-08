@@ -1,7 +1,9 @@
 "use client";
+import {regularClient} from "../../lib/seasons/regularClient.mjs";
+const supabase=regularClient(rawSupabase);
 
 import { useEffect, useState } from "react";
-import { supabase } from "../../lib/supabase";
+import { supabase as rawSupabase } from "../../lib/supabase";
 import BottomNav from "../components/BottomNav";
 
 /* =========================================================

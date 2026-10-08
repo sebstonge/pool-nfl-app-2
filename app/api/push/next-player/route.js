@@ -1,3 +1,4 @@
+import {regularEventKey,regularClient,initialOrder} from "../../../../lib/seasons/regularClient.mjs";
 import { loadLifecycle, regularIsOpen } from '../../../../lib/lifecycle/context.mjs';
 import { createClient } from "@supabase/supabase-js";
 import { sendRegularPushToUser as sendPushToUser } from "../../../../lib/pushNotifications";
@@ -16,7 +17,7 @@ const supabaseUrl =
 const serviceRoleKey =
   process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-const supabaseAdmin =
+const rawAdmin =
   createClient(
     supabaseUrl,
     serviceRoleKey,
@@ -33,21 +34,7 @@ const supabaseAdmin =
  * =========================================================
  */
 
-const WEEK_1_QB_ORDER = [
-  "Alexandre",
-  "Edouard",
-  "Louis-Simon",
-  "Séb",
-  "Charles",
-  "Naomie",
-  "Léa",
-  "Félix",
-  "Carolyne",
-  "Mathieu",
-  "Katy",
-  "Pierre-André",
-  "Étienne",
-];
+
 
 /*
  * =========================================================
@@ -75,94 +62,7 @@ function playerRealName(player) {
   );
 }
 
-function getWeek1Order(players) {
-  const ordered = [];
-  const usedIds = new Set();
-
-  WEEK_1_QB_ORDER.forEach(
-    (wantedName) => {
-      const wanted =
-        normalizeName(
-          wantedName
-        );
-
-      let player =
-        players.find(
-          (p) =>
-            !usedIds.has(
-              p.id
-            ) &&
-            normalizeName(
-              p.real_name
-            ) === wanted
-        );
-
-      if (!player) {
-        player =
-          players.find(
-            (p) => {
-              if (
-                usedIds.has(
-                  p.id
-                )
-              ) {
-                return false;
-              }
-
-              const actual =
-                normalizeName(
-                  p.real_name
-                );
-
-              return (
-                actual.startsWith(
-                  wanted
-                ) ||
-                wanted.startsWith(
-                  actual
-                )
-              );
-            }
-          );
-      }
-
-      if (player) {
-        ordered.push(
-          player
-        );
-
-        usedIds.add(
-          player.id
-        );
-      }
-    }
-  );
-
-  const leftovers =
-    players
-      .filter(
-        (p) =>
-          !usedIds.has(
-            p.id
-          )
-      )
-      .sort(
-        (a, b) =>
-          playerRealName(
-            a
-          ).localeCompare(
-            playerRealName(
-              b
-            ),
-            "fr"
-          )
-      );
-
-  return [
-    ...ordered,
-    ...leftovers,
-  ];
-}
+function getWeek1Order(players) { return initialOrder(players); }
 
 function getWeeklyScoreValue(
   row
@@ -206,6 +106,7 @@ function getWeeklyScoreValue(
 export async function POST(
   request
 ) {
+  const supabaseAdmin=regularClient(rawAdmin);
   try {
     /*
      * =========================================================
@@ -510,8 +411,8 @@ export async function POST(
      * =========================================================
      */
 
-    const eventKey =
-      `qb-turn-week-${week}-user-${nextPlayer.id}`;
+    const eventKey = regularEventKey(await supabaseAdmin.regularSeason(),
+      `qb-turn-week-${week}-user-${nextPlayer.id}`);
 
     /*
      * =========================================================
@@ -580,6 +481,7 @@ export async function POST(
 
     const result =
   await sendPushToUser({
+    season: await supabaseAdmin.regularSeason(),
     notificationLog: {eventKey, type: 'qb_turn'},
     userId:
       nextPlayer.id,

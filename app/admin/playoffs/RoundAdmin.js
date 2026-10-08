@@ -1,5 +1,6 @@
 'use client';
 
+import SeasonLifecycle from '../components/SeasonLifecycle';
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../../../lib/supabase';
 import {
@@ -547,9 +548,7 @@ export default function RoundAdmin({
                   </div>
                 )}
 
-              {index === 3 && view.canFinalize && <details className={styles.operationAction}><summary>Validation définitive de la ronde</summary><p>Les résultats du Super Bowl seront verrouillés définitivement. Aucune ronde suivante ne sera ouverte.</p>
-                <button className="button-secondary" disabled={busy} onClick={()=>setPending({action:'finalize',roundKey:view.current.round_key,name:view.definition.name})}>Finaliser la ronde</button>
-              </details>}
+              {index === 3 && ['scored','finalized'].includes(view.current.status) && <SeasonLifecycle finish/>}
 
               {index === 3 && (
                 <p>

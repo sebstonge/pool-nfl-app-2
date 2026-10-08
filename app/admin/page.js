@@ -1,9 +1,12 @@
 "use client";
+import {initialOrder,regularClient} from "../../lib/seasons/regularClient.mjs";
+const supabase=regularClient(rawSupabase);
 
 import { useEffect, useState } from "react";
-import { supabase } from "../../lib/supabase";
+import { supabase as rawSupabase } from "../../lib/supabase";
 import NotificationLog from "./components/NotificationLog";
 import BottomNav from "../components/BottomNav";
+import SeasonLifecycle from "./components/SeasonLifecycle";
 import LifecycleActions from "./components/LifecycleActions";
 import previewStyles from "./previewNavigation.module.css";
 import { fetchEspnStandings } from "../../lib/espnStandings.mjs";
@@ -12,21 +15,7 @@ import { fetchEspnStandings } from "../../lib/espnStandings.mjs";
    ORDRE OFFICIEL QB — SEMAINE 1
    ========================================================= */
 
-const WEEK_1_QB_ORDER = [
-  "Alexandre",
-  "Edouard",
-  "Louis-Simon",
-  "Séb",
-  "Charles",
-  "Naomie",
-  "Léa",
-  "Félix",
-  "Carolyne",
-  "Mathieu",
-  "Katy",
-  "Pierre-André",
-  "Étienne",
-];
+
 
 /* =========================================================
    HELPERS JOUEURS
@@ -60,51 +49,7 @@ function playerDisplayName(player) {
   );
 }
 
-function getWeek1Order(players) {
-  const ordered = [];
-  const usedIds = new Set();
-
-  WEEK_1_QB_ORDER.forEach((wantedName) => {
-    const wanted = normalizeName(wantedName);
-
-    let player = players.find(
-      (p) =>
-        !usedIds.has(p.id) &&
-        normalizeName(p.real_name) === wanted
-    );
-
-    if (!player) {
-      player = players.find((p) => {
-        if (usedIds.has(p.id)) {
-          return false;
-        }
-
-        const actual = normalizeName(p.real_name);
-
-        return (
-          actual.startsWith(wanted) ||
-          wanted.startsWith(actual)
-        );
-      });
-    }
-
-    if (player) {
-      ordered.push(player);
-      usedIds.add(player.id);
-    }
-  });
-
-  const leftovers = players
-    .filter((p) => !usedIds.has(p.id))
-    .sort((a, b) =>
-      playerRealName(a).localeCompare(
-        playerRealName(b),
-        "fr"
-      )
-    );
-
-  return [...ordered, ...leftovers];
-}
+function getWeek1Order(players) { return initialOrder(players); }
 
 /* =========================================================
    HELPERS SCORES / ORDRE
@@ -319,6 +264,7 @@ const [isDesktop, setIsDesktop] = useState(false);
 
       if(currentUser && admin && settingsData?.phase === "playoffs"){window.location.replace("/admin/playoffs");return;}
       setSettings(settingsData);
+      if(settingsData?.phase==='offseason')return;
 
       if (currentUser && admin && settingsData) {
   await loadSelectionStats(
@@ -2569,6 +2515,8 @@ async function resetUserPassword() {
   /* =========================================================
    PAGE ADMIN
    ========================================================= */
+
+  if(settings?.phase==='offseason')return <main className="page"><section className="header-card"><h1>Admin · Intersaison</h1></section><SeasonLifecycle/></main>;
 
   return (
     <main

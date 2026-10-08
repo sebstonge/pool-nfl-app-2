@@ -1,3 +1,4 @@
+import {regularEventKey,regularClient} from "../../../../lib/seasons/regularClient.mjs";
 import { loadLifecycle, regularIsOpen } from '../../../../lib/lifecycle/context.mjs';
 import {
   createClient,
@@ -27,7 +28,7 @@ const serviceRoleKey =
   process.env
     .SUPABASE_SERVICE_ROLE_KEY;
 
-const supabaseAdmin =
+const rawAdmin =
   createClient(
     supabaseUrl,
     serviceRoleKey,
@@ -117,6 +118,7 @@ function getRankingDelivery() {
 export async function POST(
   request
 ) {
+  const supabaseAdmin=regularClient(rawAdmin);
   try {
     /*
      * =====================================================
@@ -407,10 +409,10 @@ export async function POST(
       const userId =
         standing.user_id;
 
-      const eventKey =
+      const eventKey = regularEventKey(await supabaseAdmin.regularSeason(),
         `rankings-week-${week}` +
         `-update-${updateId}` +
-        `-user-${userId}`;
+        `-user-${userId}`);
 
       /*
        * ===================================================
@@ -453,6 +455,7 @@ export async function POST(
         ) {
           const pushResult =
             await sendPushToUser({
+              season: await supabaseAdmin.regularSeason(),
               notificationLog: {eventKey, type: 'rankings_updated'},
               userId,
 

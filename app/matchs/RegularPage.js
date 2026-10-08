@@ -1,28 +1,16 @@
 "use client";
+import {initialOrder,regularClient} from "../../lib/seasons/regularClient.mjs";
+const supabase=regularClient(rawSupabase);
 
 import { useEffect, useState } from "react";
-import { supabase } from "../../lib/supabase";
+import { supabase as rawSupabase } from "../../lib/supabase";
 import BottomNav from "../components/BottomNav";
 
 /* =========================================================
    ORDRE OFFICIEL — SEMAINE 1
    ========================================================= */
 
-const WEEK_1_QB_ORDER = [
-  "Alexandre",
-  "Edouard",
-  "Louis-Simon",
-  "Séb",
-  "Charles",
-  "Naomie",
-  "Léa",
-  "Félix",
-  "Carolyne",
-  "Mathieu",
-  "Katy",
-  "Pierre-André",
-  "Étienne",
-];
+
 
 function normalizeName(value = "") {
   return String(value)
@@ -44,49 +32,7 @@ function playerRealName(player) {
   );
 }
 
-function getWeek1Order(players) {
-  const ordered = [];
-  const usedIds = new Set();
-
-  WEEK_1_QB_ORDER.forEach((wantedName) => {
-    const wanted = normalizeName(wantedName);
-
-    let player = players.find(
-      (p) =>
-        !usedIds.has(p.id) &&
-        normalizeName(p.real_name) === wanted
-    );
-
-    if (!player) {
-      player = players.find((p) => {
-        if (usedIds.has(p.id)) return false;
-
-        const actual = normalizeName(p.real_name);
-
-        return (
-          actual.startsWith(wanted) ||
-          wanted.startsWith(actual)
-        );
-      });
-    }
-
-    if (player) {
-      ordered.push(player);
-      usedIds.add(player.id);
-    }
-  });
-
-  const leftovers = players
-    .filter((p) => !usedIds.has(p.id))
-    .sort((a, b) =>
-      playerRealName(a).localeCompare(
-        playerRealName(b),
-        "fr"
-      )
-    );
-
-  return [...ordered, ...leftovers];
-}
+function getWeek1Order(players) { return initialOrder(players); }
 
 function getWeeklyScoreValue(row) {
   const candidates = [

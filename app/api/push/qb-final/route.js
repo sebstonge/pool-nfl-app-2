@@ -1,3 +1,4 @@
+import {regularEventKey,regularClient} from "../../../../lib/seasons/regularClient.mjs";
 import { finalRatingMessage } from '../../../../lib/notifications/teamFrench.mjs';
 import { loadLifecycle, regularIsOpen } from '../../../../lib/lifecycle/context.mjs';
 import {
@@ -26,7 +27,7 @@ const serviceRoleKey =
 const cronSecret =
   process.env.CRON_SECRET;
 
-const supabaseAdmin =
+const rawAdmin =
   createClient(
     supabaseUrl,
     serviceRoleKey,
@@ -249,6 +250,7 @@ function getPassingAthletes(
 export async function GET(
   request
 ) {
+  const supabaseAdmin=regularClient(rawAdmin);
   try {
     /*
      * =====================================================
@@ -475,9 +477,9 @@ export async function GET(
        * ===================================================
        */
 
-      const eventKey =
+      const eventKey = regularEventKey(await supabaseAdmin.regularSeason(),
         `qb-final-week-${currentWeek}` +
-        `-user-${pick.user_id}`;
+        `-user-${pick.user_id}`);
 
       const {
         data: existingEvent,
@@ -839,6 +841,7 @@ export async function GET(
 
      const pushResult =
   await sendPushToUser({
+    season: await supabaseAdmin.regularSeason(),
     notificationLog: {eventKey, type: 'qb_final'},
     userId:
       pick.user_id,

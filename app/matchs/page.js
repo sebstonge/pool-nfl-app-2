@@ -1,3 +1,4 @@
+import OffseasonPage from '../components/OffseasonPage';
 import RegularPage from './RegularPage';
 import SeriesPage from '../series/matchs/page';
 import SeriesExperience from '../series/components/SeriesExperience';
@@ -6,6 +7,7 @@ import {publicExperience} from '../../lib/lifecycle/publicRouting.mjs';
 export const dynamic='force-dynamic';
 export default async function Page(){
  const context=await loadPublicContext();
+ if(context.phase==='offseason')return <OffseasonPage season={context.current_season}/>;
  return publicExperience(context.phase)==='playoffs'
   ? <SeriesExperience publicUrls><SeriesPage/></SeriesExperience>
   : <RegularPage/>;

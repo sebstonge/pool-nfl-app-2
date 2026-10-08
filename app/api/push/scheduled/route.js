@@ -1,3 +1,4 @@
+import {regularClient} from "../../../../lib/seasons/regularClient.mjs";
 import { loadLifecycle, regularIsOpen } from '../../../../lib/lifecycle/context.mjs';
 import {
   createClient,
@@ -31,7 +32,7 @@ const cronSecret =
   process.env
     .CRON_SECRET;
 
-const supabaseAdmin =
+const rawAdmin =
   createClient(
     supabaseUrl,
     serviceRoleKey,
@@ -64,6 +65,7 @@ function formatRank(rank) {
  */
 
 async function getRankingNotification(
+  supabaseAdmin,
   event
 ) {
   const {
@@ -199,6 +201,7 @@ async function getRankingNotification(
 export async function GET(
   request
 ) {
+  const supabaseAdmin=regularClient(rawAdmin);
   try {
     /*
      * =====================================================
@@ -392,7 +395,7 @@ export async function GET(
           "rankings_updated"
         ) {
           const rankingNotification =
-            await getRankingNotification(
+            await getRankingNotification(supabaseAdmin,
               event
             );
 
@@ -417,6 +420,7 @@ export async function GET(
 
         const pushResult =
           await sendPushToUser({
+            season: await supabaseAdmin.regularSeason(),
             notificationLog: {eventKey: event.event_key, type: event.notification_type},
             userId:
               event.user_id,
