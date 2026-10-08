@@ -176,7 +176,7 @@ export default function RoundAdmin({
     action,
     roundKey
   ) {
-    if (inFlight.current) {
+    if (!activeMode || inFlight.current) {
       return;
     }
 
@@ -334,7 +334,7 @@ export default function RoundAdmin({
                   <button
                     className={view.current.status === 'scored' ? 'button-secondary' : 'button'}
                     disabled={
-                      busy ||
+                      !activeMode || busy ||
                       !view.canUpdate
                     }
                     onClick={() =>
@@ -470,6 +470,10 @@ export default function RoundAdmin({
                 </p>
               )}
 
+              {!activeMode && <p className={styles.helperText}>Aperçu seulement — actions désactivées.</p>}
+              {!activeMode && view.current.status === 'draft' && index === 0 && <button className="button" disabled>Ouvrir le Wild Card</button>}
+              {!activeMode && index === 3 && ['scored','finalized'].includes(view.current.status) && <button className="button" disabled>METTRE FIN AUX SÉRIES</button>}
+
               {active &&
                 index < 3 &&
                 !view.canAdvance && (
@@ -482,7 +486,7 @@ export default function RoundAdmin({
                   </p>
                 )}
 
-              {activeMode && view.current.status === 'scored' &&
+              {view.current.status === 'scored' &&
                 index < 3 && (
                   <div
                     className={
@@ -492,7 +496,7 @@ export default function RoundAdmin({
                     <button
                       className="button"
                       disabled={
-                        busy ||
+                        !activeMode || busy ||
                         !view.canAdvance
                       }
                       onClick={() =>
