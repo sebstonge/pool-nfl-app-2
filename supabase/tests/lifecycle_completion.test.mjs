@@ -22,7 +22,46 @@ test('complete lifecycle and two regular week ones in isolated PostgreSQL',{skip
   await sql("insert into qb_selection_weeks values(1,now());insert into qb_weekly_stats(id,week,espn_athlete_id,qb_name,passer_rating) values(1,1,'500','QB',100)");
   await sql(`insert into games(external_game_id,season,week,home_team,away_team) values('2026001',2026,1,'AFC7','AFC2');insert into picks(user_id,game_id,picked_team,predicted_spread) select '${actor}',id,'AFC7',7 from games where season=2026`);
   await sql(`insert into push_notification_events(event_key,user_id,notification_type,week,status) values('qb-turn-week-1-user-${actor}','${actor}','qb_turn',1,'pending')`);
-  for(const file of ['202609240001_playoff_seeds.sql','202609250001_playoff_round_admin.sql','202609290001_playoff_scoring.sql','202609300001_notification_reminders.sql','202610040001_lifecycle_foundation.sql','202610050001_regular_final_publication.sql','202610070001_lifecycle_transition.sql','202610080001_playoff_atomic_advance.sql','202610090001_lifecycle_completion.sql'])await sql(await readFile(new URL('../migrations/'+file,import.meta.url),'utf8'));
+  for(const file of ['202609240001_playoff_seeds.sql','202609250001_playoff_round_admin.sql','202609290001_playoff_scoring.sql','202609300001_notification_reminders.sql','202610040001_lifecycle_foundation.sql','202610050001_regular_final_publication.sql','202610070001_lifecycle_transition.sql','202610080001_playoff_atomic_advance.sql','202610090001_lifecycle_completion.sql']){
+   const migration=await readFile(new URL('../migrations/'+file,import.meta.url),'utf8');
+   if(file!=='202610090001_lifecycle_completion.sql'){await sql(migration);continue;}
+   const bootstrap=migration.slice(0,migration.indexOf('-- END REGULAR WRITE PAUSE BOOTSTRAP'));
+   await sql(bootstrap+'commit;');
+   await sql('update games set is_pool_eligible=true where season=2026');
+   await t.test('bootstrap refuses to cut an existing legacy QB/picks submission',async()=>{
+    await sql('delete from picks');
+    await assert.rejects(sql('update settings set regular_writes_paused=true where id=1'),/soumission QB\/matchs incomplète/);
+    assert.equal((await settings()).regular_writes_paused,false);
+    await sql(`insert into picks(user_id,game_id,picked_team,predicted_spread) select '${actor}',id,'AFC7',7 from games where season=2026`);
+   });
+   await t.test('main migration refuses installation without an active bootstrap',async()=>{
+    await assert.rejects(sql(migration),/Activer le bootstrap/);await sql('rollback');
+    assert.equal((await one("select to_regclass('public.seasons') t")).t,null);
+   });
+   await sql('update settings set regular_writes_paused=true where id=1');
+   await t.test('bootstrap closes old schema writes, not reads, including SQL-owner writes',async()=>{
+    await assert.rejects(db.query('insert into qb_picks(user_id,qb_id,week) values($1,$2,2)',[actor,f.qbs[0].id]),/Maintenance en cours/);
+    await assert.rejects(sql('update picks set predicted_spread=3'),/Maintenance en cours/);
+    assert.equal((await one('select count(*)::int n from picks')).n,1);
+    await assert.rejects(sql("update settings set phase='playoffs'"),/verrouillé/);
+   });
+   await sql(migration);
+   await t.test('migration preserves pause; current writes and lifecycle RPCs also refuse',async()=>{
+    assert.equal((await settings()).regular_writes_paused,true);
+    assert.equal((await one("select count(*)::int n from pg_trigger where tgname='regular_write_pause'")).n,7);
+    await assert.rejects(db.query('insert into qb_picks(season,user_id,qb_id,week) values(2026,$1,$2,2)',[actor,f.qbs[0].id]),/Maintenance en cours/);
+    await assert.rejects(action('finish',2026),/Maintenance en cours/);
+    for(const role of ['authenticated','service_role']){
+     await sql(`select set_config('request.jwt.claim.sub','${actor}',false);set role ${role}`);
+     try{await sql(`select set_config('request.headers','{"x-pool-regular-schema":"20261009"}',false)`);assert.equal((await one('select count(*)::int n from picks')).n,1);await assert.rejects(sql('update settings set regular_writes_paused=false where id=1'),/Maintenance réservée/);await assert.rejects(sql('update picks set predicted_spread=3'),/Maintenance en cours|permission denied/);}finally{await sql('reset role');}
+    }
+   });
+   await sql('update settings set regular_writes_paused=false where id=1');
+   await t.test('reopening rejects a legacy picks-only write with no compatibility header',async()=>{
+    await sql(`select set_config('request.jwt.claim.sub','${actor}',false);select set_config('request.headers','{}',false);set role authenticated`);
+    try{await assert.rejects(sql('update picks set predicted_spread=3'),/Version périmée/);assert.equal((await one('select predicted_spread from picks')).predicted_spread,7);await sql(`select set_config('request.headers','{"x-pool-regular-schema":"20261009"}',false);update picks set predicted_spread=7`);}finally{await sql('reset role');}
+   });
+  }
   await t.test('installation neutral, backfill only evidence participants',async()=>{assert.equal((await settings()).phase,'regular');assert.equal((await one('select count(*)::int n from season_participants')).n,1);assert.equal((await one('select season from qb_picks')).season,2026);});
   await t.test('ordinary roles cannot call lifecycle or modify participants',async()=>{for(const role of ['anon','authenticated']){await sql(`set role ${role}`);try{await assert.rejects(db.query("select manage_season_lifecycle('start',2027,0,$1,'{}')",[actor]),/permission denied/);await assert.rejects(sql('delete from season_participants'),/permission denied/);}finally{await sql('reset role');}}});
   await sql("update settings set phase='playoffs'");
@@ -66,7 +105,7 @@ test('complete lifecycle and two regular week ones in isolated PostgreSQL',{skip
    const current=(await one('select regular_publication_state(2027) s')).s;assert.equal(current.qb_picks.length,1);assert.equal(current.weekly_scores.length,1);assert.equal(current.users.length,1);
   });
   await t.test('authenticated member writes current choices; historical data remains protected',async()=>{
-   await sql(`update users set is_admin=false where id='${actor}';select set_config('request.jwt.claim.sub','${actor}',false);set role authenticated`);
+   await sql(`update users set is_admin=false where id='${actor}';select set_config('request.jwt.claim.sub','${actor}',false);select set_config('request.headers','{"x-pool-regular-schema":"20261009"}',false);set role authenticated`);
    try{await sql(`insert into picks(user_id,game_id,picked_team,predicted_spread) select '${actor}',id,'AFC7',7 from games where season=2027`);await assert.rejects(sql("update picks set predicted_spread=3 where game_id in(select id from games where season=2026)"),/historical/);}finally{await sql(`reset role;update users set is_admin=true where id='${actor}'`);}
   });
   await t.test('notification years coexist and stale/nonparticipant reservations are refused',async()=>{

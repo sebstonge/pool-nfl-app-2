@@ -1,6 +1,49 @@
--- MANUAL REVIEW REQUIRED: validate the evidence-derived 2026 participant list before installation.
+-- The owner approved all 13 evidence-derived 2026 participants.
 -- Installation does not advance lifecycle or prepare a future season.
 begin;
+lock table public.games,public.picks,public.qb_picks,public.qb_ratings,public.weekly_scores,public.qb_weekly_stats,public.qb_selection_weeks in share row exclusive mode;
+-- BEGIN REGULAR WRITE PAUSE BOOTSTRAP
+alter table public.settings add column if not exists regular_writes_paused boolean not null default false;
+create or replace function public.guard_regular_write_pause() returns trigger
+language plpgsql security invoker set search_path='' as $$
+declare s public.settings;
+begin
+ if tg_table_name='settings' then
+  if new.regular_writes_paused is distinct from old.regular_writes_paused then
+   if current_user<>'postgres' then raise exception 'Maintenance réservée au propriétaire SQL'; end if;
+   if new.regular_writes_paused then
+    lock table public.games,public.picks,public.qb_picks,public.qb_ratings,public.weekly_scores,public.qb_weekly_stats,public.qb_selection_weeks in share row exclusive mode;
+    -- Refuse to cut a legacy submission between its QB and match requests.
+    if exists(select 1 from public.qb_picks q where coalesce((to_jsonb(q)->>'season')::int,2026)=old.current_season and
+      exists(select 1 from public.games g where g.season=old.current_season and g.week=q.week and g.is_pool_eligible and
+        not exists(select 1 from public.picks p where p.game_id=g.id and p.user_id=q.user_id))) or
+      exists(select 1 from public.picks p join public.games g on g.id=p.game_id where g.season=old.current_season and
+        not exists(select 1 from public.qb_picks q where q.user_id=p.user_id and q.week=g.week and coalesce((to_jsonb(q)->>'season')::int,2026)=g.season))
+    then raise exception 'Maintenance refusée : soumission QB/matchs incomplète. Réessayer après sa complétion; ne pas forcer.'; end if;
+   end if;
+  end if;
+  if old.regular_writes_paused and (new.current_week is distinct from old.current_week or new.current_season is distinct from old.current_season or new.phase is distinct from old.phase or new.regular_finalized_at is distinct from old.regular_finalized_at or new.playoff_reminders_enabled is distinct from old.playoff_reminders_enabled)
+  then raise exception 'Maintenance en cours. Contexte sportif verrouillé.'; end if;
+  return new;
+ end if;
+ select * into s from public.settings where id=1;
+ if s.id is null or s.regular_writes_paused then
+  raise exception 'Maintenance en cours. Les soumissions sont temporairement indisponibles. Réessaie dans quelques minutes.' using errcode='55000';
+ end if;
+ return null;
+end $$;
+revoke all on function public.guard_regular_write_pause() from public,anon,authenticated,service_role;
+drop trigger if exists regular_write_pause_settings on public.settings;
+create trigger regular_write_pause_settings before update on public.settings for each row execute function public.guard_regular_write_pause();
+do $$ declare t text; begin
+ foreach t in array array['games','picks','qb_picks','qb_ratings','weekly_scores','qb_weekly_stats','qb_selection_weeks'] loop
+  execute format('drop trigger if exists regular_write_pause on public.%I',t);
+  execute format('create trigger regular_write_pause before insert or update or delete or truncate on public.%I for each statement execute function public.guard_regular_write_pause()',t);
+ end loop;
+end $$;
+-- END REGULAR WRITE PAUSE BOOTSTRAP
+do $$ begin if (select regular_writes_paused from public.settings where id=1) is distinct from true then raise exception 'Activer le bootstrap maintenance avant cette migration'; end if; end $$;
+
 create table public.seasons (
  season integer primary key check(season between 2000 and 9999),
  prepared_at timestamptz,
@@ -74,6 +117,8 @@ begin
  -- Plain SELECT respects member RLS; FOR SHARE would require Admin UPDATE RLS.
  select * into s from public.settings where id=1;
  if tg_op='TRUNCATE' then raise exception 'Historical seasons cannot be truncated'; end if;
+ -- Compatibility marker, not authorization: pause, RLS and season guards still apply.
+ if current_user<>'postgres' and coalesce(nullif(current_setting('request.headers',true),'')::jsonb->>'x-pool-regular-schema','')<>'20261009' then raise exception 'Version périmée. Recharge la page avant de soumettre.' using errcode='55000'; end if;
  if tg_table_name='picks' then
   if tg_op<>'INSERT' then select season into old_season from public.games where id=old.game_id; end if;
   if tg_op<>'DELETE' then select season into new_season from public.games where id=new.game_id; uid:=new.user_id; end if;
@@ -241,6 +286,7 @@ begin
  select * into s from public.settings where id=1 for update;
  if not exists(select 1 from public.users where id=p_actor and is_admin=true) then raise exception 'Administrator required'; end if;
  if s.id is null or s.revision is distinct from p_revision then raise exception 'Stale lifecycle context'; end if;
+ if s.regular_writes_paused then raise exception 'Maintenance en cours. Opération temporairement indisponible.'; end if;
  if p_action='finish' then
   if s.phase<>'playoffs' or p_season<>s.current_season then raise exception 'Active playoffs required'; end if;
   select * into sb from public.playoff_rounds where season=p_season and round_key='super_bowl';

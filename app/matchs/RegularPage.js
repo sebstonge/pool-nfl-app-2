@@ -1643,6 +1643,7 @@ marginTop:
    ========================================================= */
 
 export default function Matchs() {
+  const [regularWritesPaused,setRegularWritesPaused]=useState(false);
   const [
     user,
     setUser,
@@ -1819,6 +1820,7 @@ export default function Matchs() {
       ) || 1;
 
     setCurrentWeek(week);
+    setRegularWritesPaused(settingsData?.regular_writes_paused===true);
 
     /* ================= ÉQUIPES ================= */
 
@@ -3419,6 +3421,11 @@ const liveQbData =
         return;
       }
 
+      const {data:writeContext,error:writeContextError}=await supabase.from('settings').select('regular_writes_paused').eq('id',1).single();
+      if(writeContextError){setMessage('Soumissions indisponibles. Recharge la page et réessaie.');return;}
+      setRegularWritesPaused(writeContext.regular_writes_paused===true);
+      if(writeContext.regular_writes_paused){setMessage('Maintenance en cours. Les soumissions sont temporairement indisponibles. Réessaie dans quelques minutes.');return;}
+
       const gamesToPick =
         games.filter(
           (game) =>
@@ -3706,6 +3713,8 @@ const liveQbData =
           Semaine {currentWeek || "..."}
         </p>
       </section>
+
+      {regularWritesPaused && <section className="card" role="status"><h2>Maintenance en cours</h2><p>Les soumissions sont temporairement indisponibles. Réessaie dans quelques minutes.</p></section>}
 
       {message && (
         <section className="card">
