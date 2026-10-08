@@ -3723,8 +3723,6 @@ const liveQbData =
         </section>
       )}
 
-      <PersonalSelectionTime client={supabase} userId={user?.id} week={currentWeek} submissionId={existingQbPick?.id} />
-
       {/* ================= ORDRE QB ================= */}
 
       {selectionOrder.length > 0 && (
@@ -4043,6 +4041,8 @@ const liveQbData =
                   DROITE — MATCH DU QB
                   ================================================= */}
 
+              <div style={{display:"grid",gap:12,minWidth:0,alignSelf:"start"}}>
+                <PersonalSelectionTime client={supabase} userId={user?.id} week={currentWeek} submissionId={existingQbPick?.id} />
               {qbNextGame &&
               qbOpponent ? (
                 <div
@@ -4560,6 +4560,7 @@ const liveQbData =
                   </div>
                 </div>
               )}
+              </div>
             </div>
           </>
         ) : (

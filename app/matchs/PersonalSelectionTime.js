@@ -13,7 +13,7 @@ export default function PersonalSelectionTime({client,userId,week,submissionId})
   return()=>{active=false;};
  },[client,userId,week,submissionId]);
  if(!userId)return null;
- return <section className="card" aria-label="Ton temps moyen de sélection" style={{padding:'18px 20px',minWidth:0,width:'fit-content',maxWidth:'100%',boxSizing:'border-box',display:'flex',alignItems:'center',gap:14,background:'linear-gradient(120deg,rgba(30,58,95,.35),#0b1227)',border:'1px solid rgba(148,163,184,.18)',borderRadius:18}}>
+ return <section aria-label="Ton temps moyen de sélection" style={{padding:'14px 18px',minWidth:0,width:'100%',maxWidth:'100%',boxSizing:'border-box',display:'flex',alignItems:'center',gap:14,background:'rgba(30,41,59,0.72)',border:'1px solid rgba(148,163,184,.18)',borderRadius:18}}>
   <span aria-hidden="true" style={{fontSize:28,flexShrink:0}}>⏱️</span>
   <div style={{minWidth:0}}><div style={{color:'#94a3b8',fontSize:11,fontWeight:800,letterSpacing:'.06em',lineHeight:1.5,textTransform:'uppercase'}}>Ton temps moyen de sélection</div>
   <div role="status" style={{marginTop:6,fontSize:24,fontWeight:800,color:'#f8fafc'}}>
