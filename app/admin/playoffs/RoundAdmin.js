@@ -236,13 +236,6 @@ export default function RoundAdmin({
       view.current.status
     );
 
-  const initial =
-    view &&
-    index === 0 &&
-    view.current.status ===
-      'draft' &&
-    view.officialCount === 0;
-
   return (
     <section
       className={styles.roundAdmin}
@@ -311,6 +304,8 @@ export default function RoundAdmin({
             }
           >
             {active && (
+              <details open={view.current.status !== 'scored'} className={styles.operationCard}>
+              <summary>Mise à jour des résultats</summary>
               <section
                 className={`card ${styles.operationCard}`}
                 aria-labelledby="round-update-title"
@@ -337,7 +332,7 @@ export default function RoundAdmin({
                   }
                 >
                   <button
-                    className="button"
+                    className={view.current.status === 'scored' ? 'button-secondary' : 'button'}
                     disabled={
                       busy ||
                       !view.canUpdate
@@ -356,6 +351,7 @@ export default function RoundAdmin({
                   </button>
                 </div>
               </section>
+              </details>
             )}
 
             <section
@@ -474,36 +470,6 @@ export default function RoundAdmin({
                 </p>
               )}
 
-              {initial && !activeMode && (
-                <div
-                  className={
-                    styles.operationAction
-                  }
-                >
-                  <button
-                    className="button"
-                    disabled={
-                      busy ||
-                      !view.canPrepare
-                    }
-                    onClick={() =>
-                      setPending({
-                        action:
-                          'prepare',
-                        roundKey:
-                          'wild_card',
-                        name:
-                          view.definition
-                            .name,
-                      })
-                    }
-                  >
-                    Préparer / ouvrir le
-                    Wild Card
-                  </button>
-                </div>
-              )}
-
               {active &&
                 index < 3 &&
                 !view.canAdvance && (
@@ -516,7 +482,7 @@ export default function RoundAdmin({
                   </p>
                 )}
 
-              {(active || view.current.status === 'finalized') &&
+              {activeMode && view.current.status === 'scored' &&
                 index < 3 && (
                   <div
                     className={
@@ -524,7 +490,7 @@ export default function RoundAdmin({
                     }
                   >
                     <button
-                      className="button-secondary"
+                      className="button"
                       disabled={
                         busy ||
                         !view.canAdvance
@@ -543,12 +509,12 @@ export default function RoundAdmin({
                         })
                       }
                     >
-                      PASSER À LA RONDE SUIVANTE
+                      Finaliser {view.definition.name} et ouvrir {ROUNDS[index + 1].name}
                     </button>
                   </div>
                 )}
 
-              {index === 3 && ['scored','finalized'].includes(view.current.status) && <SeasonLifecycle finish/>}
+              {activeMode && index === 3 && ['scored','finalized'].includes(view.current.status) && <SeasonLifecycle finish/>}
 
               {index === 3 && (
                 <p>
@@ -559,7 +525,7 @@ export default function RoundAdmin({
 
               {view.current.status ===
                 'draft' &&
-                !initial && (
+                view.current.round_key !== 'wild_card' && (
                   <p>
                     Cette ronde doit être
                     ouverte par le passage

@@ -4,6 +4,7 @@ const supabase=regularClient(rawSupabase);
 
 import { useEffect, useState } from "react";
 import { supabase as rawSupabase } from "../../lib/supabase";
+import PersonalSelectionTime from "./PersonalSelectionTime";
 import BottomNav from "../components/BottomNav";
 
 /* =========================================================
@@ -3721,6 +3722,8 @@ const liveQbData =
           <p>{message}</p>
         </section>
       )}
+
+      <PersonalSelectionTime client={supabase} userId={user?.id} week={currentWeek} submissionId={existingQbPick?.id} />
 
       {/* ================= ORDRE QB ================= */}
 

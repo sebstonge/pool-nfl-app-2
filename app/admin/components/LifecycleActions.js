@@ -35,15 +35,13 @@ export default function LifecycleActions(){
   }catch(e){setError(e.message);}
   finally{inFlight.current=false;setBusy(false);setPending(null);}
  }
- return <section className="card" aria-labelledby="lifecycle-actions-title">
-  <h2 id="lifecycle-actions-title">Fin de saison régulière</h2>
-  <p>Saison {context?.current_season||'…'}. Une fois tous les matchs terminés, publie les résultats finaux avant de passer en Séries.</p>
-  <p>La mise à jour complète habituelle reste disponible et ne publie jamais automatiquement la saison.</p>
+ return <section className="card" style={{marginTop:20,padding:20}} aria-labelledby="lifecycle-actions-title">
+  <h2 style={{fontSize:20,margin:"0 0 10px"}} id="lifecycle-actions-title">Fin de saison régulière</h2>
+  <p style={{color:"#94a3b8",fontSize:14}}>Saison {context?.current_season||'…'} · À la fin de la saison, publie les résultats finaux avant de passer en Séries.</p>
   {error&&<p role="alert">{error}</p>}{message&&<p role="status">{message}</p>}
   <div className={styles.actions}>
    <button className="button-secondary" disabled={busy||!context||!regularIsOpen(context)} onClick={()=>setPending('publish')}>Publier les résultats finaux</button>
    <button className="button" disabled={busy||!context||!regularIsOpen(context)} onClick={()=>setPending('transition')}>PASSER EN SÉRIES</button>
-   <button className="button-secondary" disabled={busy} onClick={refresh}>Actualiser le contexte</button>
   </div>
   {pending&&<Confirmation action={pending} busy={busy} onCancel={()=>setPending(null)} onConfirm={execute}/>}
  </section>;
