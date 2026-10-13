@@ -6,6 +6,8 @@ import { useEffect, useState } from "react";
 import { supabase as rawSupabase } from "../../lib/supabase";
 import PersonalSelectionTime from "./PersonalSelectionTime";
 import BottomNav from "../components/BottomNav";
+import HistoryBadge from "../components/HistoryBadge";
+import {qbHistory} from "../../lib/seasons/qbHistory.mjs";
 
 /* =========================================================
    ORDRE OFFICIEL — SEMAINE 1
@@ -2467,6 +2469,7 @@ export default function Matchs() {
           qbs (
             id,
             name,
+            team,
             espn_athlete_id
           )
         `)
@@ -2654,28 +2657,9 @@ export default function Matchs() {
       }
     );
 
-    /*
-     * Sert uniquement à l'affichage
-     * "QB déjà utilisés".
-     *
-     * Cette liste respecte donc exactement
-     * la même règle que le menu de disponibilité.
-     */
-    const usedQbIdList =
-      Array.from(
-        usedQbIds
-      );
-
-    setUsedQbs(
-      (
-        qbsData || []
-      ).filter(
-        (qb) =>
-          usedQbIdList.includes(
-            qb.id
-          )
-      )
-    );
+    // Historical selections include replacements for explanation only.
+    // usedQbIds above remains the sole source of QB availability.
+    setUsedQbs(qbHistory(previousQbPicks, previousRatings, qbsData || []));
 
     /* =========================================================
        ÉQUIPES QUI JOUENT CETTE SEMAINE
@@ -5113,8 +5097,10 @@ const liveQbData =
                       >
                         {usedQbs.map(
                           (qb) => (
-                            <div
-                              key={qb.id}
+                            <HistoryBadge
+                              key={qb.historyKey}
+                              details={qb.details}
+                              label={`${qb.name}, semaine ${qb.week}`}
                               style={{
                                 display:
                                   "inline-flex",
@@ -5153,9 +5139,9 @@ const liveQbData =
                                     800,
                                 }}
                               >
-                                {qb.name}
+                                {qb.name}{qb.replaced ? " ↪" : ""}
                               </span>
-                            </div>
+                            </HistoryBadge>
                           )
                         )}
                       </div>

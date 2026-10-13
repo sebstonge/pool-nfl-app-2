@@ -5,6 +5,8 @@ const supabase=regularClient(rawSupabase);
 import { useEffect, useState } from "react";
 import { supabase as rawSupabase } from "../../lib/supabase";
 import BottomNav from "../components/BottomNav";
+import HistoryBadge from "../components/HistoryBadge";
+import {rankBadges} from "../../lib/seasons/rankBadges.mjs";
 
 /* =========================================================
    HELPERS
@@ -249,8 +251,10 @@ function RankingRow({
               }}
             >
               {row.badges.map((badge) => (
-                <span
+                <HistoryBadge
                   key={badge}
+                  details={row.badgeDetails[badge]}
+                  label={badge}
                   style={{
                     padding: "4px 7px",
                     borderRadius: 999,
@@ -261,7 +265,7 @@ function RankingRow({
                   }}
                 >
                   {badge}
-                </span>
+                </HistoryBadge>
               ))}
             </div>
           )}
@@ -529,8 +533,10 @@ function DesktopRankingRow({
               }}
             >
               {row.badges.map((badge) => (
-                <span
+                <HistoryBadge
                   key={badge}
+                  details={row.badgeDetails[badge]}
+                  label={badge}
                   style={{
                     padding: "3px 6px",
                     borderRadius: 999,
@@ -541,7 +547,7 @@ function DesktopRankingRow({
                   }}
                 >
                   {badge}
-                </span>
+                </HistoryBadge>
               ))}
             </div>
           )}
@@ -1614,75 +1620,9 @@ export default function ClassementsPage() {
               previousRank -
               currentRank;
 
-            const badges = [];
-
-            const recentWeeks =
-              Object.keys(
-                weeklyRankings
-              )
-                .map(Number)
-                .filter(
-                  (weekNumber) =>
-                    weekNumber <=
-                    activeWeek
-                )
-                .sort(
-                  (a, b) => b - a
-                )
-                .slice(0, 3);
-
-            const recentRanks =
-              recentWeeks.map(
-                (weekNumber) => {
-                  const found =
-                    weeklyRankings[
-                      weekNumber
-                    ]?.find(
-                      (r) =>
-                        r.userId ===
-                        row.userId
-                    );
-
-                  return (
-                    found?.rank ||
-                    999
-                  );
-                }
-              );
-
-            if (
-              recentRanks.length === 3
-            ) {
-              if (
-                recentRanks.every(
-                  (rank) =>
-                    rank <= 3
-                )
-              ) {
-                badges.push(
-                  "🔥 En feu"
-                );
-              }
-
-              if (
-                recentRanks.every(
-                  (rank) =>
-                    rank > 3
-                )
-              ) {
-                badges.push(
-                  "🧊 Glacé"
-                );
-              }
-            }
-
-            if (
-              movement <= -3
-            ) {
-              badges.push(
-                "📉 Chute libre"
-              );
-            }
+            const {badges, badgeDetails} = rankBadges(
+              weeklyRankings, row.userId, activeWeek, movement, previousRank, currentRank
+            );
 
             return {
               ...row,
@@ -1703,6 +1643,7 @@ export default function ClassementsPage() {
               movement,
 
               badges,
+              badgeDetails,
             };
           }
         )
