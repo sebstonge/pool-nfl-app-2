@@ -1,5 +1,6 @@
 "use client";
 import {regularClient} from "../../lib/seasons/regularClient.mjs";
+import { regularQbResult } from "../../lib/seasons/qbSnapshot.mjs";
 const supabase=regularClient(rawSupabase);
 
 import { useEffect, useState } from "react";
@@ -994,25 +995,6 @@ export default function QBRatingsPage() {
           );
 
       const {
-        data: qbsData,
-        error: qbsError,
-      } = await supabase
-        .from("qbs")
-        .select("*")
-        .order("team", {
-          ascending: true,
-        });
-
-      if (qbsError) {
-        setMessage(
-          "Erreur QB : " +
-            qbsError.message
-        );
-
-        return;
-      }
-
-      const {
         data: ratingsData,
         error: ratingsError,
       } = await supabase
@@ -1077,39 +1059,32 @@ export default function QBRatingsPage() {
 
       const ratingsByActualQb = {};
 
+      const findPick = (rating) =>
+        (qbPicksData || []).find(
+          (pick) => pick.qb_id === rating.qb_id &&
+            Number(pick.week) === Number(rating.week)
+        );
+
       (ratingsData || []).forEach(
         (rating) => {
-          if (
-            rating.passer_rating == null
-          ) {
+          const result = regularQbResult(findPick(rating) || rating, rating);
+          if (result.rating == null) {
             return;
           }
-
-          const selectedQb =
-            (qbsData || []).find(
-              (qb) =>
-                qb.id ===
-                rating.qb_id
-            );
 
           const actualAthleteId =
-            rating.actual_espn_athlete_id ||
-            selectedQb?.espn_athlete_id;
-
-          if (!actualAthleteId) {
-            return;
-          }
+            result.actual?.espn_athlete_id;
 
           const key =
-            String(actualAthleteId);
+            actualAthleteId
+              ? String(actualAthleteId)
+              : `unknown-${rating.qb_id}-${rating.week}`;
 
           if (!ratingsByActualQb[key]) {
             ratingsByActualQb[key] = [];
           }
 
-          ratingsByActualQb[key].push(
-            rating
-          );
+          ratingsByActualQb[key].push({ ...rating, result });
         }
       );
 
@@ -1125,39 +1100,21 @@ export default function QBRatingsPage() {
               const firstRating =
                 qbRatings[0];
 
-              const selectedQb =
-                (qbsData || []).find(
-                  (qb) =>
-                    qb.id ===
-                    firstRating.qb_id
-                );
-
-              const actualQbFromDatabase =
-                (qbsData || []).find(
-                  (qb) =>
-                    String(
-                      qb.espn_athlete_id
-                    ) ===
-                    String(athleteId)
-                );
-
               const actualQb =
-                actualQbFromDatabase ||
                 {
                   id:
                     `actual-${athleteId}`,
 
                   name:
-                    firstRating.actual_qb_name ||
-                    selectedQb?.name ||
-                    "QB",
+                    firstRating.result.actual?.name ||
+                    "QB historique non identifié",
 
                   team:
-                    selectedQb?.team ||
+                    firstRating.result.actual?.team ||
                     "",
 
                   espn_athlete_id:
-                    athleteId,
+                    firstRating.result.actual?.espn_athlete_id || null,
                 };
 
               const best =
@@ -1191,13 +1148,7 @@ export default function QBRatingsPage() {
                   }
 
                   const pick =
-                    (qbPicksData || []).find(
-                      (p) =>
-                        p.qb_id ===
-                          rating.qb_id &&
-                        p.week ===
-                          rating.week
-                    );
+                    findPick(rating);
 
                   const user =
                     (usersData || []).find(

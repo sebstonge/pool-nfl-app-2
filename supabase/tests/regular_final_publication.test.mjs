@@ -13,8 +13,10 @@ test('final regular publication in isolated PostgreSQL',{skip:!process.env.PGLIT
  const publish=(expected,proof,season=2026,revision=0,actor=user)=>one('select publish_regular_final($1,$2,$3,$4,$5) p',[season,revision,actor,JSON.stringify(expected),JSON.stringify(proof)]);
  try{
   await sql(await readFile(new URL('./lifecycle_fixture.sql',import.meta.url),'utf8'));
+  // Explicit synthetic selection evidence; this older migration's tests never infer history from qbs.
+  await sql('alter table qb_picks add selected_qb_name text,add selected_espn_athlete_id text,add selected_team text');
   await sql(`insert into users(id,is_admin) values('${user}',true);insert into qbs(id,name,team,espn_athlete_id) values('${qb}','Selected QB','Commanders','99');insert into teams(name,espn_abbr) values('Washington Commanders','WAS'),('Buffalo Bills','BUF');`);
-  for(const g of f.state.games){await db.query('insert into games(id,external_game_id,week,home_team,away_team,home_score,away_score) values($1,$2,$3,$4,$5,999,0)',[g.id,g.external_game_id,g.week,g.home_team,g.away_team]);await db.query('insert into picks(user_id,game_id,picked_team,predicted_spread) values($1,$2,$3,7)',[user,g.id,g.home_team]);await db.query('insert into qb_picks(user_id,qb_id,week) values($1,$2,$3)',[user,qb,g.week]);}
+  for(const g of f.state.games){await db.query('insert into games(id,external_game_id,week,home_team,away_team,home_score,away_score) values($1,$2,$3,$4,$5,999,0)',[g.id,g.external_game_id,g.week,g.home_team,g.away_team]);await db.query('insert into picks(user_id,game_id,picked_team,predicted_spread) values($1,$2,$3,7)',[user,g.id,g.home_team]);const choice=f.state.qb_picks.find(p=>p.week===g.week);await db.query('insert into qb_picks(user_id,qb_id,week,selected_qb_name,selected_espn_athlete_id,selected_team) values($1,$2,$3,$4,$5,$6)',[user,qb,g.week,choice.selected_qb_name,choice.selected_espn_athlete_id,choice.selected_team]);}
   for(const file of ['202609300001_notification_reminders.sql','202610040001_lifecycle_foundation.sql','202610050001_regular_final_publication.sql'])await sql(await readFile(new URL('../migrations/'+file,import.meta.url),'utf8'));
   const before=await state(),proof=await prepareFinalPublication(before,{fetcher:f.fetcher});
   await t.test('installation publishes nothing and leaves lifecycle/playoffs/reminders unchanged',async()=>{

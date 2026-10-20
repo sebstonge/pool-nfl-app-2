@@ -1,5 +1,6 @@
 "use client";
 import {regularClient} from "../../lib/seasons/regularClient.mjs";
+import { regularQbResult, selectionSnapshot } from "../../lib/seasons/qbSnapshot.mjs";
 const supabase=regularClient(rawSupabase);
 
 import { useEffect, useState } from "react";
@@ -590,7 +591,7 @@ function findQbGameData(
   includePost = true
 ) {
   const qb =
-    qbPick?.qbs;
+    selectionSnapshot(qbPick);
 
   if (!qb?.team) {
     return null;
@@ -913,8 +914,11 @@ function getDisplayedQbData(
     qbRatings.find(
       (row) =>
         row.qb_id ===
-        qbPick.qb_id
+        qbPick.qb_id &&
+        Number(row.week) === Number(qbPick.week)
     );
+
+  const result = regularQbResult(qbPick, officialRating);
 
   const espnData =
     findQbGameData(
@@ -938,7 +942,7 @@ function getDisplayedQbData(
     espnState === "post";
 
   const hasOfficialRating =
-    officialRating?.passer_rating != null;
+    result.rating != null;
 
   const hasEspnRating =
     espnPasser?.rating != null;
@@ -972,7 +976,7 @@ function getDisplayedQbData(
   ) {
     displayedRating =
       Number(
-        officialRating.passer_rating
+        result.rating
       );
   } else if (
     (
@@ -987,25 +991,15 @@ function getDisplayedQbData(
       );
   }
 
-  /*
-   * IDENTITÉ DU QB AFFICHÉ
-   *
-   * Pendant le LIVE :
-   * on garde le QB sélectionné
-   * sauf si ESPN l'identifie
-   * explicitement lui-même.
-   *
-   * Un remplacement automatique
-   * n'est permis qu'après le match,
-   * selon findQbGameData().
-   */
+  // L'identité historique vient du choix figé et du résultat officiel.
+  // ESPN peut encore fournir une identité temporaire pendant le match.
+  const historicalQb = result.actual || result.selected;
   let actualAthleteId =
-    qbPick.qbs
-      ?.espn_athlete_id;
+    historicalQb?.espn_athlete_id || null;
 
   let actualName =
-    qbPick.qbs?.name ||
-    "QB";
+    historicalQb?.name ||
+    "QB historique non identifié";
 
   if (
     isEspnLive &&
@@ -1019,6 +1013,7 @@ function getDisplayedQbData(
       espnPasser.name ||
       actualName;
   } else if (
+    !hasOfficialRating &&
     isEspnPost &&
     espnPasser
   ) {
@@ -1036,39 +1031,7 @@ function getDisplayedQbData(
       actualName;
   }
 
-  /*
-   * Une fois les données officielles
-   * Supabase disponibles APRÈS le match,
-   * elles deviennent la référence.
-   */
-  if (
-    !isEspnLive &&
-    hasOfficialRating
-  ) {
-    actualAthleteId =
-      officialRating
-        ?.actual_espn_athlete_id ||
-      qbPick.qbs
-        ?.espn_athlete_id;
-
-    actualName =
-      officialRating
-        ?.actual_qb_name ||
-      qbPick.qbs?.name ||
-      "QB";
-  }
-
-  const replaced =
-    actualAthleteId &&
-    qbPick.qbs
-      ?.espn_athlete_id &&
-    String(
-      actualAthleteId
-    ) !==
-      String(
-        qbPick.qbs
-          .espn_athlete_id
-      );
+  const replaced = result.replaced;
 
   return {
     officialRating,
@@ -1084,7 +1047,7 @@ function getDisplayedQbData(
         actualName,
 
       team:
-        qbPick.qbs?.team,
+        historicalQb?.team || "",
 
       espn_athlete_id:
         actualAthleteId,
@@ -1911,7 +1874,7 @@ function GamePicksCard({
     liveQbPicks.filter(
       (qbPick) =>
         teamMatches(
-          qbPick.qbs?.team,
+          selectionSnapshot(qbPick)?.team,
           [
             game.away_team,
           ]
@@ -1922,7 +1885,7 @@ function GamePicksCard({
     liveQbPicks.filter(
       (qbPick) =>
         teamMatches(
-          qbPick.qbs?.team,
+          selectionSnapshot(qbPick)?.team,
           [
             game.home_team,
           ]
@@ -2825,14 +2788,10 @@ const [
           user_id,
           week,
           qb_id,
-          created_at,
-          qbs (
-            id,
-            name,
-            team,
-            logo,
-            espn_athlete_id
-          )
+          selected_qb_name,
+          selected_espn_athlete_id,
+          selected_team,
+          created_at
         `)
         .eq(
           "week",

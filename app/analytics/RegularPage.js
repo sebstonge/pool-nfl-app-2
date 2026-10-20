@@ -1,5 +1,6 @@
 "use client";
 import {regularClient} from "../../lib/seasons/regularClient.mjs";
+import { regularQbResult } from "../../lib/seasons/qbSnapshot.mjs";
 const supabase=regularClient(rawSupabase);
 
 import { useEffect, useState } from "react";
@@ -748,11 +749,6 @@ export default function AnalyticsPage() {
           .from("qb_picks")
           .select("*");
 
-      const { data: qbs } =
-        await supabase
-          .from("qbs")
-          .select("*");
-
       const users = usersData || [];
 
       const completedPicks =
@@ -1062,39 +1058,18 @@ export default function AnalyticsPage() {
       function qbLabel(rating) {
         if (!rating) return null;
 
-        const selectedQb =
-          (qbs || []).find(
-            (q) =>
-              q.id === rating.qb_id
-          );
-
-        const actualQb =
-          rating.actual_espn_athlete_id
-            ? (qbs || []).find(
-                (q) =>
-                  String(
-                    q.espn_athlete_id
-                  ) ===
-                  String(
-                    rating.actual_espn_athlete_id
-                  )
-              )
-            : null;
-
-        const qbName =
-          rating.actual_qb_name ||
-          actualQb?.name ||
-          selectedQb?.name ||
-          "QB";
-
         const pick =
           (qbPicks || []).find(
             (p) =>
               p.qb_id ===
                 rating.qb_id &&
-              p.week ===
-                rating.week
+              Number(p.week) ===
+                Number(rating.week)
           );
+
+        const result = regularQbResult(pick || rating, rating);
+        if (result.rating == null) return null;
+        const qb = result.actual || result.selected;
 
         const user =
           users.find(
@@ -1104,19 +1079,10 @@ export default function AnalyticsPage() {
           );
 
         return {
-          name: qbName,
-          team:
-            actualQb?.team ||
-            selectedQb?.team ||
-            "",
-          espn_athlete_id:
-            rating.actual_espn_athlete_id ||
-            actualQb?.espn_athlete_id ||
-            selectedQb?.espn_athlete_id ||
-            null,
-          rating: Number(
-            rating.passer_rating
-          ),
+          name: qb?.name || "QB historique non identifié",
+          team: qb?.team || "",
+          espn_athlete_id: qb?.espn_athlete_id || null,
+          rating: result.rating,
           week: rating.week,
           selectedBy:
             displayName(user),
@@ -1173,53 +1139,28 @@ export default function AnalyticsPage() {
                   Number(b.week)
               )
               .map((pick) => {
-                const qb =
-                  (qbs || []).find(
-                    (q) =>
-                      q.id ===
-                      pick.qb_id
-                  );
-
                 const rating =
                   (qbRatings || []).find(
                     (r) =>
                       r.qb_id ===
                         pick.qb_id &&
-                      r.week ===
-                        pick.week
+                      Number(r.week) ===
+                        Number(pick.week)
                   );
 
-                const actualQb =
-                  rating?.actual_espn_athlete_id
-                    ? (qbs || []).find(
-                        (q) =>
-                          String(
-                            q.espn_athlete_id
-                          ) ===
-                          String(
-                            rating.actual_espn_athlete_id
-                          )
-                      )
-                    : null;
+                const result = regularQbResult(pick, rating);
+                const qb = result.selected || result.actual;
 
                 return {
                   week: pick.week,
                   qbName:
                     qb?.name ||
-                    "QB",
+                    "QB historique non identifié",
                   team:
                     qb?.team || "",
-                  rating:
-                    rating?.passer_rating !=
-                    null
-                      ? Number(
-                          rating.passer_rating
-                        )
-                      : null,
-                  actualQbName:
-                    rating?.actual_qb_name ||
-                    actualQb?.name ||
-                    null,
+                  rating: result.rating,
+                  replaced: result.replaced,
+                  actualQbName: result.actual?.name || null,
                 };
               })
           : [];
@@ -1837,9 +1778,7 @@ export default function AnalyticsPage() {
                               )}
                             </div>
 
-                            {qbPick.actualQbName &&
-                              qbPick.actualQbName !==
-                                qbPick.qbName && (
+                            {qbPick.replaced && (
                                 <div
                                   style={{
                                     marginTop:

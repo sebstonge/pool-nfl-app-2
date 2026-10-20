@@ -1,4 +1,5 @@
 "use client";
+import {selectionSnapshot} from "../../lib/seasons/qbSnapshot.mjs";
 import {initialOrder,regularClient} from "../../lib/seasons/regularClient.mjs";
 const supabase=regularClient(rawSupabase);
 
@@ -733,7 +734,12 @@ const [isDesktop, setIsDesktop] = useState(false);
     const notFound = [];
 
     for (const pick of qbPicks || []) {
-      const selectedQB = pick.qbs;
+      const selectedQB = selectionSnapshot(pick);
+      // Legacy identity may have been overwritten in qbs. Preserve recorded results.
+      if (!selectedQB) {
+        notFound.push(`Sélection QB semaine ${pick.week} : identité historique à confirmer`);
+        continue;
+      }
 
       if (!selectedQB?.team) {
         notFound.push(

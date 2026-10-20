@@ -8,6 +8,7 @@ import PersonalSelectionTime from "./PersonalSelectionTime";
 import BottomNav from "../components/BottomNav";
 import HistoryBadge from "../components/HistoryBadge";
 import {qbHistory} from "../../lib/seasons/qbHistory.mjs";
+import {selectionSnapshot,regularQbResult,isQbConsumed} from "../../lib/seasons/qbSnapshot.mjs";
 
 /* =========================================================
    ORDRE OFFICIEL — SEMAINE 1
@@ -2465,7 +2466,11 @@ export default function Matchs() {
         .from("qb_picks")
         .select(`
           qb_id,
+          season,
           week,
+          selected_qb_name,
+          selected_espn_athlete_id,
+          selected_team,
           qbs (
             id,
             name,
@@ -2544,122 +2549,8 @@ export default function Matchs() {
         previousRatingsData || [];
     }
 
-    /*
-     * Ensemble final des QB réellement consommés.
-     */
-    const usedQbIds =
-      new Set();
-
-    previousQbPicks.forEach(
-      (pick) => {
-        const selectedQb =
-          pick.qbs;
-
-        if (
-          !pick.qb_id ||
-          !selectedQb
-        ) {
-          return;
-        }
-
-        /*
-         * On retrouve le rating du même QB
-         * ET de la même semaine.
-         */
-        const officialRating =
-          previousRatings.find(
-            (rating) =>
-              rating.qb_id ===
-                pick.qb_id &&
-              Number(
-                rating.week
-              ) ===
-                Number(
-                  pick.week
-                )
-          );
-
-        /*
-         * Aucun résultat officiel encore disponible :
-         *
-         * par sécurité, le QB demeure consommé
-         * jusqu'à ce que son résultat soit connu.
-         */
-        if (
-          !officialRating
-        ) {
-          usedQbIds.add(
-            pick.qb_id
-          );
-
-          return;
-        }
-
-        const selectedAthleteId =
-          selectedQb
-            .espn_athlete_id
-            ? String(
-                selectedQb
-                  .espn_athlete_id
-              )
-            : null;
-
-        const actualAthleteId =
-          officialRating
-            .actual_espn_athlete_id
-            ? String(
-                officialRating
-                  .actual_espn_athlete_id
-              )
-            : null;
-
-        /*
-         * Si aucun actual ESPN ID n'est disponible,
-         * on conserve le comportement sécuritaire :
-         * le QB sélectionné est considéré utilisé.
-         */
-        if (
-          !selectedAthleteId ||
-          !actualAthleteId
-        ) {
-          usedQbIds.add(
-            pick.qb_id
-          );
-
-          return;
-        }
-
-        /*
-         * Même athlete ID :
-         *
-         * le QB sélectionné a réellement joué.
-         * Il est donc consommé pour la saison.
-         */
-        if (
-          selectedAthleteId ===
-          actualAthleteId
-        ) {
-          usedQbIds.add(
-            pick.qb_id
-          );
-        }
-
-        /*
-         * Athlete ID différent :
-         *
-         * remplacement automatique.
-         *
-         * Le QB sélectionné n'est PAS ajouté
-         * à usedQbIds.
-         *
-         * Le remplaçant n'est PAS ajouté non plus.
-         */
-      }
-    );
-
-    // Historical selections include replacements for explanation only.
-    // usedQbIds above remains the sole source of QB availability.
-    setUsedQbs(qbHistory(previousQbPicks, previousRatings, qbsData || []));
+    // Availability compares stable athlete identities, not mutable catalog row identities.
+    setUsedQbs(qbHistory(previousQbPicks, previousRatings));
 
     /* =========================================================
        ÉQUIPES QUI JOUENT CETTE SEMAINE
@@ -2714,10 +2605,7 @@ export default function Matchs() {
               qb.id
             );
 
-          const alreadyUsed =
-            usedQbIds.has(
-              qb.id
-            );
+          const alreadyUsed = isQbConsumed(qb, previousQbPicks, previousRatings);
 
           return (
             teamIsPlaying &&
@@ -3121,73 +3009,18 @@ export default function Matchs() {
    * liveGames contient maintenant
    * TOUS les matchs NFL de la semaine.
    */
-const liveQbData =
-  existingQbPick
-    ? findQbGameData(
-        existingQbPick,
-        liveGames,
-        allWeekGames,
-        true
-      )
+  const selectedSnapshot = selectionSnapshot(existingQbPick);
+  const historicalQb = regularQbResult(existingQbPick, qbRating);
+  const liveQbData = selectedSnapshot
+    ? findQbGameData({...existingQbPick,qbs:selectedSnapshot}, liveGames, allWeekGames, true)
     : null;
-
-  const livePasser =
-    liveQbData?.passer ||
-    null;
-
-  /*
-   * Le rating officiel Supabase
-   * conserve toujours la priorité.
-   */
-  const hasOfficialQbRating =
-    qbRating?.passer_rating !=
-    null;
-
-  /*
-   * QB réellement affiché.
-   *
-   * Priorité :
-   *
-   * 1. QB réel officialisé Supabase
-   * 2. QB réel détecté par ESPN
-   * 3. QB initialement sélectionné
-   */
-  const displayedQb =
-    hasOfficialQbRating &&
-    qbRating
-      ?.actual_espn_athlete_id
-      ? {
-          name:
-            qbRating.actual_qb_name ||
-            existingQbPick?.qbs
-              ?.name,
-
-          team:
-            existingQbPick?.qbs
-              ?.team,
-
-          espn_athlete_id:
-            qbRating
-              .actual_espn_athlete_id,
-        }
-      : livePasser
-          ?.athleteId
-      ? {
-          name:
-            livePasser.name ||
-            existingQbPick
-              ?.qbs?.name,
-
-          team:
-            existingQbPick
-              ?.qbs?.team,
-
-          espn_athlete_id:
-            livePasser
-              .athleteId,
-        }
-      : existingQbPick
-          ?.qbs;
+  const livePasser = liveQbData?.passer || null;
+  const hasOfficialQbRating = historicalQb.rating !== null;
+  const displayedQb = historicalQb.actual || (livePasser?.athleteId ? {
+    name:livePasser.name || selectedSnapshot?.name,
+    team:selectedSnapshot?.team,
+    espn_athlete_id:livePasser.athleteId,
+  } : selectedSnapshot) || {name:'QB historique non identifié',team:'',espn_athlete_id:null};
 
   /*
    * Passer Rating affiché.
@@ -3215,42 +3048,10 @@ const liveQbData =
    * Moyenne saison du QB réellement
    * utilisé.
    */
-  const displayedQbAverage =
-    qbSeasonAverages[
-      String(
-        hasOfficialQbRating
-          ? qbRating
-              ?.actual_espn_athlete_id ||
-              existingQbPick
-                ?.qbs
-                ?.espn_athlete_id
-          : livePasser
-              ?.athleteId ||
-              existingQbPick
-                ?.qbs
-                ?.espn_athlete_id
-      )
-    ];
+  const displayedQbAverage = qbSeasonAverages[String(displayedQb?.espn_athlete_id || '')];
 
-  /*
-   * Détection d'un remplacement
-   * automatique du QB.
-   */
-  const qbWasReplaced =
-    displayedQb
-      ?.espn_athlete_id &&
-    existingQbPick
-      ?.qbs
-      ?.espn_athlete_id &&
-    String(
-      displayedQb
-        .espn_athlete_id
-    ) !==
-      String(
-        existingQbPick
-          .qbs
-          .espn_athlete_id
-      );
+  // Historical replacement requires this selection's snapshot and official result.
+  const qbWasReplaced = historicalQb.replaced;
 
   /*
    * Match NFL du QB cette semaine.
