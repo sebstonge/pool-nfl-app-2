@@ -1,5 +1,6 @@
 "use client";
-import {initialOrder,regularClient} from "../../lib/seasons/regularClient.mjs";
+import {regularClient} from "../../lib/seasons/regularClient.mjs";
+import {loadRegularOrder,remainingSelectionOrder,assertRegularTurn} from "../../lib/seasons/selectionOrder.mjs";
 const supabase=regularClient(rawSupabase);
 
 import { useEffect, useState } from "react";
@@ -34,32 +35,6 @@ function playerRealName(player) {
     player?.email?.split("@")[0] ||
     "Joueur"
   );
-}
-
-function getWeek1Order(players) { return initialOrder(players); }
-
-function getWeeklyScoreValue(row) {
-  const candidates = [
-    row?.total_score,
-    row?.final_score,
-    row?.weekly_score,
-    row?.score,
-    row?.points,
-    row?.total,
-  ];
-
-  for (const value of candidates) {
-    if (
-      value !== null &&
-      value !== undefined &&
-      value !== "" &&
-      Number.isFinite(Number(value))
-    ) {
-      return Number(value);
-    }
-  }
-
-  return null;
 }
 
 /* =========================================================
@@ -1976,144 +1951,15 @@ export default function Matchs() {
      * le joueur disparaît ensuite
      * de l'ordre restant.
      */
-    const alreadyPickedIds =
-      new Set(
-        (
-          currentWeekQbPicks ||
-          []
-        ).map(
-          (row) =>
-            row.user_id
-        )
-      );
-
-    let fullOrder = [];
-
-    if (
-      Number(week) === 1
-    ) {
-      fullOrder =
-        getWeek1Order(
-          players
-        );
-    } else {
-      const {
-        data: previousScores,
-        error: scoreError,
-      } =
-        await supabase
-          .from(
-            "weekly_scores"
-          )
-          .select("*")
-          .eq(
-            "week",
-            Number(week) - 1
-          );
-
-      if (scoreError) {
-        console.error(
-          "Erreur chargement scores précédents :",
-          scoreError.message
-        );
-      }
-
-      const scoreByUser =
-        {};
-
-      (
-        previousScores || []
-      ).forEach(
-        (row) => {
-          scoreByUser[
-            row.user_id
-          ] =
-            getWeeklyScoreValue(
-              row
-            );
-        }
-      );
-
-      fullOrder =
-        [...players].sort(
-          (a, b) => {
-            const scoreA =
-              scoreByUser[
-                a.id
-              ];
-
-            const scoreB =
-              scoreByUser[
-                b.id
-              ];
-
-            /*
-             * Les joueurs sans score
-             * sont placés après ceux
-             * qui possèdent un score.
-             */
-            if (
-              scoreA == null &&
-              scoreB == null
-            ) {
-              return playerRealName(
-                a
-              ).localeCompare(
-                playerRealName(
-                  b
-                ),
-                "fr"
-              );
-            }
-
-            if (
-              scoreA == null
-            ) {
-              return 1;
-            }
-
-            if (
-              scoreB == null
-            ) {
-              return -1;
-            }
-
-            /*
-             * Inverse du classement :
-             * plus petit score = premier.
-             */
-            if (
-              scoreA !== scoreB
-            ) {
-              return (
-                scoreA -
-                scoreB
-              );
-            }
-
-            return playerRealName(
-              a
-            ).localeCompare(
-              playerRealName(
-                b
-              ),
-              "fr"
-            );
-          }
-        );
+    try {
+      if (playersError) throw playersError;
+      if (orderQbError) throw orderQbError;
+      const fullOrder = await loadRegularOrder(supabase, week, players);
+      setSelectionOrder(remainingSelectionOrder(fullOrder, currentWeekQbPicks || []));
+    } catch (error) {
+      setSelectionOrder([]);
+      setMessage("Ordre de sélection indisponible : " + error.message);
     }
-
-    const remainingOrder =
-      fullOrder.filter(
-        (player) =>
-          !alreadyPickedIds.has(
-            player.id
-          )
-      );
-
-    setSelectionOrder(
-      remainingOrder
-    );
 
     /* =========================================================
        CHOIX DE MATCHS DU JOUEUR
@@ -3271,6 +3117,16 @@ export default function Matchs() {
         !confirmation
       ) {
         return;
+      }
+
+      // The same order drives the displayed queue and permission to reserve a QB.
+      if (!existingQbPick) {
+        try {
+          await assertRegularTurn(supabase, currentWeek, user.id);
+        } catch (error) {
+          setMessage(error.message || "Impossible de vérifier ton tour. Réessaie.");
+          return;
+        }
       }
 
       /*

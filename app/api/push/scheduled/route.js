@@ -1,4 +1,5 @@
 import {regularClient} from "../../../../lib/seasons/regularClient.mjs";
+import {loadRegularOrder,remainingSelectionOrder} from "../../../../lib/seasons/selectionOrder.mjs";
 import { loadLifecycle, regularIsOpen } from '../../../../lib/lifecycle/context.mjs';
 import {
   createClient,
@@ -417,6 +418,25 @@ export async function GET(
          * ENVOI PUSH
          * =================================================
          */
+
+        if (event.notification_type === "qb_turn") {
+          const {data:settings,error:settingsError}=await supabaseAdmin
+            .from("settings").select("current_week").eq("id",1).single();
+          if (settingsError) throw settingsError;
+          if (Number(settings?.current_week)!==Number(event.week)) {
+            results.push({id:event.id,eventKey:event.event_key,type:event.notification_type,status:"skipped",reason:"stale_week"});
+            continue;
+          }
+          const [order,picks]=await Promise.all([
+            loadRegularOrder(supabaseAdmin,Number(event.week)),
+            supabaseAdmin.from("qb_picks").select("user_id").eq("week",Number(event.week)),
+          ]);
+          if (picks.error) throw picks.error;
+          if (remainingSelectionOrder(order,picks.data||[])[0]?.id!==event.user_id) {
+            results.push({id:event.id,eventKey:event.event_key,type:event.notification_type,status:"skipped",reason:"stale_qb_turn"});
+            continue;
+          }
+        }
 
         const pushResult =
           await sendPushToUser({

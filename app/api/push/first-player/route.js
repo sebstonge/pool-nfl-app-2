@@ -1,4 +1,5 @@
-import {regularEventKey,regularClient,initialOrder as seasonInitialOrder} from "../../../../lib/seasons/regularClient.mjs";
+import {regularEventKey,regularClient} from "../../../../lib/seasons/regularClient.mjs";
+import {loadRegularOrder} from "../../../../lib/seasons/selectionOrder.mjs";
 import { loadLifecycle, regularIsOpen } from '../../../../lib/lifecycle/context.mjs';
 import { createClient } from "@supabase/supabase-js";
 import { sendRegularPushToUser as sendPushToUser } from "../../../../lib/pushNotifications";
@@ -15,22 +16,8 @@ const rawAdmin = createClient(supabaseUrl, serviceRoleKey, {
 });
 
 /* =========================================================
-   ORDRE FIXE — SEMAINE 1
+   NOMS
 ========================================================= */
-
-
-
-/* =========================================================
-   HELPERS — NOMS
-========================================================= */
-
-function normalizeName(value) {
-  return String(value || "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, "");
-}
 
 function playerDisplayName(player) {
   return (
@@ -258,58 +245,7 @@ export async function POST(request) {
       );
     }
 
-    let orderedPlayers = [];
-
-    /* =====================================================
-       5. ORDRE SEMAINE 1
-    ===================================================== */
-
-    if (week === 1) {
-      orderedPlayers = seasonInitialOrder(players);
-    }
-
-    /* =====================================================
-       6. ORDRE SEMAINE 2+
-       Plus faible score semaine précédente en premier
-    ===================================================== */
-
-    if (week > 1) {
-      const { data: previousScores, error: scoresError } =
-        await supabaseAdmin
-          .from("weekly_scores")
-          .select("user_id, final_score")
-          .eq("week", week - 1);
-
-      if (scoresError) throw scoresError;
-
-      const scoreMap = new Map();
-
-      for (const row of previousScores || []) {
-        scoreMap.set(
-          row.user_id,
-          Number(row.final_score ?? 0)
-        );
-      }
-
-      orderedPlayers = [...players].sort((a, b) => {
-        const scoreA = scoreMap.has(a.id)
-          ? scoreMap.get(a.id)
-          : 0;
-
-        const scoreB = scoreMap.has(b.id)
-          ? scoreMap.get(b.id)
-          : 0;
-
-        if (scoreA !== scoreB) {
-          return scoreA - scoreB;
-        }
-
-        return playerDisplayName(a).localeCompare(
-          playerDisplayName(b),
-          "fr"
-        );
-      });
-    }
+    const orderedPlayers = await loadRegularOrder(supabaseAdmin, week, players);
 
     const firstPlayer = orderedPlayers[0];
 

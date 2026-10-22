@@ -1,4 +1,5 @@
-import {regularEventKey,regularClient,initialOrder} from "../../../../lib/seasons/regularClient.mjs";
+import {regularEventKey,regularClient} from "../../../../lib/seasons/regularClient.mjs";
+import {loadRegularOrder} from "../../../../lib/seasons/selectionOrder.mjs";
 import { loadLifecycle, regularIsOpen } from '../../../../lib/lifecycle/context.mjs';
 import { createClient } from "@supabase/supabase-js";
 import { sendRegularPushToUser as sendPushToUser } from "../../../../lib/pushNotifications";
@@ -30,28 +31,9 @@ const rawAdmin =
 
 /*
  * =========================================================
- * ORDRE OFFICIEL — SEMAINE 1
- * =========================================================
- */
-
-
-
-/*
- * =========================================================
  * HELPERS
  * =========================================================
  */
-
-function normalizeName(value = "") {
-  return String(value)
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[’']/g, "")
-    .replace(/[-_]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
 
 function playerRealName(player) {
   return (
@@ -60,41 +42,6 @@ function playerRealName(player) {
     player?.email?.split("@")[0] ||
     "Joueur"
   );
-}
-
-function getWeek1Order(players) { return initialOrder(players); }
-
-function getWeeklyScoreValue(
-  row
-) {
-  const candidates = [
-    row?.total_score,
-    row?.final_score,
-    row?.weekly_score,
-    row?.score,
-    row?.points,
-    row?.total,
-  ];
-
-  for (
-    const value of
-    candidates
-  ) {
-    if (
-      value !== null &&
-      value !== undefined &&
-      value !== "" &&
-      Number.isFinite(
-        Number(value)
-      )
-    ) {
-      return Number(
-        value
-      );
-    }
-  }
-
-  return null;
 }
 
 /*
@@ -270,112 +217,7 @@ export async function POST(
      * =========================================================
      */
 
-    let fullOrder = [];
-
-    if (
-      week === 1
-    ) {
-      fullOrder =
-        getWeek1Order(
-          players
-        );
-    } else {
-      const {
-        data: previousScores,
-        error: previousScoresError,
-      } =
-        await supabaseAdmin
-          .from(
-            "weekly_scores"
-          )
-          .select("*")
-          .eq(
-            "week",
-            week - 1
-          );
-
-      if (
-        previousScoresError
-      ) {
-        throw previousScoresError;
-      }
-
-      const scoreByUser =
-        {};
-
-      (
-        previousScores || []
-      ).forEach(
-        (row) => {
-          scoreByUser[
-            row.user_id
-          ] =
-            getWeeklyScoreValue(
-              row
-            );
-        }
-      );
-
-      fullOrder =
-        [...players].sort(
-          (a, b) => {
-            const scoreA =
-              scoreByUser[
-                a.id
-              ];
-
-            const scoreB =
-              scoreByUser[
-                b.id
-              ];
-
-            if (
-              scoreA == null &&
-              scoreB == null
-            ) {
-              return playerRealName(
-                a
-              ).localeCompare(
-                playerRealName(
-                  b
-                ),
-                "fr"
-              );
-            }
-
-            if (
-              scoreA == null
-            ) {
-              return 1;
-            }
-
-            if (
-              scoreB == null
-            ) {
-              return -1;
-            }
-
-            if (
-              scoreA !==
-              scoreB
-            ) {
-              return (
-                scoreA -
-                scoreB
-              );
-            }
-
-            return playerRealName(
-              a
-            ).localeCompare(
-              playerRealName(
-                b
-              ),
-              "fr"
-            );
-          }
-        );
-    }
+    const fullOrder = await loadRegularOrder(supabaseAdmin, week, players);
 
     /*
      * =========================================================
