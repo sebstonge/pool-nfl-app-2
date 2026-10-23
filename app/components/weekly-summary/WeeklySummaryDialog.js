@@ -42,7 +42,6 @@ function OverallMovement({ overall }) {
   return (
     <span className={movement > 0 ? styles.movementUp : styles.movementDown}>
       <span aria-label={`${Math.abs(movement)} ${Math.abs(movement) === 1 ? "place" : "places"} ${movement > 0 ? "gagnées" : "perdues"}`}>{movement > 0 ? "▲ +" : "▼ −"}{Math.abs(movement)}</span>
-      {overall.previousRank != null && <span className={styles.previousRank}>(auparavant {rankLabel(overall.previousRank)})</span>}
     </span>
   );
 }

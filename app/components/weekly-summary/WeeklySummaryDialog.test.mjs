@@ -41,7 +41,10 @@ test('the three tiles render supplied official score, rating, ranks and overall 
   const html=render();
   assert.match(html,/4,512/);assert.match(html,/112,8/);assert.match(html,/31,234/);
   assert.equal((html.match(/class="tile /g)||[]).length,3);
-  assert.match(html,/▲ \+2/);assert.match(html,/\(auparavant 6e\)/);
+  assert.match(html,/▲ \+2/);assert.doesNotMatch(html,/auparavant/);
+  assert.match(css,/\.scoreMain\s*\{[^}]*display: flex;[^}]*justify-content: center/);
+  assert.match(css,/\.scoreIcon\s*\{[^}]*width: 48px; height: 56px/);
+  assert.match(css,/\.scoreValue\s*\{[^}]*font-size: clamp\(34px, 3\.6vw, 50px\)/);
   assert.match(html,/QB utilisés/);assert.match(html,/cette semaine/);
   assert.doesNotMatch(html,/Remplacement|Choix initial|undefined|NaN/);
 });
@@ -49,8 +52,10 @@ test('the three tiles render supplied official score, rating, ranks and overall 
 test('overall movement distinguishes gained, lost and unchanged ranks',()=>{
   const gained=render();
   assert.match(gained,/class="movementUp"/);assert.match(gained,/aria-label="2 places gagnées"/);
+  assert.doesNotMatch(gained,/auparavant/);
   const lost=render({...summary,overall:{...summary.overall,rank:8,previousRank:6,movement:-2}});
   assert.match(lost,/class="movementDown"/);assert.match(lost,/▼ −2/);assert.match(lost,/aria-label="2 places perdues"/);
+  assert.doesNotMatch(lost,/auparavant/);
   const unchanged=render({...summary,overall:{...summary.overall,movement:0}});
   assert.match(unchanged,/Position inchangée/);assert.doesNotMatch(unchanged,/▲|▼/);
 });
