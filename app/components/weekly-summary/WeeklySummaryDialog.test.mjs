@@ -42,7 +42,7 @@ test('the three tiles render supplied official score, rating, ranks and overall 
   assert.match(html,/4,512/);assert.match(html,/112,8/);assert.match(html,/31,234/);
   assert.equal((html.match(/class="tile /g)||[]).length,3);
   assert.match(html,/▲ \+2/);assert.doesNotMatch(html,/auparavant/);
-  assert.match(css,/\.scoreMain\s*\{[^}]*display: flex;[^}]*justify-content: center/);
+  assert.equal(css.match(/\.scoreMain\s*\{([^}]+)\}/)?.[1].trim(),'display: flex; align-items: center; gap: 18px; min-width: 0;');
   assert.match(css,/\.scoreIcon\s*\{[^}]*width: 48px; height: 56px/);
   assert.match(css,/\.scoreValue\s*\{[^}]*font-size: clamp\(34px, 3\.6vw, 50px\)/);
   assert.match(html,/QB utilisés/);assert.match(html,/cette semaine/);
@@ -82,19 +82,20 @@ test('points use the Mes choix neutral pill and result dots follow the supplied 
   assert.match(css,/\.points\s*\{[^}]*padding: 4px 8px;[^}]*border-radius: 999px;[^}]*background: rgba\(148, 163, 184, \.10\);[^}]*color: #f8fafc/);
 });
 
-test('each matchup faces the two teams around their scores and the away-at-home separator',()=>{
+test('desktop matchups share a centered away-at-home axis while mobile keeps teams facing each other',()=>{
   const html=render({...summary,games:[summary.games[0]]});
   const matchup=html.slice(html.indexOf('<div class="matchup"'),html.indexOf('<div class="pickResult"'));
   assert.match(matchup,/class="teamLine"[\s\S]*class="teamName">Buffalo Bills<\/span><\/div><strong class="teamScore">27<\/strong><span class="at" aria-label="chez">@<\/span><strong class="teamScore">20<\/strong><div class="teamLine"[\s\S]*class="teamName">New York Jets<\/span>/);
   assert.match(matchup,/teamlogos\/nfl\/500\/buf\.png/);assert.match(matchup,/teamlogos\/nfl\/500\/nyj\.png/);
   const desktopCss=css.slice(0,css.indexOf('@media'));
   const mobileCss=css.slice(css.indexOf('@media (max-width: 740px)'),css.indexOf('@media (max-width: 420px)'));
-  assert.match(desktopCss,/\.matchup\s*\{[^}]*display: flex;[^}]*justify-content: center;[^}]*gap: 12px/);
+  assert.match(desktopCss,/\.matchup\s*\{[^}]*display: grid;[^}]*grid-template-columns: minmax\(0, 1fr\) 3ch auto 3ch minmax\(0, 1fr\);[^}]*gap: 12px/);
+  assert.match(desktopCss,/\.teamLine\s*\{[^}]*justify-content: flex-end/);
   assert.match(desktopCss,/\.teamLine:last-child\s*\{[^}]*flex-direction: row-reverse/);
   assert.match(desktopCss,/\.teamScore\s*\{[^}]*flex-shrink: 0/);
   assert.match(desktopCss,/\.at\s*\{[^}]*flex-shrink: 0/);
   assert.match(mobileCss,/\.matchup\s*\{[^}]*display: grid;[^}]*grid-template-columns: minmax\(0, 1fr\) auto auto auto minmax\(0, 1fr\)/);
-  assert.match(mobileCss,/\.teamLine, \.teamLine:last-child\s*\{[^}]*flex-direction: column/);
+  assert.match(mobileCss,/\.teamLine, \.teamLine:last-child\s*\{[^}]*flex-direction: column;[^}]*justify-content: flex-start/);
   assert.match(html,/<div class="pickResult"><p class="gamePick"><span class="detailLabel">Ton choix<\/span>Buffalo Bills par 7<\/p><div class="resultGroup"><div class="gameResult"><span class="detailLabel">Résultat<\/span>Buffalo Bills par 7/);
 });
 
