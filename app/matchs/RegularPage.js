@@ -10,6 +10,7 @@ import BottomNav from "../components/BottomNav";
 import HistoryBadge from "../components/HistoryBadge";
 import {qbHistory} from "../../lib/seasons/qbHistory.mjs";
 import {selectionSnapshot,regularQbResult,isQbConsumed} from "../../lib/seasons/qbSnapshot.mjs";
+import {getQbHeadshot,ratingColor,officialResultText as getOfficialResultText} from "../components/weekly-summary/presentation.mjs";
 
 /* =========================================================
    ORDRE OFFICIEL — SEMAINE 1
@@ -40,12 +41,6 @@ function playerRealName(player) {
 /* =========================================================
    HELPERS
    ========================================================= */
-
-function getQbHeadshot(qb) {
-  if (!qb?.espn_athlete_id) return null;
-
-  return `https://a.espncdn.com/i/headshots/nfl/players/full/${qb.espn_athlete_id}.png`;
-}
 
 function getPickBadge(game, pick) {
   if (
@@ -107,35 +102,6 @@ function getPickPoints(game, pick) {
   return 1;
 }
 
-function getOfficialResultText(game) {
-  if (
-    game.home_score == null ||
-    game.away_score == null
-  ) {
-    return null;
-  }
-
-  if (
-    Number(game.home_score) ===
-    Number(game.away_score)
-  ) {
-    return "Égalité";
-  }
-
-  const winner =
-    Number(game.home_score) >
-    Number(game.away_score)
-      ? game.home_team
-      : game.away_team;
-
-  const spread = Math.abs(
-    Number(game.home_score) -
-      Number(game.away_score)
-  );
-
-  return `${winner} par ${spread}`;
-}
-
 function getTemporaryResultText(game, liveGame) {
   if (!liveGame?.score) return null;
 
@@ -154,16 +120,6 @@ function getTemporaryResultText(game, liveGame) {
   const spread = Math.abs(homeScore - awayScore);
 
   return `${winner} par ${spread}`;
-}
-
-function ratingColor(rating) {
-  const value = Number(rating);
-
-  if (value >= 100) return "#22c55e";
-  if (value >= 90) return "#f8fafc";
-  if (value >= 70) return "#f97316";
-
-  return "#ef4444";
 }
 
 function TeamLogo({

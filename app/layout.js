@@ -1,4 +1,5 @@
 import "./globals.css";
+import WeeklySummaryGate from "./components/weekly-summary/WeeklySummaryGate";
 
 export const metadata = {
   title: "Pool NFL",
@@ -22,7 +23,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="fr">
-      <body>{children}</body>
+      <body>{children}<WeeklySummaryGate /></body>
     </html>
   );
 }

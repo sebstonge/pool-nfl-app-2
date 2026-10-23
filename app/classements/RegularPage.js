@@ -7,6 +7,7 @@ import { supabase as rawSupabase } from "../../lib/supabase";
 import BottomNav from "../components/BottomNav";
 import HistoryBadge from "../components/HistoryBadge";
 import {rankBadges} from "../../lib/seasons/rankBadges.mjs";
+import {rankWeeklyScores,rankSeasonScores} from "../../lib/seasons/rankings.mjs";
 
 /* =========================================================
    HELPERS
@@ -1345,59 +1346,23 @@ export default function ClassementsPage() {
         (u) => u.id === userId
       );
 
-    const weekScores =
-      scores
-        .filter(
-          (score) =>
-            Number(score.week) ===
-            Number(weekNumber)
-        )
-        .sort(
-          (a, b) =>
-            Number(
-              b.final_score || 0
-            ) -
-            Number(
-              a.final_score || 0
-            )
-        );
-
-    const weekLeader =
-      Number(
-        weekScores?.[0]
-          ?.final_score || 0
-      );
-
-    return weekScores.map(
-      (score, index) => {
+    return rankWeeklyScores(scores, weekNumber).map(
+      (row) => {
         const user =
           getUser(
-            score.user_id
-          );
-
-        const scoreValue =
-          Number(
-            score.final_score || 0
+            row.userId
           );
 
         return {
-          rank: index + 1,
-          userId: score.user_id,
+          ...row,
 
           name: displayName(
             user,
-            score.user_id
+            row.userId
           ),
 
           realName:
             realName(user),
-
-          score:
-            scoreValue,
-
-          diff:
-            weekLeader -
-            scoreValue,
         };
       }
     );
@@ -1516,49 +1481,24 @@ export default function ClassementsPage() {
         );
 
       function buildSeasonRows(scores) {
-        const grouped = {};
+        return rankSeasonScores(scores).map((row) => {
+          const user =
+            getUser(
+              row.userId
+            );
 
-        for (const score of scores || []) {
-          if (!grouped[score.user_id]) {
-            const user =
-              getUser(
-                score.user_id
-              );
+          return {
+            ...row,
 
-            grouped[score.user_id] = {
-              userId:
-                score.user_id,
+            name: displayName(
+              user,
+              row.userId
+            ),
 
-              name: displayName(
-                user,
-                score.user_id
-              ),
-
-              realName:
-                realName(user),
-
-              total: 0,
-              weeks: 0,
-            };
-          }
-
-          grouped[
-            score.user_id
-          ].total += Number(
-            score.final_score || 0
-          );
-
-          grouped[
-            score.user_id
-          ].weeks += 1;
-        }
-
-        return Object.values(
-          grouped
-        ).sort(
-          (a, b) =>
-            b.total - a.total
-        );
+            realName:
+              realName(user),
+          };
+        });
       }
 
       const seasonRows =

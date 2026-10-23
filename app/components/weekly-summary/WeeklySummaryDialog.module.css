@@ -1,0 +1,167 @@
+.dialog {
+  width: min(1000px, calc(100% - 48px));
+  max-width: none;
+  max-height: min(900px, calc(100dvh - 48px));
+  padding: 0;
+  border: 1px solid rgba(148, 163, 184, .25);
+  border-radius: 24px;
+  background: #0b1325;
+  color: #f8fafc;
+  box-shadow: 0 30px 100px rgba(0, 0, 0, .6);
+  font-family: Arial, sans-serif;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+.dialog::backdrop { background: rgba(2, 6, 23, .8); backdrop-filter: blur(5px); }
+.shell { display: flex; flex-direction: column; max-height: min(898px, calc(100dvh - 50px)); min-height: 0; }
+.header { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; padding: 26px 28px 22px; border-bottom: 1px solid rgba(148, 163, 184, .12); flex-shrink: 0; }
+.heading { min-width: 0; }
+.eyebrow { margin: 0 0 8px; color: #4ade80; font-size: 10px; font-weight: 800; letter-spacing: 1.6px; }
+.title { margin: 0; font-size: clamp(22px, 3vw, 28px); line-height: 1.2; font-weight: 900; letter-spacing: -.6px; overflow-wrap: anywhere; }
+.subtitle { margin: 9px 0 0; color: #94a3b8; font-size: 13px; line-height: 1.45; }
+.closeButton { display: grid; place-items: center; flex: 0 0 44px; width: 44px; height: 44px; padding: 0; border: 1px solid rgba(148, 163, 184, .25); border-radius: 12px; color: #cbd5e1; background: rgba(148, 163, 184, .07); cursor: pointer; font-family: inherit; font-size: 27px; line-height: 1; }
+.closeButton:hover { background: rgba(148, 163, 184, .15); color: #fff; }
+.closeButton:focus-visible, .continueButton:focus-visible { outline: 3px solid #86efac; outline-offset: 3px; }
+.closeButton:disabled, .continueButton:disabled { cursor: wait; opacity: .65; }
+.body { padding: 24px 28px 28px; min-height: 0; overflow: auto; overscroll-behavior: contain; }
+.tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.tile { min-width: 0; padding: 19px; border: 1px solid rgba(148, 163, 184, .17); border-radius: 18px; background: #111d31; }
+.scoreTile { border-color: rgba(74, 222, 128, .3); background: linear-gradient(145deg, rgba(22, 101, 52, .21), #111d31 75%); }
+.tileLabel { margin: 0; color: #cbd5e1; font-size: 11px; font-weight: 800; letter-spacing: .2px; }
+.scoreValue { margin-top: 18px; color: #86efac; font-size: 42px; font-weight: 900; letter-spacing: -1.5px; line-height: 1.1; overflow-wrap: anywhere; }
+.scoreValue > span { font-size: 13px; font-weight: 700; letter-spacing: 0; color: #a7b9ae; }
+.tileDivider { height: 1px; background: rgba(148, 163, 184, .13); margin: 18px 0 13px; }
+.tileFoot { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 11px; color: #94a3b8; line-height: 1.4; }
+.tileFoot strong { font-size: 16px; color: #f8fafc; text-align: right; }
+.rankCount { font-size: 11px; font-weight: 600; color: #94a3b8; }
+.qbIdentity { display: flex; gap: 8px; align-items: center; margin-top: 9px; min-width: 0; }
+.qbPortrait { width: 74px; height: 65px; object-fit: contain; object-position: center bottom; flex: 0 0 74px; align-self: end; }
+.qbFallback { display: grid; place-items: center; border-radius: 12px; background: rgba(148, 163, 184, .08); color: #94a3b8; font-weight: 800; font-size: 18px; }
+.qbDetails { min-width: 0; }
+.qbName { display: block; font-size: 15px; line-height: 1.3; overflow-wrap: anywhere; }
+.qbTeam { display: flex; align-items: center; gap: 5px; margin-top: 5px; color: #94a3b8; font-size: 10px; line-height: 1.3; overflow-wrap: anywhere; }
+.qbTeam .teamLogo, .qbTeam .teamFallback { width: 20px; height: 20px; flex-basis: 20px; }
+.replacement { margin-top: 9px; display: flex; flex-direction: column; align-items: flex-start; gap: 5px; }
+.replacementBadge { display: inline-block; border: 1px solid rgba(250, 204, 21, .25); border-radius: 6px; padding: 3px 6px; background: rgba(250, 204, 21, .09); color: #fde68a; font-size: 9px; font-weight: 700; line-height: 1.3; }
+.selectedQb { color: #94a3b8; font-size: 10px; line-height: 1.35; overflow-wrap: anywhere; }
+.qbStats { display: grid; gap: 8px; margin-top: 13px; padding-top: 12px; border-top: 1px solid rgba(148, 163, 184, .13); color: #94a3b8; font-size: 10px; }
+.qbStats > span { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.qbStats strong { color: #f8fafc; font-size: 15px; text-align: right; }
+.overallRank { margin: 15px 0 9px; font-size: 38px; line-height: 1.1; font-weight: 900; letter-spacing: -1px; }
+.movementUp, .movementDown, .movementNeutral { display: block; font-size: 11px; line-height: 1.4; }
+.movementUp { color: #86efac; }
+.movementDown { color: #fca5a5; }
+.movementNeutral, .previousRank { color: #94a3b8; }
+.previousRank { font-size: 10px; }
+.gamesSection { margin-top: 28px; }
+.gamesHeading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.gamesHeading h3 { font-size: 16px; letter-spacing: -.2px; margin: 0; }
+.gamesHeading > span { color: #94a3b8; font-size: 11px; white-space: nowrap; }
+.listHead, .gameRow { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr) 68px; gap: 22px; }
+.listHead { padding: 0 14px 8px; color: #64748b; font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .5px; }
+.listHead > :last-child { text-align: right; }
+.gameList { list-style: none; padding: 0; margin: 0; border: 1px solid rgba(148, 163, 184, .16); border-radius: 14px; overflow: hidden; }
+.gameRow { padding: 13px 14px; align-items: center; background: rgba(15, 23, 42, .45); }
+.gameRow + .gameRow { border-top: 1px solid rgba(148, 163, 184, .12); }
+.matchup { display: grid; gap: 4px; min-width: 0; }
+.teamLine { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.at { flex: 0 0 auto; color: #94a3b8; font-size: 11px; }
+.teamLogo { width: 25px; height: 25px; object-fit: contain; flex: 0 0 25px; }
+.teamFallback { display: grid; place-items: center; width: 25px; height: 25px; flex: 0 0 25px; color: #94a3b8; font-size: 9px; font-weight: 800; }
+.teamName { min-width: 0; color: #e2e8f0; font-size: 11px; line-height: 1.3; overflow-wrap: anywhere; }
+.teamScore { margin-left: auto; color: #f8fafc; font-variant-numeric: tabular-nums; font-size: 13px; flex: 0 0 22px; text-align: right; }
+.pickResult { min-width: 0; }
+.gamePick, .gameResult { margin: 0; font-size: 11px; line-height: 1.4; overflow-wrap: anywhere; }
+.gamePick { font-weight: 700; color: #e2e8f0; }
+.gameResult { color: #94a3b8; margin-top: 4px; }
+.mobileLabel { display: none; }
+.exceptionalNote { color: #fcd34d; font-size: 10px; line-height: 1.4; margin: 5px 0 0; overflow-wrap: anywhere; }
+.points { padding: 5px 6px; border: 1px solid; border-radius: 7px; font-size: 10px; font-weight: 800; line-height: 1.2; text-align: center; white-space: nowrap; }
+.red { color: #fca5a5; background: rgba(239, 68, 68, .1); border-color: rgba(239, 68, 68, .23); }
+.yellow { color: #fde047; background: rgba(234, 179, 8, .1); border-color: rgba(234, 179, 8, .23); }
+.green { color: #86efac; background: rgba(34, 197, 94, .1); border-color: rgba(34, 197, 94, .23); }
+.neutral { color: #cbd5e1; background: rgba(148, 163, 184, .08); border-color: rgba(148, 163, 184, .23); }
+.emptyGames { color: #94a3b8; font-size: 12px; line-height: 1.5; }
+.footer { flex-shrink: 0; padding: 16px 28px 20px; border-top: 1px solid rgba(148, 163, 184, .12); background: #0b1325; }
+.continueButton { display: flex; align-items: center; justify-content: center; gap: 14px; min-height: 46px; width: 100%; border: 1px solid #4ade80; border-radius: 12px; padding: 12px 16px; color: #052e16; background: #4ade80; font-family: inherit; font-weight: 800; font-size: 13px; line-height: 1.4; cursor: pointer; }
+.continueButton:hover { background: #86efac; }
+.continueButton > span { font-size: 18px; line-height: 1; }
+.error { margin: 0 0 11px; color: #fca5a5; font-size: 12px; line-height: 1.4; overflow-wrap: anywhere; }
+@media (max-width: 740px) {
+  .dialog { width: calc(100% - 28px); max-height: calc(100dvh - 28px); border-radius: 20px; }
+  .shell { max-height: calc(100dvh - 30px); }
+  .header { padding: 21px 20px 18px; gap: 12px; }
+  .title { font-size: 23px; }
+  .body { padding: 18px 20px 22px; }
+  .tiles { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .tile { padding: 16px; }
+  .scoreTile { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 12px; }
+  .scoreTile .tileLabel { grid-column: 1; }
+  .scoreValue { margin-top: 7px; font-size: 38px; grid-column: 1; }
+  .scoreTile .tileDivider { display: none; }
+  .scoreTile .tileFoot { grid-column: 2; grid-row: 1 / 3; flex-direction: column; align-items: flex-end; justify-content: center; }
+  .scoreTile .tileFoot strong { font-size: 21px; }
+  .qbTile { display: grid; grid-template-columns: minmax(0, 1fr) minmax(100px, .7fr); column-gap: 14px; }
+  .qbTile .tileLabel { grid-column: 1 / -1; }
+  .qbIdentity { grid-column: 1; }
+  .qbPortrait { width: 64px; height: 60px; flex-basis: 64px; }
+  .qbStats { grid-column: 2; grid-row: 2; margin: 10px 0 0; padding: 0 0 0 13px; border-top: 0; border-left: 1px solid rgba(148, 163, 184, .13); gap: 9px; }
+  .qbStats > span { display: block; font-size: 10px; }
+  .qbStats strong { display: block; margin-top: 3px; text-align: left; font-size: 17px; }
+  .replacement { grid-column: 1 / -1; }
+  .overallTile { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 12px; align-items: center; }
+  .overallTile .tileLabel { grid-column: 1; }
+  .overallRank { grid-column: 2; grid-row: 1 / 3; margin: 0; font-size: 32px; }
+  .movementUp, .movementDown, .movementNeutral { margin-top: 5px; grid-column: 1; }
+  .overallTile .tileDivider { grid-column: 1 / -1; width: 100%; margin: 12px 0 10px; }
+  .overallTile .tileFoot { grid-column: 1 / -1; }
+  .gamesSection { margin-top: 23px; }
+  .listHead, .gameRow { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 63px; gap: 12px; }
+  .listHead { padding-left: 10px; padding-right: 10px; }
+  .gameRow { padding: 12px 10px; }
+  .teamLine { gap: 5px; }
+  .teamLogo, .teamFallback { width: 22px; height: 22px; flex-basis: 22px; }
+  .footer { padding: 14px 20px 18px; }
+}
+@media (max-width: 480px) {
+  .dialog { width: calc(100% - 20px); max-height: calc(100dvh - 20px); border-radius: 18px; }
+  .shell { max-height: calc(100dvh - 22px); }
+  .header { padding: 19px 15px 16px; gap: 8px; }
+  .title { font-size: 21px; }
+  .eyebrow { font-size: 9px; margin-bottom: 7px; }
+  .subtitle { font-size: 11px; margin-top: 8px; }
+  .closeButton { border-radius: 10px; }
+  .body { padding: 15px 14px 20px; }
+  .tile { padding: 14px; border-radius: 14px; }
+  .tileLabel { font-size: 10px; }
+  .scoreValue { font-size: 34px; }
+  .scoreValue > span { font-size: 11px; }
+  .scoreTile .tileFoot { font-size: 9px; }
+  .scoreTile .tileFoot strong { font-size: 18px; }
+  .qbTile { grid-template-columns: minmax(0, 1fr) 83px; column-gap: 8px; }
+  .qbIdentity { gap: 5px; }
+  .qbPortrait { width: 46px; height: 52px; flex-basis: 46px; }
+  .qbName { font-size: 13px; }
+  .qbTeam { font-size: 9px; gap: 3px; }
+  .qbTeam .teamLogo, .qbTeam .teamFallback { width: 16px; height: 16px; flex-basis: 16px; }
+  .qbStats { padding-left: 9px; }
+  .qbStats > span { font-size: 9px; }
+  .qbStats strong { font-size: 15px; }
+  .overallRank { font-size: 29px; }
+  .movementUp, .movementDown, .movementNeutral { font-size: 10px; }
+  .previousRank { display: block; margin-top: 2px; }
+  .gamesHeading { margin-bottom: 11px; gap: 8px; }
+  .gamesHeading h3 { font-size: 14px; }
+  .listHead { display: none; }
+  .gameRow { grid-template-columns: minmax(0, 1fr) auto; gap: 10px 8px; padding: 12px 10px; }
+  .matchup { grid-column: 1 / -1; padding-bottom: 9px; border-bottom: 1px solid rgba(148, 163, 184, .08); gap: 3px; }
+  .teamLine { gap: 7px; }
+  .teamName { font-size: 11px; }
+  .pickResult { grid-column: 1; }
+  .gamePick, .gameResult { font-size: 10px; }
+  .mobileLabel { display: block; color: #64748b; font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; margin-bottom: 2px; }
+  .gameResult { margin-top: 6px; }
+  .points { grid-column: 2; align-self: start; margin-top: 12px; min-width: 46px; font-size: 9px; }
+  .footer { padding: 12px 14px 15px; }
+  .continueButton { padding: 11px 10px; gap: 8px; font-size: 12px; }
+}
