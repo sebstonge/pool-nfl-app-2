@@ -3,10 +3,11 @@ import {selectionSnapshot} from "../../lib/seasons/qbSnapshot.mjs";
 import {initialOrder,regularClient} from "../../lib/seasons/regularClient.mjs";
 const supabase=regularClient(rawSupabase);
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase as rawSupabase } from "../../lib/supabase";
 import {loadSelectionStats as readSelectionStats,formatDuration} from "../../lib/seasons/selectionTime.mjs";
 import NotificationLog from "./components/NotificationLog";
+import FullUpdateStatus from "./components/FullUpdateStatus";
 import BottomNav from "../components/BottomNav";
 import SeasonLifecycle from "./components/SeasonLifecycle";
 import LifecycleActions from "./components/LifecycleActions";
@@ -94,6 +95,8 @@ export default function AdminPage() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [settings, setSettings] = useState(null);
   const [message, setMessage] = useState("");
+  const [fullUpdateStatus, setFullUpdateStatus] = useState(null);
+  const fullUpdateRunning = useRef(false);
 
   const [selectionStats, setSelectionStats] = useState([]);
   const [selectionStatsLoading, setSelectionStatsLoading] =
@@ -1556,34 +1559,58 @@ async function updateAllQBWeeklyStatsFromEspn(
      ========================================================= */
 
   const fullUpdate = async () => {
+    if (fullUpdateRunning.current) return;
+    fullUpdateRunning.current = true;
+    let activeStep = null;
+    const startStep = (step) => {
+      activeStep = step;
+      setFullUpdateStatus((state) => ({ ...state, activeStep: step }));
+    };
+    const completeStep = (step, count) => {
+      activeStep = null;
+      setFullUpdateStatus((state) => ({
+        ...state,
+        activeStep: null,
+        completed: { ...state.completed, [step]: count },
+      }));
+    };
+    setMessage("");
+    setFullUpdateStatus({
+      status: "running", week: settings?.current_week ?? null,
+      activeStep: null, completed: {}, details: {}, warnings: [], error: null,
+    });
     try {
-      setMessage(
-        "Mise à jour complète en cours..."
-      );
 
       const currentSettings =
         await loadSettings();
 
       const currentWeek =
         currentSettings.current_week;
+      setFullUpdateStatus((state) => ({ ...state, week: currentWeek }));
 
       /*
        * 1. Scores NFL
        */
+      startStep("scores");
       const scoresResult =
         await updateScoresFromEspn(
           currentWeek
         );
 
+      completeStep("scores", scoresResult.updated);
+
       /*
        * 2. Standings NFL
        */
+      startStep("teams");
       const standingsResult =
         await updateTeamStandingsFromEspn();
+      completeStep("teams", standingsResult.updated);
 
     /*
  * 3. QB ratings utilisés par le pool
  */
+startStep("qb");
 const qbResult =
   await updateQBRatingsFromEspn(
     currentWeek
@@ -1599,13 +1626,21 @@ const allQbStatsResult =
     currentWeek
   );
 
+completeStep("qb", qbResult.updated);
+setFullUpdateStatus((state) => ({
+  ...state, details: { ...state.details, qbStats: allQbStatsResult.updated },
+}));
+
 /*
  * 5. Scores du pool
  */
+startStep("rankings");
 const rankingsCalculated =
   await calculateScores(
     currentWeek
   );
+
+completeStep("rankings", rankingsCalculated);
 
       /*
        * =====================================================
@@ -1715,73 +1750,40 @@ const rankingsCalculated =
         }
       }
 
-      /*
-       * =====================================================
-       * MESSAGE ADMIN
-       * =====================================================
-       */
-
-let finalMessage =
-  `Mise à jour complète ✅ ` +
-  `Scores ESPN : ${scoresResult.updated}. ` +
-  `Équipes : ${standingsResult.updated}. ` +
-  `QB ratings pool : ${qbResult.updated}. ` +
-  `Stats QB NFL : ${allQbStatsResult.updated}. ` +
-  `Classements : ${rankingsCalculated}.`;
-
-      /*
-       * Information utile pour toi dans Admin.
-       */
-      if (
-        scoresResult.changedGames.length ===
-        0
-      ) {
-        finalMessage +=
-          ` Aucun nouveau score à notifier.`;
-      } else if (
-        rankingNotificationResult
-          ?.success
-      ) {
-        finalMessage +=
-          ` Notifications classement : ${rankingNotificationResult.sent}.`;
+      const warnings = [];
+      if (standingsResult.notMatched.length > 0) {
+        warnings.push("Équipes non associées : " + standingsResult.notMatched.join(", "));
       }
-
-      if (
-        standingsResult
-          .notMatched
-          .length > 0
-      ) {
-        finalMessage +=
-          ` Équipes non associées : ` +
-          standingsResult.notMatched.join(
-            ", "
-          ) +
-          ".";
+      if (allQbStatsResult.notFound.length > 0) {
+        warnings.push("Stats QB NFL non trouvées : " + allQbStatsResult.notFound.join(", "));
       }
-
-      if (
-  allQbStatsResult.notFound
-    .length > 0
-) {
-  finalMessage +=
-    ` Stats QB NFL non trouvées : ` +
-    allQbStatsResult.notFound.join(
-      ", "
-    );
-}
-
-      setMessage(finalMessage);
+      const notificationNote = scoresResult.changedGames.length === 0
+        ? "Aucun nouveau score à notifier."
+        : rankingNotificationResult?.success
+          ? null
+          : "L’envoi des notifications de classement n’a pas été confirmé.";
+      setFullUpdateStatus((state) => ({
+        ...state, warnings,
+        details: {
+          ...state.details,
+          notifications: rankingNotificationResult?.success ? rankingNotificationResult.sent : null,
+          notificationNote,
+        },
+      }));
 
       await loadSelectionStats(
         Number(currentWeek)
       );
+      setFullUpdateStatus((state) => ({ ...state, status: "success", activeStep: null }));
     } catch (error) {
       console.error(error);
 
-      setMessage(
-        "Erreur mise à jour : " +
-          error.message
-      );
+      setFullUpdateStatus((state) => ({
+        ...state, status: "error", activeStep: null,
+        error: { step: activeStep, message: error?.message || "La mise à jour a été interrompue." },
+      }));
+    } finally {
+      fullUpdateRunning.current = false;
     }
   };
  /* =========================================================
@@ -2130,6 +2132,8 @@ async function resetUserPassword() {
       </section>
 
 
+      <FullUpdateStatus state={fullUpdateStatus} />
+
       {/* =====================================================
           MESSAGE ADMIN
           ===================================================== */}
@@ -2309,6 +2313,8 @@ async function resetUserPassword() {
             <button
               className="button"
               onClick={fullUpdate}
+              disabled={fullUpdateStatus?.status === "running"}
+              aria-busy={fullUpdateStatus?.status === "running"}
               style={
                 isDesktop
                   ? {
