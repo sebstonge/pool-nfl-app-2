@@ -41,9 +41,18 @@ test('the three tiles render supplied official score, rating, ranks and overall 
   const html=render();
   assert.match(html,/4,512/);assert.match(html,/112,8/);assert.match(html,/31,234/);
   assert.equal((html.match(/class="tile /g)||[]).length,3);
-  assert.match(html,/↑ 2 places/);assert.match(html,/auparavant 6e/);
-  assert.match(html,/QB utilisés/);assert.match(html,/Cette semaine/);
+  assert.match(html,/▲ \+2/);assert.match(html,/\(auparavant 6e\)/);
+  assert.match(html,/QB utilisés/);assert.match(html,/cette semaine/);
   assert.doesNotMatch(html,/Remplacement|Choix initial|undefined|NaN/);
+});
+
+test('overall movement distinguishes gained, lost and unchanged ranks',()=>{
+  const gained=render();
+  assert.match(gained,/class="movementUp"/);assert.match(gained,/aria-label="2 places gagnées"/);
+  const lost=render({...summary,overall:{...summary.overall,rank:8,previousRank:6,movement:-2}});
+  assert.match(lost,/class="movementDown"/);assert.match(lost,/▼ −2/);assert.match(lost,/aria-label="2 places perdues"/);
+  const unchanged=render({...summary,overall:{...summary.overall,movement:0}});
+  assert.match(unchanged,/Position inchangée/);assert.doesNotMatch(unchanged,/▲|▼/);
 });
 
 test('the actual replacement and its headshot are shown while preserving the initial choice',()=>{
@@ -54,14 +63,34 @@ test('the actual replacement and its headshot are shown while preserving the ini
   assert.match(html,/class="replacementBadge"/);
 });
 
-test('game colors follow the already computed points; result notes remain visible',()=>{
+test('points use the Mes choix neutral pill and result dots follow the supplied points',()=>{
   const html=render({...summary,games:summary.games.map((game,index)=>({...game,exceptionalNote:index===0?'Match déclaré nul':undefined}))});
-  for(const [tone,label] of [['red','0 point'],['yellow','1 point'],['green','2 points']]) {
-    assert.ok(html.includes(`class="points ${tone}">${label}</span>`));
+  for(const [dot,label] of [['🔴','0 point'],['🟡','1 point'],['🟢','2 points']]) {
+    assert.ok(html.includes(`class="points">${label}</span><span class="resultDot" aria-hidden="true">${dot}</span></div></div></li>`));
   }
   assert.match(html,/Match déclaré nul/);
   assert.equal((html.match(/class="gameRow"/g)||[]).length,3);
   assert.match(html,/Buffalo Bills par 7/);
+  assert.doesNotMatch(html,/class="points (?:red|yellow|green)"/);
+  const unknown=render({...summary,games:[{...summary.games[0],points:null}]});
+  assert.match(unknown,/class="points">—<\/span><span class="resultDot" aria-hidden="true">⚪<\/span>/);
+  assert.match(css,/\.points\s*\{[^}]*padding: 4px 8px;[^}]*border-radius: 999px;[^}]*background: rgba\(148, 163, 184, \.10\);[^}]*color: #f8fafc/);
+});
+
+test('each matchup faces the two teams around their scores and the away-at-home separator',()=>{
+  const html=render({...summary,games:[summary.games[0]]});
+  const matchup=html.slice(html.indexOf('<div class="matchup"'),html.indexOf('<div class="pickResult"'));
+  assert.match(matchup,/class="teamLine"[\s\S]*class="teamName">Buffalo Bills<\/span><\/div><strong class="teamScore">27<\/strong><span class="at" aria-label="chez">@<\/span><strong class="teamScore">20<\/strong><div class="teamLine"[\s\S]*class="teamName">New York Jets<\/span>/);
+  assert.match(matchup,/teamlogos\/nfl\/500\/buf\.png/);assert.match(matchup,/teamlogos\/nfl\/500\/nyj\.png/);
+  assert.match(css,/\.matchup\s*\{[^}]*display: grid;[^}]*grid-template-columns: minmax\(0, 1fr\) auto auto auto minmax\(0, 1fr\)/);
+  assert.match(html,/<div class="pickResult"><p class="gamePick"><span class="detailLabel">Ton choix<\/span>Buffalo Bills par 7<\/p><div class="resultGroup"><div class="gameResult"><span class="detailLabel">Résultat<\/span>Buffalo Bills par 7/);
+});
+
+test('exceptional game notes are shown only when supplied with that game',()=>{
+  assert.doesNotMatch(render(),/class="exceptionalNote"|Match déclaré nul/);
+  const html=render({...summary,games:[{...summary.games[0],exceptionalNote:'Match déclaré nul'}]});
+  assert.equal((html.match(/class="exceptionalNote"/g)||[]).length,1);
+  assert.match(html,/Match déclaré nul/);
 });
 
 test('zero values are retained and missing values never become invented points or ranks',()=>{
@@ -70,7 +99,7 @@ test('zero values are retained and missing values never become invented points o
   assert.match(zero,/color:#ef4444">0/);
   const unknown=render({...summary,score:{},qb:{},overall:{},games:[]});
   assert.match(unknown,/QB non identifié/);assert.match(unknown,/Évolution non disponible/);
-  assert.match(unknown,/Aucun choix de match/);assert.doesNotMatch(unknown,/undefined|NaN|↑|↓/);
+  assert.match(unknown,/Aucun choix de match/);assert.doesNotMatch(unknown,/undefined|NaN|▲|▼/);
 });
 
 test('busy and failure states remain accessible without hiding the results',()=>{
@@ -137,7 +166,10 @@ test('the bounded dialog scrolls its body and changes composition for narrow scr
   assert.match(css,/\.body\s*\{[^}]*min-height: 0;[^}]*overflow: auto/);
   assert.match(css,/grid-template-columns: repeat\(3, minmax\(0, 1fr\)\)/);
   assert.match(css,/@media \(max-width: 740px\)[\s\S]*\.tiles \{ grid-template-columns: minmax\(0, 1fr\)/);
-  assert.match(css,/@media \(max-width: 480px\)[\s\S]*\.gameRow \{ grid-template-columns: minmax\(0, 1fr\) auto/);
+  assert.match(css,/@media \(max-width: 740px\)[\s\S]*\.gameRow, \.gameRow \+ \.gameRow \{ display: block/);
+  assert.match(css,/@media \(max-width: 420px\)[\s\S]*\.resultGroup \{ grid-template-columns: minmax\(0, 1fr\) auto/);
+  assert.match(css,/@media \(max-width: 420px\)[\s\S]*\.gameResult \{ grid-column: 1 \/ -1/);
+  assert.match(css,/@media \(max-width: 420px\)[\s\S]*\.resultDot \{ grid-column: 2/);
   assert.match(css,/\.closeButton:focus-visible, \.continueButton:focus-visible/);
   assert.doesNotMatch(source,/\bfetch\s*\(|supabase|localStorage|sessionStorage|\.from\(/);
 });

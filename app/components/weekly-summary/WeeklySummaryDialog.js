@@ -41,32 +41,41 @@ function OverallMovement({ overall }) {
   if (movement === 0) return <span className={styles.movementNeutral}>→ Position inchangée</span>;
   return (
     <span className={movement > 0 ? styles.movementUp : styles.movementDown}>
-      {movement > 0 ? "↑" : "↓"} {Math.abs(movement)} {Math.abs(movement) === 1 ? "place" : "places"}
-      {overall.previousRank != null && <span className={styles.previousRank}> · auparavant {rankLabel(overall.previousRank)}</span>}
+      <span aria-label={`${Math.abs(movement)} ${Math.abs(movement) === 1 ? "place" : "places"} ${movement > 0 ? "gagnées" : "perdues"}`}>{movement > 0 ? "▲ +" : "▼ −"}{Math.abs(movement)}</span>
+      {overall.previousRank != null && <span className={styles.previousRank}>(auparavant {rankLabel(overall.previousRank)})</span>}
     </span>
   );
 }
 
 function GameRow({ game, teams }) {
   const points = pointsPresentation(game.points);
+  const dot = { red: "🔴", yellow: "🟡", green: "🟢", neutral: "⚪" }[points.tone];
   return (
     <li className={styles.gameRow}>
       <div className={styles.matchup} aria-label="Score final">
-        {["away", "home"].map((side) => (
-          <div className={styles.teamLine} key={side}>
-            {side === "home" && <span className={styles.at} aria-label="chez">@</span>}
-            <TeamMark name={game[`${side}_team`]} teams={teams} />
-            <span className={styles.teamName}>{game[`${side}_team`]}</span>
-            <strong className={styles.teamScore}>{numberLabel(game[`${side}_score`], 0)}</strong>
-          </div>
-        ))}
+        <div className={styles.teamLine}>
+          <TeamMark name={game.away_team} teams={teams} />
+          <span className={styles.teamName}>{game.away_team}</span>
+        </div>
+        <strong className={styles.teamScore}>{numberLabel(game.away_score, 0)}</strong>
+        <span className={styles.at} aria-label="chez">@</span>
+        <strong className={styles.teamScore}>{numberLabel(game.home_score, 0)}</strong>
+        <div className={styles.teamLine}>
+          <TeamMark name={game.home_team} teams={teams} />
+          <span className={styles.teamName}>{game.home_team}</span>
+        </div>
       </div>
       <div className={styles.pickResult}>
-        <p className={styles.gamePick}><span className={styles.mobileLabel}>Ton choix</span>{game.picked_team} par {numberLabel(game.predicted_spread, 0)}</p>
-        <p className={styles.gameResult}><span className={styles.mobileLabel}>Résultat</span>{game.resultText || "Résultat non disponible"}</p>
-        {game.exceptionalNote && <p className={styles.exceptionalNote}>{game.exceptionalNote}</p>}
+        <p className={styles.gamePick}><span className={styles.detailLabel}>Ton choix</span>{game.picked_team} par {numberLabel(game.predicted_spread, 0)}</p>
+        <div className={styles.resultGroup}>
+          <div className={styles.gameResult}>
+            <span className={styles.detailLabel}>Résultat</span>{game.resultText || "Résultat non disponible"}
+            {game.exceptionalNote && <p className={styles.exceptionalNote}>{game.exceptionalNote}</p>}
+          </div>
+          <span className={styles.points}>{points.label}</span>
+          <span className={styles.resultDot} aria-hidden="true">{dot}</span>
+        </div>
       </div>
-      <span className={`${styles.points} ${styles[points.tone]}`}>{points.label}</span>
     </li>
   );
 }
@@ -126,10 +135,12 @@ export default function WeeklySummaryDialog({ summary, onClose, busy = false, er
         <div className={styles.body}>
           <div className={styles.tiles}>
             <section className={`${styles.tile} ${styles.scoreTile}`} aria-label="Ton score de la semaine">
-              <p className={styles.tileLabel}>Ton score</p>
-              <div className={styles.scoreValue}>{numberLabel(score.points)} <span>points</span></div>
+              <div className={styles.scoreMain}>
+                <svg className={styles.scoreIcon} viewBox="0 0 48 56" aria-hidden="true"><path fill="currentColor" d="M12 3h24v7h9v8c0 8-5 13-13 14-1 4-3 6-5 7v7h9v7H12v-7h9v-7c-3-1-5-4-6-7C7 31 2 26 2 18v-8h10V3Zm0 12H7v3c0 4 2 7 6 8l-1-11Zm24 0-1 11c4-1 5-4 5-8v-3h-4Z" /></svg>
+                <div className={styles.scoreDetails}><p className={styles.tileLabel}>Ton score</p><div className={styles.scoreValue}>{numberLabel(score.points)} <span>pts</span></div></div>
+              </div>
               <div className={styles.tileDivider} />
-              <div className={styles.tileFoot}><span>Cette semaine</span><strong>{rankLabel(score.rank)} <span className={styles.rankCount}>· {numberLabel(score.participants, 0)} joueurs</span></strong></div>
+              <p className={styles.scoreRank}><strong>{rankLabel(score.rank)}</strong> cette semaine <span>· {numberLabel(score.participants, 0)} joueurs</span></p>
             </section>
 
             <section className={`${styles.tile} ${styles.qbTile}`} aria-label="Ton quart-arrière de la semaine">
@@ -143,15 +154,18 @@ export default function WeeklySummaryDialog({ summary, onClose, busy = false, er
               </div>
               {qb.replaced && <div className={styles.replacement}><span className={styles.replacementBadge}>🔄 Remplacement</span><span className={styles.selectedQb}>Choix initial : {qb.selected?.name || "QB non identifié"}</span></div>}
               <div className={styles.qbStats}>
-                <span>Passer rating <strong style={qb.rating != null ? { color: ratingColor(qb.rating) } : undefined}>{numberLabel(qb.rating, 1)}</strong></span>
-                <span>QB utilisés <strong>{rankLabel(qb.rank)} <span className={styles.rankCount}>sur {numberLabel(qb.count, 0)}</span></strong></span>
+                <div className={styles.qbRating}><span>Passer rating</span><strong style={qb.rating != null ? { color: ratingColor(qb.rating) } : undefined}>{numberLabel(qb.rating, 1)}</strong></div>
+                <div className={styles.qbRank}><span><strong>{rankLabel(qb.rank)}</strong> sur {numberLabel(qb.count, 0)}</span><span>QB utilisés</span></div>
               </div>
             </section>
 
             <section className={`${styles.tile} ${styles.overallTile}`} aria-label="Ton classement général">
               <p className={styles.tileLabel}>Au classement général</p>
-              <div className={styles.overallRank}>{rankLabel(overall.rank)}</div>
-              <OverallMovement overall={overall} />
+              <div className={styles.overallMain}>
+                <svg className={styles.overallIcon} viewBox="0 0 44 48" aria-hidden="true"><rect x="1" y="24" width="11" height="24" rx="3" fill="#22c55e" /><rect x="16" y="3" width="11" height="45" rx="3" fill="#38bdf8" /><rect x="31" y="24" width="11" height="24" rx="3" fill="#f43f5e" /></svg>
+                <div className={styles.overallRank}>{rankLabel(overall.rank)}</div>
+                <OverallMovement overall={overall} />
+              </div>
               <div className={styles.tileDivider} />
               <div className={styles.tileFoot}><span>Total de la saison</span><strong>{numberLabel(overall.total)} <span className={styles.rankCount}>pts</span></strong></div>
             </section>
@@ -159,7 +173,7 @@ export default function WeeklySummaryDialog({ summary, onClose, busy = false, er
 
           <section className={styles.gamesSection} aria-labelledby={`${titleId}-games`}>
             <div className={styles.gamesHeading}><h3 id={`${titleId}-games`}>Tes choix de matchs</h3><span>{games.length} {games.length === 1 ? "match" : "matchs"}</span></div>
-            {games.length > 0 ? <><div className={styles.listHead} aria-hidden="true"><span>Match · score final</span><span>Ton choix / résultat</span><span>Points</span></div><ul className={styles.gameList}>{games.map((game) => <GameRow key={game.id} game={game} teams={teams} />)}</ul></> : <p className={styles.emptyGames}>Aucun choix de match pour cette semaine.</p>}
+            {games.length > 0 ? <ul className={styles.gameList}>{games.map((game) => <GameRow key={game.id} game={game} teams={teams} />)}</ul> : <p className={styles.emptyGames}>Aucun choix de match pour cette semaine.</p>}
           </section>
         </div>
 
