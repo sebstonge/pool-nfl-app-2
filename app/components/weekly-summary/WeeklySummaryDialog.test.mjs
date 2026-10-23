@@ -82,7 +82,14 @@ test('each matchup faces the two teams around their scores and the away-at-home 
   const matchup=html.slice(html.indexOf('<div class="matchup"'),html.indexOf('<div class="pickResult"'));
   assert.match(matchup,/class="teamLine"[\s\S]*class="teamName">Buffalo Bills<\/span><\/div><strong class="teamScore">27<\/strong><span class="at" aria-label="chez">@<\/span><strong class="teamScore">20<\/strong><div class="teamLine"[\s\S]*class="teamName">New York Jets<\/span>/);
   assert.match(matchup,/teamlogos\/nfl\/500\/buf\.png/);assert.match(matchup,/teamlogos\/nfl\/500\/nyj\.png/);
-  assert.match(css,/\.matchup\s*\{[^}]*display: grid;[^}]*grid-template-columns: minmax\(0, 1fr\) auto auto auto minmax\(0, 1fr\)/);
+  const desktopCss=css.slice(0,css.indexOf('@media'));
+  const mobileCss=css.slice(css.indexOf('@media (max-width: 740px)'),css.indexOf('@media (max-width: 420px)'));
+  assert.match(desktopCss,/\.matchup\s*\{[^}]*display: flex;[^}]*justify-content: center;[^}]*gap: 12px/);
+  assert.match(desktopCss,/\.teamLine:last-child\s*\{[^}]*flex-direction: row-reverse/);
+  assert.match(desktopCss,/\.teamScore\s*\{[^}]*flex-shrink: 0/);
+  assert.match(desktopCss,/\.at\s*\{[^}]*flex-shrink: 0/);
+  assert.match(mobileCss,/\.matchup\s*\{[^}]*display: grid;[^}]*grid-template-columns: minmax\(0, 1fr\) auto auto auto minmax\(0, 1fr\)/);
+  assert.match(mobileCss,/\.teamLine, \.teamLine:last-child\s*\{[^}]*flex-direction: column/);
   assert.match(html,/<div class="pickResult"><p class="gamePick"><span class="detailLabel">Ton choix<\/span>Buffalo Bills par 7<\/p><div class="resultGroup"><div class="gameResult"><span class="detailLabel">Résultat<\/span>Buffalo Bills par 7/);
 });
 

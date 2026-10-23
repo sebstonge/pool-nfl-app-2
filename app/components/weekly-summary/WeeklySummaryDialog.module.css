@@ -71,13 +71,14 @@
 .gameList { list-style: none; padding: 0; margin: 0; border: 1px solid rgba(148, 163, 184, .17); border-radius: 15px; overflow: hidden; }
 .gameRow { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 18px; padding: 19px 16px; align-items: center; background: rgba(4, 24, 44, .35); }
 .gameRow + .gameRow { border-top: 1px solid rgba(148, 163, 184, .14); }
-.matchup { display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto minmax(0, 1fr); align-items: center; gap: 12px; min-width: 0; }
+.matchup { display: flex; justify-content: center; align-items: center; gap: 12px; min-width: 0; }
 .teamLine { display: flex; align-items: center; gap: 9px; min-width: 0; }
+.teamLine:last-child { flex-direction: row-reverse; }
 .teamLogo { width: 46px; height: 42px; object-fit: contain; flex: 0 0 46px; }
 .teamFallback { display: grid; place-items: center; width: 46px; height: 42px; flex: 0 0 46px; color: #94a3b8; font-size: 13px; font-weight: 800; }
 .teamName { min-width: 0; color: #f8fafc; font-size: 13px; line-height: 1.35; overflow-wrap: anywhere; }
-.teamScore { color: #f8fafc; font-variant-numeric: tabular-nums; font-size: 21px; text-align: center; }
-.at { color: #9fb5d6; font-size: 20px; }
+.teamScore { color: #f8fafc; font-variant-numeric: tabular-nums; font-size: 21px; text-align: center; flex-shrink: 0; }
+.at { color: #9fb5d6; font-size: 20px; flex-shrink: 0; }
 .pickResult { display: grid; grid-template-columns: minmax(0, .75fr) minmax(0, 1.6fr); gap: 16px; min-width: 0; align-items: center; }
 .gamePick, .gameResult { margin: 0; font-size: 13px; line-height: 1.45; overflow-wrap: anywhere; min-width: 0; }
 .gamePick { padding-left: 18px; border-left: 1px solid rgba(148, 163, 184, .14); font-weight: 700; color: #f8fafc; }
@@ -159,8 +160,8 @@
   .gameList { border: 0; border-radius: 0; overflow: visible; }
   .gameRow, .gameRow + .gameRow { display: block; border: 1px solid rgba(148, 163, 184, .17); padding: 0; border-radius: 12px; }
   .gameRow + .gameRow { margin-top: 10px; }
-  .matchup { padding: 14px 12px 10px; gap: 10px; }
-  .teamLine { flex-direction: column; gap: 3px; text-align: center; }
+  .matchup { display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto minmax(0, 1fr); padding: 14px 12px 10px; gap: 10px; }
+  .teamLine, .teamLine:last-child { flex-direction: column; gap: 3px; text-align: center; }
   .teamLogo, .teamFallback { width: 46px; height: 36px; flex-basis: 36px; }
   .teamName { font-size: 12px; }
   .teamScore { font-size: 22px; }
