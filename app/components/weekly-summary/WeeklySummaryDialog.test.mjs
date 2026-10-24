@@ -42,9 +42,9 @@ test('the three tiles render supplied official score, rating, ranks and overall 
   assert.match(html,/4,512/);assert.match(html,/112,8/);assert.match(html,/31,234/);
   assert.equal((html.match(/class="tile /g)||[]).length,3);
   assert.match(html,/▲ \+2/);assert.doesNotMatch(html,/auparavant/);
-  assert.equal(css.match(/\.scoreMain\s*\{([^}]+)\}/)?.[1].trim(),'display: flex; align-items: center; gap: 18px; min-width: 0;');
-  assert.match(css,/\.scoreIcon\s*\{[^}]*width: 48px; height: 56px/);
-  assert.match(css,/\.scoreValue\s*\{[^}]*font-size: clamp\(34px, 3\.6vw, 50px\)/);
+  assert.match(css,/\.scoreMain\s*\{[^}]*display: flex;[^}]*align-items: center;[^}]*gap: 12px;[^}]*min-width: 0/);
+  assert.match(css,/\.scoreIcon\s*\{[^}]*width: 36px; height: 44px/);
+  assert.match(css,/\.scoreValue\s*\{[^}]*font-size: clamp\(32px, 3vw, 40px\)/);
   assert.match(html,/QB utilisés/);assert.match(html,/cette semaine/);
   assert.doesNotMatch(html,/Remplacement|Choix initial|undefined|NaN/);
 });
@@ -89,7 +89,7 @@ test('desktop matchups share a centered away-at-home axis while mobile keeps tea
   assert.match(matchup,/teamlogos\/nfl\/500\/buf\.png/);assert.match(matchup,/teamlogos\/nfl\/500\/nyj\.png/);
   const desktopCss=css.slice(0,css.indexOf('@media'));
   const mobileCss=css.slice(css.indexOf('@media (max-width: 740px)'),css.indexOf('@media (max-width: 420px)'));
-  assert.match(desktopCss,/\.matchup\s*\{[^}]*display: grid;[^}]*grid-template-columns: minmax\(0, 1fr\) 3ch auto 3ch minmax\(0, 1fr\);[^}]*gap: 12px/);
+  assert.match(desktopCss,/\.matchup\s*\{[^}]*display: grid;[^}]*grid-template-columns: minmax\(0, 1fr\) 3ch auto 3ch minmax\(0, 1fr\);[^}]*gap: 8px/);
   assert.match(desktopCss,/\.teamLine\s*\{[^}]*justify-content: flex-end/);
   assert.match(desktopCss,/\.teamLine:last-child\s*\{[^}]*flex-direction: row-reverse/);
   assert.match(desktopCss,/\.teamScore\s*\{[^}]*flex-shrink: 0/);
@@ -104,6 +104,35 @@ test('exceptional game notes are shown only when supplied with that game',()=>{
   const html=render({...summary,games:[{...summary.games[0],exceptionalNote:'Match déclaré nul'}]});
   assert.equal((html.match(/class="exceptionalNote"/g)||[]).length,1);
   assert.match(html,/Match déclaré nul/);
+});
+
+test('compact weeks retain every supplied match and result without changing composition by match count',()=>{
+  for(const count of [4,5,6,7]) {
+    const games=Array.from({length:count},(_,index)=>({
+      ...summary.games[index%summary.games.length],id:`week-game-${index}`,
+      away_team:`Équipe extérieure ${index}`,home_team:`Équipe domicile ${index}`,
+      away_score:20+index,home_score:10+index,picked_team:`Équipe extérieure ${index}`,
+      predicted_spread:index+1,resultText:`Résultat officiel ${index}`,
+      exceptionalNote:index===count-1?'Décision officielle conservée':undefined,
+    }));
+    const html=render({...summary,games});
+    assert.equal((html.match(/class="gameRow"/g)||[]).length,count);
+    assert.equal((html.match(/class="tile /g)||[]).length,3);
+    assert.match(html,new RegExp(`>${count} matchs<`));
+    for(const [index,game] of games.entries()) {
+      assert.ok(html.includes(`<span class="teamName">${game.away_team}</span>`));
+      assert.ok(html.includes(`<span class="teamName">${game.home_team}</span>`));
+      assert.ok(html.includes(`<strong class="teamScore">${game.away_score}</strong>`));
+      assert.ok(html.includes(`<strong class="teamScore">${game.home_score}</strong>`));
+      assert.ok(html.includes(`${game.picked_team} par ${game.predicted_spread}`));
+      assert.ok(html.includes(`Résultat officiel ${index}`));
+    }
+    assert.equal((html.match(/class="points"/g)||[]).length,count);
+    assert.equal((html.match(/class="resultDot"/g)||[]).length,count);
+    assert.match(html,/Décision officielle conservée/);
+    assert.match(html,/Ta semaine 5, en résumé/);
+    assert.match(html,/Continuer vers la semaine 6/);
+  }
 });
 
 test('zero values are retained and missing values never become invented points or ranks',()=>{
