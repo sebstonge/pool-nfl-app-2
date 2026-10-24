@@ -42,9 +42,21 @@ test('the three tiles render supplied official score, rating, ranks and overall 
   assert.match(html,/4,512/);assert.match(html,/112,8/);assert.match(html,/31,234/);
   assert.equal((html.match(/class="tile /g)||[]).length,3);
   assert.match(html,/▲ \+2/);assert.doesNotMatch(html,/auparavant/);
-  assert.match(css,/\.scoreMain\s*\{[^}]*display: flex;[^}]*align-items: center;[^}]*gap: 12px;[^}]*min-width: 0/);
+  assert.match(css,/\.scoreMain\s*\{[^}]*display: grid;[^}]*grid-template-columns: auto auto;[^}]*justify-content: center;[^}]*align-items: center/);
+  assert.match(css,/\.scoreMain \.tileLabel\s*\{[^}]*grid-column: 1 \/ -1/);
+  assert.match(css,/\.scoreDetails\s*\{[^}]*display: contents/);
   assert.match(css,/\.scoreIcon\s*\{[^}]*width: 36px; height: 44px/);
   assert.match(css,/\.scoreValue\s*\{[^}]*font-size: clamp\(32px, 3vw, 40px\)/);
+  for(const selector of ['scoreTile','qbTile','overallTile']) {
+    assert.match(css,new RegExp(`\\.${selector}\\s*\\{[^}]*display: flex;[^}]*flex-direction: column;[^}]*justify-content: center`));
+  }
+  assert.match(css,/\.qbIdentity\s*\{[^}]*display: flex;[^}]*justify-content: center;[^}]*align-items: center/);
+  assert.match(css,/\.qbTeam\s*\{[^}]*display: flex;[^}]*justify-content: center/);
+  assert.match(css,/\.qbStats\s*\{[^}]*display: grid;[^}]*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);
+  assert.match(css,/\.qbRating\s*\{[^}]*justify-content: center;[^}]*align-items: center/);
+  assert.match(css,/\.qbRank\s*\{[^}]*align-items: center;[^}]*text-align: center/);
+  assert.match(css,/\.overallMain\s*\{[^}]*grid-template-columns: auto auto auto;[^}]*justify-content: center;[^}]*align-items: center/);
+  assert.match(css,/\.tileFoot\s*\{[^}]*display: flex;[^}]*align-items: center;[^}]*justify-content: center/);
   assert.match(html,/QB utilisés/);assert.match(html,/cette semaine/);
   assert.doesNotMatch(html,/Remplacement|Choix initial|undefined|NaN/);
 });
@@ -82,7 +94,7 @@ test('points use the Mes choix neutral pill and result dots follow the supplied 
   assert.match(css,/\.points\s*\{[^}]*padding: 4px 8px;[^}]*border-radius: 999px;[^}]*background: rgba\(148, 163, 184, \.10\);[^}]*color: #f8fafc/);
 });
 
-test('desktop matchups share a centered away-at-home axis while mobile keeps teams facing each other',()=>{
+test('desktop matchups keep their common axis while mobile exposes a compact logo-score-at-score-logo line',()=>{
   const html=render({...summary,games:[summary.games[0]]});
   const matchup=html.slice(html.indexOf('<div class="matchup"'),html.indexOf('<div class="pickResult"'));
   assert.match(matchup,/class="teamLine"[\s\S]*class="teamName">Buffalo Bills<\/span><\/div><strong class="teamScore">27<\/strong><span class="at" aria-label="chez">@<\/span><strong class="teamScore">20<\/strong><div class="teamLine"[\s\S]*class="teamName">New York Jets<\/span>/);
@@ -94,8 +106,11 @@ test('desktop matchups share a centered away-at-home axis while mobile keeps tea
   assert.match(desktopCss,/\.teamLine:last-child\s*\{[^}]*flex-direction: row-reverse/);
   assert.match(desktopCss,/\.teamScore\s*\{[^}]*flex-shrink: 0/);
   assert.match(desktopCss,/\.at\s*\{[^}]*flex-shrink: 0/);
-  assert.match(mobileCss,/\.matchup\s*\{[^}]*display: grid;[^}]*grid-template-columns: minmax\(0, 1fr\) auto auto auto minmax\(0, 1fr\)/);
-  assert.match(mobileCss,/\.teamLine, \.teamLine:last-child\s*\{[^}]*flex-direction: column;[^}]*justify-content: flex-start/);
+  assert.match(mobileCss,/\.matchup\s*\{[^}]*grid-template-columns: 38px 3ch 20px 3ch 38px;[^}]*justify-content: center/);
+  assert.match(mobileCss,/\.teamLine, \.teamLine:last-child\s*\{[^}]*flex-direction: row;[^}]*justify-content: center/);
+  assert.match(mobileCss,/\.matchup \.teamName\s*\{[^}]*position: absolute;[^}]*width: 1px; height: 1px;[^}]*overflow: hidden;[^}]*clip-path: inset\(50%\)/);
+  assert.doesNotMatch(mobileCss,/\.matchup \.teamName\s*\{[^}]*display: none/);
+  assert.match(mobileCss,/\.resultGroup\s*\{[^}]*grid-template-columns: minmax\(0, 1fr\) auto 18px/);
   assert.match(html,/<div class="pickResult"><p class="gamePick"><span class="detailLabel">Ton choix<\/span>Buffalo Bills par 7<\/p><div class="resultGroup"><div class="gameResult"><span class="detailLabel">Résultat<\/span>Buffalo Bills par 7/);
 });
 
@@ -208,10 +223,11 @@ test('the bounded dialog scrolls its body and changes composition for narrow scr
   assert.match(css,/\.body\s*\{[^}]*min-height: 0;[^}]*overflow: auto/);
   assert.match(css,/grid-template-columns: repeat\(3, minmax\(0, 1fr\)\)/);
   assert.match(css,/@media \(max-width: 740px\)[\s\S]*\.tiles \{ grid-template-columns: minmax\(0, 1fr\)/);
-  assert.match(css,/@media \(max-width: 740px\)[\s\S]*\.gameRow, \.gameRow \+ \.gameRow \{ display: block/);
-  assert.match(css,/@media \(max-width: 420px\)[\s\S]*\.resultGroup \{ grid-template-columns: minmax\(0, 1fr\) auto/);
-  assert.match(css,/@media \(max-width: 420px\)[\s\S]*\.gameResult \{ grid-column: 1 \/ -1/);
-  assert.match(css,/@media \(max-width: 420px\)[\s\S]*\.resultDot \{ grid-column: 2/);
+  assert.match(css,/@media \(max-width: 740px\)[\s\S]*\.gameList \{ border-radius: 10px/);
+  assert.match(css,/@media \(max-width: 740px\)[\s\S]*\.gameRow, \.gameRow \+ \.gameRow \{ display: block; padding: 6px 10px; border-radius: 0/);
+  assert.match(css,/@media \(max-width: 740px\)[\s\S]*\.gameRow \+ \.gameRow \{ margin-top: 0/);
+  const narrowCss=css.slice(css.indexOf('@media (max-width: 420px)'));
+  assert.doesNotMatch(narrowCss,/\.resultGroup|\.gameResult|\.resultDot|\.points/);
   assert.match(css,/\.closeButton:focus-visible, \.continueButton:focus-visible/);
   assert.doesNotMatch(source,/\bfetch\s*\(|supabase|localStorage|sessionStorage|\.from\(/);
 });
