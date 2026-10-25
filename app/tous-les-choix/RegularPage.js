@@ -1,4 +1,6 @@
 "use client";
+import {regularGameResult,regularPickResult,REGULAR_TIE_NOTE} from "../../lib/seasons/regularResults.mjs";
+import {confirmLegacyRegularResults} from "../../lib/seasons/regularResultEvidence.mjs";
 import {regularClient} from "../../lib/seasons/regularClient.mjs";
 import { regularQbResult, selectionSnapshot } from "../../lib/seasons/qbSnapshot.mjs";
 const supabase=regularClient(rawSupabase);
@@ -187,72 +189,12 @@ function ratingColor(rating) {
    ========================================================= */
 
 function getPickResult(game, pick) {
-  /*
-   * IMPORTANT :
-   *
-   * Cette fonction regarde SEULEMENT
-   * les scores officiels Supabase.
-   *
-   * Un score ESPN temporaire, même FINAL,
-   * ne donne donc jamais de couleur/points
-   * avant la mise à jour Admin.
-   */
-  if (
-    game.home_score == null ||
-    game.away_score == null
-  ) {
-    return {
-      badge: "⚪",
-      points: null,
-      label: "À jouer",
-    };
-  }
-
-  if (
-    Number(game.home_score) ===
-    Number(game.away_score)
-  ) {
-    return {
-      badge: "⚪",
-      points: null,
-      label: "Égalité",
-    };
-  }
-
-  const winner =
-    Number(game.home_score) >
-    Number(game.away_score)
-      ? game.home_team
-      : game.away_team;
-
-  const realSpread = Math.abs(
-    Number(game.home_score) -
-      Number(game.away_score)
-  );
-
-  if (pick.picked_team !== winner) {
-    return {
-      badge: "🔴",
-      points: 0,
-      label: "0 pt",
-    };
-  }
-
-  if (
-    Number(pick.predicted_spread) ===
-    Number(realSpread)
-  ) {
-    return {
-      badge: "🟢",
-      points: 2,
-      label: "2 pts",
-    };
-  }
-
+  const result = regularPickResult(game, pick);
+  const pendingLabel = game.home_score != null && game.away_score != null ? "À confirmer" : "À jouer";
   return {
-    badge: "🟡",
-    points: 1,
-    label: "1 pt",
+    badge: result.points === null ? "⚪" : result.points === 0 ? "🔴" : result.points === 2 ? "🟢" : "🟡",
+    points: result.points,
+    label: result.points === null ? pendingLabel : result.status === "tie" ? "Égalité · 1 pt" : `${result.points} ${result.points > 1 ? "pts" : "pt"}`,
   };
 }
 
@@ -1756,9 +1698,9 @@ function GamePicksCard({
   /*
    * SCORE OFFICIEL SUPABASE
    */
-  const hasOfficialScore =
-    game.home_score != null &&
-    game.away_score != null;
+  const result = regularGameResult(game);
+  const hasOfficialScore = result.status !== "pending";
+  const hasStoredScore = game.home_score != null && game.away_score != null;
 
   /*
    * DONNÉES ESPN TEMPORAIRES
@@ -1778,7 +1720,7 @@ function GamePicksCard({
    * 3. aucun score
    */
   const displayedScore =
-    hasOfficialScore
+    hasStoredScore
       ? {
           awayScore:
             Number(
@@ -1907,6 +1849,11 @@ function GamePicksCard({
   }
   hasOfficialScore={hasOfficialScore}
 />
+      {result.status === "tie" && (
+        <p style={{margin: "5px 0 0", color: "#fcd34d", fontSize: 11, lineHeight: 1.4}}>
+          {REGULAR_TIE_NOTE}
+        </p>
+      )}
 
       {/* =====================================================
           SCOREBOARD
@@ -2091,7 +2038,7 @@ function GamePicksCard({
       letterSpacing: "0.7px",
     }}
   >
-    FINAL
+    {hasOfficialScore || liveGame?.status?.state === "post" ? "FINAL" : "À confirmer"}
   </span>
 )}
             </>
@@ -2557,14 +2504,6 @@ const [
             ?.current_week
         ) || 1;
 
-      setCurrentWeek(
-        activeWeek
-      );
-
-      setViewedWeek(
-        activeWeek
-      );
-
       const {
         data: teamsData,
       } = await supabase
@@ -2574,6 +2513,8 @@ const [
       setTeams(
         teamsData || []
       );
+      setCurrentWeek(activeWeek);
+      setViewedWeek(activeWeek);
 
       const {
         data: usersData,
@@ -2672,10 +2613,13 @@ const [
         .select(`
           id,
           week,
+          season,
+          season_type,
           away_team,
           home_team,
           away_score,
           home_score,
+          result_status,
           game_date,
           external_game_id,
           is_pool_eligible
@@ -2705,8 +2649,9 @@ const [
        * Tous les matchs NFL servent
        * au suivi ESPN des QB.
        */
-      const allGames =
-        allGamesData || [];
+      const allGames = await confirmLegacyRegularResults(allGamesData || [],teams,{
+        season: await supabase.regularSeason?.(),
+      });
 
       setAllWeekGames(
         allGames

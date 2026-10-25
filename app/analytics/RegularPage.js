@@ -1,6 +1,8 @@
 "use client";
 import {regularClient} from "../../lib/seasons/regularClient.mjs";
 import { regularQbResult } from "../../lib/seasons/qbSnapshot.mjs";
+import {regularGameResult,regularPickResult,REGULAR_TIE_NOTE} from "../../lib/seasons/regularResults.mjs";
+import {confirmLegacyRegularResults} from "../../lib/seasons/regularResultEvidence.mjs";
 const supabase=regularClient(rawSupabase);
 
 import { useEffect, useState } from "react";
@@ -718,10 +720,14 @@ export default function AnalyticsPage() {
           games (
             id,
             week,
+            season,
+            season_type,
+            external_game_id,
             away_team,
             home_team,
             away_score,
-            home_score
+            home_score,
+            result_status
           )
         `);
 
@@ -750,12 +756,16 @@ export default function AnalyticsPage() {
           .select("*");
 
       const users = usersData || [];
+      const savedGames=[...new Map((picksData || []).filter(p=>p.games).map(p=>[p.games.id,p.games])).values()];
+      const confirmedGames=await confirmLegacyRegularResults(savedGames,teamsData || [],{
+        season:await supabase.regularSeason?.(),
+      });
+      const gamesById=new Map(confirmedGames.map(game=>[game.id,game]));
+      const picksWithEvidence=(picksData || []).map(pick=>({...pick,games:gamesById.get(pick.games?.id)||pick.games}));
 
       const completedPicks =
-        (picksData || []).filter(
-          (p) =>
-            p.games?.home_score != null &&
-            p.games?.away_score != null
+        picksWithEvidence.filter(
+          (p) => regularPickResult(p.games,p).points !== null
         );
 
       const byUser = {};
@@ -775,16 +785,7 @@ export default function AnalyticsPage() {
       completedPicks.forEach((pick) => {
         const game = pick.games;
 
-        const winner =
-          game.home_score > game.away_score
-            ? game.home_team
-            : game.away_team;
-
-        const realSpread =
-          Math.abs(
-            game.home_score -
-              game.away_score
-          );
+        const result = regularPickResult(game,pick);
 
         if (!byUser[pick.user_id]) {
           const user = users.find(
@@ -805,21 +806,17 @@ export default function AnalyticsPage() {
 
         byUser[pick.user_id].totalPicks += 1;
 
-        if (pick.picked_team === winner) {
+        if (result.status === "winner" && result.correct) {
           byUser[
             pick.user_id
           ].correctWinners += 1;
 
-          if (
-            Number(
-              pick.predicted_spread
-            ) === realSpread
-          ) {
+          if (result.exact) {
             byUser[
               pick.user_id
             ].exactMargins += 1;
           }
-        } else {
+        } else if (result.status === "winner") {
           byUser[pick.user_id].wrong += 1;
         }
       });
@@ -852,11 +849,11 @@ export default function AnalyticsPage() {
           .map((u) => ({
             ...u,
             value: u.correctWinners,
-            detail: `${Math.round(
+            detail: u.correctWinners + u.wrong > 0 ? `${Math.round(
               (u.correctWinners /
-                u.totalPicks) *
+                (u.correctWinners + u.wrong)) *
                 100
-            )} % de bons gagnants`,
+            )} % de bons gagnants` : "Aucun match avec gagnant",
           }));
 
       const weeklyRows =
@@ -904,6 +901,7 @@ export default function AnalyticsPage() {
             u.correctWinners,
           0
         );
+      const totalDecisivePicks = userRows.reduce((sum,u)=>sum+u.correctWinners+u.wrong,0);
 
       const totalExact =
         userRows.reduce(
@@ -936,6 +934,7 @@ export default function AnalyticsPage() {
 
       let consensusWins = 0;
       let consensusLosses = 0;
+      let consensusTies = 0;
 
       const consensusByWeek = {};
 
@@ -962,11 +961,7 @@ export default function AnalyticsPage() {
           const consensusTeam =
             sorted[0][0];
 
-          const winner =
-            game.home_score >
-            game.away_score
-              ? game.home_team
-              : game.away_team;
+          const result = regularGameResult(game);
 
           const week = game.week;
 
@@ -975,11 +970,15 @@ export default function AnalyticsPage() {
               week,
               wins: 0,
               losses: 0,
+              ties: 0,
             };
           }
 
-          if (
-            consensusTeam === winner
+          if (result.status === "tie") {
+            consensusTies += 1;
+            consensusByWeek[week].ties += 1;
+          } else if (
+            consensusTeam === result.winner
           ) {
             consensusWins += 1;
             consensusByWeek[
@@ -1008,7 +1007,7 @@ export default function AnalyticsPage() {
       const consensusWeeks =
         Object.values(
           consensusByWeek
-        ).map((row) => ({
+        ).filter(row => row.wins + row.losses > 0).map((row) => ({
           ...row,
           pct:
             row.wins +
@@ -1170,11 +1169,13 @@ export default function AnalyticsPage() {
         worstWeek,
         totalPicks,
         totalCorrect,
+        totalDecisivePicks,
         totalExact,
         topExact,
         topCorrect,
         consensusWins,
         consensusLosses,
+        consensusTies,
         consensusPct,
         bestConsensusWeek,
         worstConsensusWeek,
@@ -1391,13 +1392,13 @@ export default function AnalyticsPage() {
                   stats.totalCorrect
                 }
                 subtitle={
-                  stats.totalPicks > 0
+                  stats.totalDecisivePicks > 0
                     ? `${Math.round(
                         (stats.totalCorrect /
-                          stats.totalPicks) *
+                          stats.totalDecisivePicks) *
                           100
-                      )} % du pool`
-                    : "Aucune donnée"
+                      )} % des choix avec gagnant`
+                    : "Aucun match avec gagnant"
                 }
                 color="#22c55e"
               />
@@ -1472,7 +1473,7 @@ export default function AnalyticsPage() {
                 value={`${Math.round(
                   stats.consensusPct
                 )} %`}
-                subtitle={`${stats.consensusWins} victoires · ${stats.consensusLosses} défaites`}
+                subtitle={`${stats.consensusWins} victoires · ${stats.consensusLosses} défaites${stats.consensusTies ? ` · ${stats.consensusTies} nul${stats.consensusTies > 1 ? "s" : ""}` : ""}`}
                 color="#38bdf8"
               />
 
@@ -1527,6 +1528,10 @@ export default function AnalyticsPage() {
               />
             </div>
           </section>
+
+          {stats.consensusTies > 0 && (
+            <p style={{margin:0,color:"#94a3b8",fontSize:12}}>{REGULAR_TIE_NOTE}</p>
+          )}
 
           {/* =================================================
               RECORDS QB

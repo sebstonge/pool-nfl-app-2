@@ -22,6 +22,8 @@
   line-height: 1.35;
 }
 
+.partial { border-color: rgba(251, 191, 36, 0.4); }
+.partialTitle { color: #f1d58a; }
 .successTitle { color: #86efac; }
 .errorTitle { color: #fca5a5; }
 
@@ -114,6 +116,14 @@
   background: #0d2928;
   color: #4ade80;
 }
+
+.partialStep .icon {
+  border-color: rgba(251, 191, 36, 0.4);
+  background: #332b25;
+  color: #f1d58a;
+}
+
+.partialStep .stepDescription { color: #f1d58a; }
 
 .failed .icon {
   border-color: rgba(248, 113, 113, 0.4);

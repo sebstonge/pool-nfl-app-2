@@ -1,3 +1,4 @@
+import {deliverRankingEvent} from '../../../../lib/notifications/rankingDelivery.mjs';
 import {regularClient} from "../../../../lib/seasons/regularClient.mjs";
 import {loadRegularOrder,remainingSelectionOrder} from "../../../../lib/seasons/selectionOrder.mjs";
 import { loadLifecycle, regularIsOpen } from '../../../../lib/lifecycle/context.mjs';
@@ -262,6 +263,9 @@ export async function GET(
           `
             id,
             event_key,
+            season,
+            ranking_payload,
+            ranking_attempted_at,
             user_id,
             notification_type,
             week,
@@ -395,22 +399,13 @@ export async function GET(
           event.notification_type ===
           "rankings_updated"
         ) {
-          const rankingNotification =
-            await getRankingNotification(supabaseAdmin,
-              event
-            );
-
-          title =
-            rankingNotification
-              .title;
-
-          body =
-            rankingNotification
-              .body;
-
-          url =
-            rankingNotification
-              .url;
+          const payload = event.ranking_payload || await getRankingNotification(supabaseAdmin,event);
+          const delivery = await deliverRankingEvent(supabaseAdmin,event,sendPushToUser,{payload});
+          if(delivery.sent>0)sentCount++;
+          failedCount+=delivery.failed;
+          noSubscriptionCount+=delivery.noSubscription;
+          results.push(delivery);
+          continue;
         }
 
         /*

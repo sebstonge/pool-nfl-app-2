@@ -21,18 +21,22 @@ export default function FullUpdateStatus({ state }) {
     week,
     activeStep,
     completed = {},
+    stepStates = {},
     details = {},
     warnings = [],
     error,
   } = state;
   const isSuccess = status === "success";
   const isError = status === "error";
-  const failedKey = isError ? error?.step || activeStep : null;
+  const isPartial = status === "partial";
+  const failedKey = error?.step || (isError ? activeStep : null);
   const failedStep = STEPS.find((step) => step.key === failedKey);
   const weekLabel = week == null ? "de la semaine en cours" : `de la semaine ${week}`;
   const title = isSuccess
     ? "✓ Mise à jour complétée"
-    : isError
+    : isPartial
+      ? failedStep ? `Mise à jour partielle — ${failedStep.label}` : "Mise à jour partielle"
+      : isError
       ? failedStep
         ? `Échec de la mise à jour — ${failedStep.label}`
         : "Échec de la mise à jour"
@@ -41,7 +45,9 @@ export default function FullUpdateStatus({ state }) {
     ? week == null
       ? "Toutes les données sont à jour."
       : `Toutes les données de la semaine ${week} sont à jour.`
-    : isError
+    : isPartial
+      ? `Certaines données ${weekLabel} n’ont pas pu être mises à jour. Consulte les détails ci-dessous.`
+      : isError
       ? `La mise à jour des données ${weekLabel} a été interrompue.`
       : `Mise à jour des données ${weekLabel}…`;
   const hasQbStats = typeof details.qbStats === "number" && Number.isFinite(details.qbStats);
@@ -51,28 +57,32 @@ export default function FullUpdateStatus({ state }) {
 
   return (
     <section
-      className={`${styles.card} ${isSuccess ? styles.success : ""}`}
+      className={`${styles.card} ${isSuccess ? styles.success : ""} ${isPartial ? styles.partial : ""}`}
       aria-label="Statut de la mise à jour complète"
     >
-      <div role="status" aria-live={isError ? "assertive" : "polite"} aria-atomic="true">
-        <h3 className={`${styles.title} ${isSuccess ? styles.successTitle : ""} ${isError ? styles.errorTitle : ""}`}>
+      <div role="status" aria-live={isError || error ? "assertive" : "polite"} aria-atomic="true">
+        <h3 className={`${styles.title} ${isSuccess ? styles.successTitle : ""} ${isError ? styles.errorTitle : ""} ${isPartial ? styles.partialTitle : ""}`}>
           {title}
         </h3>
         <p className={styles.subtitle}>{subtitle}</p>
 
         <ol className={styles.steps} aria-label="Étapes de la mise à jour">
           {STEPS.map((step) => {
-            const isFailed = isError && step.key === failedKey;
+            const isFailed = step.key === failedKey || stepStates[step.key]?.status === "error";
+            const isStepPartial = stepStates[step.key]?.status === "partial";
             const isDone = Object.prototype.hasOwnProperty.call(completed, step.key);
-            const isActive = status === "running" && !isDone && step.key === activeStep;
-            const stepStatus = isFailed ? "failed" : isDone ? "done" : isActive ? "active" : "pending";
+            const isActive = status === "running" && step.key === activeStep;
+            const stepStatus = isFailed ? "failed" : isActive ? "active" : isStepPartial ? "partialStep" : isDone ? "done" : "pending";
+            const count = isDone ? countLabel(completed[step.key], step.singular, step.plural) : null;
             const description = isFailed
-              ? "Échec"
-              : isDone
-                ? countLabel(completed[step.key], step.singular, step.plural)
-                : isActive
-                  ? "En cours…"
-                  : "En attente";
+              ? count ? `${count} · Échec` : "Échec"
+              : isActive
+                ? count ? `${count} · En cours…` : "En cours…"
+                : isStepPartial
+                  ? count ? `${count} · Partielle` : "Partielle"
+                  : isDone
+                    ? count
+                    : "En attente";
 
             return (
               <li
@@ -81,7 +91,7 @@ export default function FullUpdateStatus({ state }) {
                 aria-current={isActive ? "step" : undefined}
               >
                 <span className={styles.icon} aria-hidden="true">
-                  {isFailed ? "!" : isDone ? "✓" : isActive ? <span className={styles.spinner} /> : <span className={styles.dot} />}
+                  {isFailed || (!isActive && isStepPartial) ? "!" : isActive ? <span className={styles.spinner} /> : isDone ? "✓" : <span className={styles.dot} />}
                 </span>
                 <span className={styles.stepLabel}>{step.label}</span>
                 <span className={styles.stepDescription}>{description}</span>
@@ -90,7 +100,7 @@ export default function FullUpdateStatus({ state }) {
           })}
         </ol>
 
-        {isError && error?.message && <p className={styles.errorMessage}>{error.message}</p>}
+        {error?.message && <p className={styles.errorMessage}>{error.message}</p>}
       </div>
 
       {hasDetails && (

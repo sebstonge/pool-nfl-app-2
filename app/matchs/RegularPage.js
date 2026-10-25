@@ -1,4 +1,6 @@
 "use client";
+import {regularPickResult,REGULAR_TIE_NOTE} from "../../lib/seasons/regularResults.mjs";
+import {confirmLegacyRegularResults} from "../../lib/seasons/regularResultEvidence.mjs";
 import {regularClient} from "../../lib/seasons/regularClient.mjs";
 import {loadRegularOrder,remainingSelectionOrder,assertRegularTurn} from "../../lib/seasons/selectionOrder.mjs";
 const supabase=regularClient(rawSupabase);
@@ -43,63 +45,12 @@ function playerRealName(player) {
    ========================================================= */
 
 function getPickBadge(game, pick) {
-  if (
-    game.home_score == null ||
-    game.away_score == null
-  ) {
-    return "⚪";
-  }
-
-  const winner =
-    game.home_score > game.away_score
-      ? game.home_team
-      : game.away_team;
-
-  const realSpread = Math.abs(
-    game.home_score - game.away_score
-  );
-
-  if (pick.picked_team !== winner) return "🔴";
-
-  if (
-    Number(pick.predicted_spread) === realSpread
-  ) {
-    return "🟢";
-  }
-
-  return "🟡";
+  const {points} = regularPickResult(game, pick);
+  return points === null ? "⚪" : points === 0 ? "🔴" : points === 2 ? "🟢" : "🟡";
 }
 
 function getPickPoints(game, pick) {
-  if (
-    game.home_score == null ||
-    game.away_score == null
-  ) {
-    return null;
-  }
-
-  const winner =
-    Number(game.home_score) >
-    Number(game.away_score)
-      ? game.home_team
-      : game.away_team;
-
-  const realSpread = Math.abs(
-    Number(game.home_score) -
-      Number(game.away_score)
-  );
-
-  if (pick.picked_team !== winner) {
-    return 0;
-  }
-
-  if (
-    Number(pick.predicted_spread) === realSpread
-  ) {
-    return 2;
-  }
-
-  return 1;
+  return regularPickResult(game, pick).points;
 }
 
 function getTemporaryResultText(game, liveGame) {
@@ -966,9 +917,9 @@ function SubmittedGameCard({
   isMobile,
   isDesktop,
 }) {
-  const hasOfficialScore =
-    game.home_score != null &&
-    game.away_score != null;
+  const result = regularPickResult(game, pick);
+  const hasOfficialScore = result.status !== "pending";
+  const hasStoredScore = game.home_score != null && game.away_score != null;
 
   const isLive =
     liveGame?.status?.state === "in";
@@ -984,7 +935,7 @@ function SubmittedGameCard({
    * 3. Aucun score
    */
   const displayedScore =
-    hasOfficialScore
+    hasStoredScore
       ? {
           awayScore: Number(
             game.away_score
@@ -1008,48 +959,10 @@ function SubmittedGameCard({
   const badge =
     getPickBadge(game, pick);
 
-  let resultText = null;
-  let pointsText = null;
-
-  if (hasOfficialScore) {
-    const awayScore =
-      Number(game.away_score);
-
-    const homeScore =
-      Number(game.home_score);
-
-    if (awayScore === homeScore) {
-      resultText = "Égalité";
-    } else {
-      const winner =
-        homeScore > awayScore
-          ? game.home_team
-          : game.away_team;
-
-      const spread =
-        Math.abs(
-          homeScore - awayScore
-        );
-
-      resultText =
-        `${winner} par ${spread}`;
-
-      if (
-        pick.picked_team !==
-        winner
-      ) {
-        pointsText = "0 point";
-      } else if (
-        Number(
-          pick.predicted_spread
-        ) === spread
-      ) {
-        pointsText = "2 points";
-      } else {
-        pointsText = "1 point";
-      }
-    }
-  }
+  const resultText = result.status === "tie" ? "Égalité" :
+    result.status === "winner" ? `${result.winner} par ${result.spread}` : null;
+  const pointsText = result.points === null ? null :
+    `${result.points} ${result.points > 1 ? "points" : "point"}`;
 
   /*
    * Pendant le LIVE seulement,
@@ -1308,7 +1221,7 @@ function SubmittedGameCard({
                       "0.7px",
                   }}
                 >
-                  FINAL
+                  {hasOfficialScore || isEspnFinal ? "FINAL" : "À confirmer"}
                 </span>
               )}
             </>
@@ -1565,6 +1478,11 @@ marginTop:
                   </span>
                 )}
               </div>
+              {result.status === "tie" && (
+                <p style={{margin: "5px 0 0", color: "#fcd34d", fontSize: 11, lineHeight: 1.4}}>
+                  {REGULAR_TIE_NOTE}
+                </p>
+              )}
             </div>
           )}
         </div>
@@ -1799,8 +1717,9 @@ export default function Matchs() {
       );
     }
 
-    const weekSchedule =
-      allWeekGamesData || [];
+    const weekSchedule = await confirmLegacyRegularResults(allWeekGamesData || [],teamsData || [],{
+      season: await supabase.regularSeason?.(),
+    });
 
     setAllWeekGames(
       weekSchedule
@@ -3062,6 +2981,14 @@ export default function Matchs() {
 
           return;
         }
+      }
+
+      if (gamesToPick.some(game => {
+        const spread = Number(draftPicks[game.id]?.predicted_spread);
+        return !Number.isInteger(spread) || spread <= 0;
+      })) {
+        setMessage("L’écart prédit doit être un nombre entier supérieur à 0.");
+        return;
       }
 
       const confirmation =
@@ -5938,6 +5865,8 @@ export default function Matchs() {
 
                     <input
                       type="number"
+                      min="1"
+                      step="1"
                       inputMode="numeric"
                       value={
                         pick.predicted_spread ??

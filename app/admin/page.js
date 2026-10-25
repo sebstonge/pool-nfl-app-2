@@ -13,6 +13,16 @@ import SeasonLifecycle from "./components/SeasonLifecycle";
 import LifecycleActions from "./components/LifecycleActions";
 import previewStyles from "./previewNavigation.module.css";
 import { fetchEspnStandings } from "../../lib/espnStandings.mjs";
+import { regularGameResult } from "../../lib/seasons/regularResults.mjs";
+
+// ESPN sometimes returns postponed/cancelled competitions in the post state.
+// A final result requires all three independent provider signals.
+function espnCompetitionState(summary) {
+  const type = summary?.header?.competitions?.[0]?.status?.type;
+  if (type?.state === "pre" || type?.state === "in") return "pending";
+  const terminal = /^STATUS_FINAL(?:_OVERTIME|_OT|_\d+OT)?$/.test(String(type?.name || ""));
+  return type?.state === "post" && type?.completed === true && terminal ? "final" : "unconfirmed";
+}
 
 /* =========================================================
    ORDRE OFFICIEL QB — SEMAINE 1
@@ -97,6 +107,7 @@ export default function AdminPage() {
   const [message, setMessage] = useState("");
   const [fullUpdateStatus, setFullUpdateStatus] = useState(null);
   const fullUpdateRunning = useRef(false);
+  const nextWeekRunning = useRef(false);
 
   const [selectionStats, setSelectionStats] = useState([]);
   const [selectionStatsLoading, setSelectionStatsLoading] =
@@ -248,141 +259,61 @@ const [isDesktop, setIsDesktop] = useState(false);
      ========================================================= */
 
   async function updateScoresFromEspn(currentWeek) {
-    const { data: games, error: gamesError } =
-      await supabase
-        .from("games")
-        .select("*")
-        .eq("week", currentWeek)
-        .eq("is_pool_eligible", true);
-
-    if (gamesError) {
-      throw new Error(
-        "Games : " + gamesError.message
-      );
-    }
+    const { data: games, error: gamesError } = await supabase
+      .from("games").select("*").eq("week", currentWeek);
+    if (gamesError) throw new Error("Games : " + gamesError.message);
 
     let updated = 0;
-
-    /*
-     * Matchs dont le score a réellement changé
-     * depuis la dernière mise à jour Admin.
-     */
+    let pending = 0;
     const changedGames = [];
-
+    const warnings = [];
     for (const game of games || []) {
+      const label = `${game.away_team} @ ${game.home_team}`;
       if (!game.external_game_id) {
+        warnings.push(`${label} : identifiant ESPN manquant.`);
         continue;
       }
-
-      const url =
-        `https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary` +
-        `?event=${game.external_game_id}`;
-
-      const response = await fetch(url);
-
-      if (!response.ok) {
-        console.error(
-          `Erreur ESPN match ${game.external_game_id}:`,
-          response.status
+      try {
+        const response = await fetch(
+          `https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary?event=${game.external_game_id}`
         );
-
-        continue;
-      }
-
-      const data = await response.json();
-
-      const competition =
-        data.header?.competitions?.[0];
-
-      const competitors =
-        competition?.competitors || [];
-
-      const home = competitors.find(
-        (c) => c.homeAway === "home"
-      );
-
-      const away = competitors.find(
-        (c) => c.homeAway === "away"
-      );
-
-      if (!home || !away) {
-        continue;
-      }
-
-      const homeScore = Number(home.score);
-      const awayScore = Number(away.score);
-
-      if (
-        Number.isNaN(homeScore) ||
-        Number.isNaN(awayScore)
-      ) {
-        continue;
-      }
-
-      /*
-       * =====================================================
-       * DÉTECTER SI LE SCORE A RÉELLEMENT CHANGÉ
-       * =====================================================
-       */
-
-      const previousHomeScore =
-        game.home_score == null
-          ? null
-          : Number(game.home_score);
-
-      const previousAwayScore =
-        game.away_score == null
-          ? null
-          : Number(game.away_score);
-
-      const scoreChanged =
-        previousHomeScore !== homeScore ||
-        previousAwayScore !== awayScore;
-
-      const { error } = await supabase
-        .from("games")
-        .update({
-          home_score: homeScore,
-          away_score: awayScore,
-        })
-        .eq("id", game.id);
-
-      if (error) {
-        throw new Error(
-          "Update score : " +
-            error.message
-        );
-      }
-
-      updated++;
-
-      /*
-       * On garde seulement les matchs
-       * qui apportent réellement un nouveau score.
-       */
-      if (scoreChanged) {
-        changedGames.push({
-          id: game.id,
-
-          home_team:
-            game.home_team,
-
-          away_team:
-            game.away_team,
-
-          home_score:
-            homeScore,
-
-          away_score:
-            awayScore,
+        if (!response.ok) throw new Error(`ESPN ${response.status}`);
+        const summary = await response.json();
+        const state = espnCompetitionState(summary);
+        if (state === "pending") {
+          pending++;
+          continue;
+        }
+        if (state !== "final") throw new Error("statut final ESPN non confirmé");
+        const competitors = summary.header?.competitions?.[0]?.competitors || [];
+        const home = competitors.find((team) => team.homeAway === "home");
+        const away = competitors.find((team) => team.homeAway === "away");
+        const hasScore = (value) => value !== null && value !== undefined && String(value).trim() !== "";
+        if (!home || !away || !hasScore(home.score) || !hasScore(away.score)) {
+          throw new Error("scores finaux ESPN manquants");
+        }
+        const homeScore = Number(home.score);
+        const awayScore = Number(away.score);
+        if (regularGameResult({ ...game, home_score: home.score, away_score: away.score, result_status: "final" }).status === "pending") {
+          throw new Error("scores finaux ESPN invalides");
+        }
+        const scoreChanged = game.home_score == null || game.away_score == null ||
+          Number(game.home_score) !== homeScore || Number(game.away_score) !== awayScore || game.result_status !== "final";
+        const { error } = await supabase.from("games").update({
+          home_score: homeScore, away_score: awayScore, result_status: "final",
+        }).eq("id", game.id);
+        if (error) throw new Error("Enregistrement du score : " + error.message);
+        if (game.is_pool_eligible !== true) continue;
+        updated++;
+        if (scoreChanged) changedGames.push({
+          id: game.id, home_team: game.home_team, away_team: game.away_team,
+          home_score: homeScore, away_score: awayScore,
         });
+      } catch (error) {
+        warnings.push(`${label} : ${error?.message || "résultat ESPN indisponible"}.`);
       }
     }
-
-    return {
-      updated,
-      changedGames,
-    };
+    return { updated, changedGames, pending, warnings };
   }
   /* =========================================================
      CLASSEMENTS / FICHES DES ÉQUIPES NFL
@@ -392,6 +323,7 @@ const [isDesktop, setIsDesktop] = useState(false);
     const data = await fetchEspnStandings();
 
     const foundTeams = [];
+    const notMatched = [];
 
     function getStat(entry, names) {
       const stats = entry?.stats || [];
@@ -405,12 +337,12 @@ const [isDesktop, setIsDesktop] = useState(false);
             String(name).toLowerCase()
         );
 
-        if (stat?.value != null) {
+        if (stat?.value != null && ["number", "string"].includes(typeof stat.value) && String(stat.value).trim() !== "") {
           return Number(stat.value);
         }
       }
 
-      return 0;
+      return null;
     }
 
     function cleanDivisionName(name) {
@@ -522,6 +454,11 @@ const [isDesktop, setIsDesktop] = useState(false);
               ["ties"]
             );
 
+            if ([wins, losses, ties].some((value) => value === null || !Number.isFinite(value) || value < 0)) {
+              notMatched.push(`${team.displayName || team.abbreviation || "Équipe"} (fiche ESPN incomplète)`);
+              return;
+            }
+
             let divisionRank =
               getStat(
                 entry,
@@ -616,11 +553,12 @@ const [isDesktop, setIsDesktop] = useState(false);
     });
 
     let updated = 0;
-    const notMatched = [];
+    if (foundTeams.length === 0) notMatched.push("Aucune fiche d’équipe NFL exploitable dans la réponse ESPN");
 
     for (
       const team of uniqueTeams.values()
     ) {
+      try {
       let query = supabase
         .from("teams")
         .update({
@@ -680,6 +618,9 @@ const [isDesktop, setIsDesktop] = useState(false);
       }
 
       updated++;
+      } catch (error) {
+        notMatched.push(`${team.team_name} (${error?.message || "enregistrement impossible"})`);
+      }
     }
 
     return {
@@ -692,50 +633,16 @@ const [isDesktop, setIsDesktop] = useState(false);
      QB RATINGS ESPN
      ========================================================= */
 
-  async function updateQBRatingsFromEspn(
-    currentWeek
-  ) {
-    const {
-      data: qbPicks,
-      error: qbPicksError,
-    } = await supabase
-      .from("qb_picks")
-      .select(`
-        *,
-        qbs (
-          id,
-          name,
-          team,
-          espn_athlete_id
-        )
-      `)
-      .eq("week", currentWeek);
-
-    if (qbPicksError) {
-      throw new Error(
-        "QB picks : " +
-          qbPicksError.message
-      );
-    }
-
-    const {
-      data: games,
-      error: gamesError,
-    } = await supabase
-      .from("games")
-      .select("*")
-      .eq("week", currentWeek);
-
-    if (gamesError) {
-      throw new Error(
-        "Games : " +
-          gamesError.message
-      );
-    }
-
+  async function updateQBRatingsFromEspn(currentWeek) {
+    const { data: qbPicks, error: qbPicksError } = await supabase.from("qb_picks")
+      .select(`*, qbs (id, name, team, espn_athlete_id)`).eq("week", currentWeek);
+    if (qbPicksError) throw new Error("QB picks : " + qbPicksError.message);
+    const { data: games, error: gamesError } = await supabase.from("games").select("*").eq("week", currentWeek);
+    if (gamesError) throw new Error("Games : " + gamesError.message);
     let updated = 0;
+    let pending = 0;
     const notFound = [];
-
+    const warnings = [];
     for (const pick of qbPicks || []) {
       const selectedQB = selectionSnapshot(pick);
       // Legacy identity may have been overwritten in qbs. Preserve recorded results.
@@ -743,89 +650,43 @@ const [isDesktop, setIsDesktop] = useState(false);
         notFound.push(`Sélection QB semaine ${pick.week} : identité historique à confirmer`);
         continue;
       }
-
-      if (!selectedQB?.team) {
-        notFound.push(
-          selectedQB?.name ||
-            "QB sans équipe"
-        );
-
+      if (!selectedQB.team) {
+        notFound.push(selectedQB.name || "QB sans équipe");
         continue;
       }
-
-      const qbTeam =
-        selectedQB.team.toLowerCase();
-
-      const game = (games || []).find(
-        (g) => {
-          const home = (
-            g.home_team || ""
-          ).toLowerCase();
-
-          const away = (
-            g.away_team || ""
-          ).toLowerCase();
-
-          return (
-            home.includes(qbTeam) ||
-            away.includes(qbTeam)
-          );
-        }
+      const qbTeam = selectedQB.team.toLowerCase();
+      const game = (games || []).find((game) =>
+        (game.home_team || "").toLowerCase().includes(qbTeam) || (game.away_team || "").toLowerCase().includes(qbTeam)
       );
-
       if (!game?.external_game_id) {
-        notFound.push(
-          selectedQB.name
-        );
-
+        if (game?.result_status === "final") notFound.push(`${selectedQB.name} (identifiant ESPN manquant)`);
+        else pending++;
         continue;
       }
-
-      const url =
-        `https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary` +
-        `?event=${game.external_game_id}`;
-
-      const response = await fetch(url);
-
-      if (!response.ok) {
-        notFound.push(
-          `${selectedQB.name} (ESPN ${response.status})`
+      try {
+        const response = await fetch(
+          `https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary?event=${game.external_game_id}`
         );
-
-        continue;
-      }
-
-     const summary =
-      await response.json();
-
-    /*
-     * =====================================================
-     * STATS QB : MATCHS TERMINÉS SEULEMENT
-     * =====================================================
-     *
-     * Le passer rating ESPN évolue pendant le match.
-     *
-     * On ne veut donc JAMAIS enregistrer dans
-     * qb_weekly_stats un rating temporaire provenant
-     * d'un match encore en cours.
-     *
-     * ESPN utilise :
-     *
-     * pre  = match pas commencé
-     * in   = match en cours
-     * post = match terminé
-     *
-     * Seuls les matchs "post" sont conservés.
-     */
-    const gameState =
-      summary.header
-        ?.competitions?.[0]
-        ?.status?.type?.state;
-
-    if (gameState !== "post") {
-      continue;
-    }
-
+        if (!response.ok) throw new Error(`ESPN ${response.status}`);
+        const summary = await response.json();
+        const state = espnCompetitionState(summary);
+        if (state === "pending") { pending++; continue; }
+        if (state !== "final") throw new Error("statut final ESPN non confirmé");
+        // Missing selected-player values must not become a zero rating via Number(null/"").
+        for (const teamBox of summary.boxscore?.players || []) {
+          const teamName = teamBox.team?.shortDisplayName || teamBox.team?.displayName || teamBox.team?.name || "";
+          if (!teamName.toLowerCase().includes(qbTeam)) continue;
+          const passing = teamBox.statistics?.find((category) => category.name === "passing" || category.displayName === "Passing");
+          const index = passing?.labels?.findIndex((label) => ["RTG", "RAT", "RATE"].includes(String(label).toUpperCase())) ?? -1;
+          if (index < 0) continue;
+          const selectedRow = passing?.athletes?.find((row) => String(row.athlete?.id) === String(selectedQB.espn_athlete_id));
+          if (selectedRow) {
+            const value = selectedRow.stats?.[index];
+            if (!["number", "string"].includes(typeof value) || String(value).trim() === "") {
+              throw new Error("rating final ESPN manquant");
+            }
+          }
+        }
     const boxscoreTeams =
       summary.boxscore?.players || [];
     let passingAthletes = [];
@@ -961,598 +822,125 @@ const [isDesktop, setIsDesktop] = useState(false);
        * Si le QB réel était un remplaçant,
        * on l'ajoute à qbs s'il n'existe pas.
        */
-      if (
-        actualQB?.id &&
-        String(actualQB.id) !==
-          String(
-            selectedQB.espn_athlete_id
-          )
-      ) {
-        const {
-          data: existingActualQB,
-          error: lookupError,
-        } = await supabase
-          .from("qbs")
-          .select("id")
-          .eq(
-            "espn_athlete_id",
-            String(actualQB.id)
-          )
-          .maybeSingle();
-
-        if (lookupError) {
-          console.error(
-            "Erreur recherche QB remplaçant :",
-            lookupError.message
-          );
+        if (!actualQB.id || !actualQB.name || !Number.isFinite(actualQB.rating)) {
+          throw new Error("rating final ESPN invalide");
         }
-
-        if (!existingActualQB) {
-          const {
-            error: insertQbError,
-          } = await supabase
-            .from("qbs")
-            .insert({
-              name:
-                actualQB.name,
-
-              team:
-                selectedQB.team,
-
-              espn_athlete_id:
-                String(actualQB.id),
-
-              active:
-                true,
-
-              is_active_starter:
-                false,
+        if (actualQB?.id && String(actualQB.id) !== String(selectedQB.espn_athlete_id)) {
+          const { data: existingActualQB, error: lookupError } = await supabase.from("qbs")
+            .select("id").eq("espn_athlete_id", String(actualQB.id)).maybeSingle();
+          if (lookupError) {
+            warnings.push(`${actualQB.name} : recherche du QB remplaçant impossible (${lookupError.message}).`);
+          } else if (!existingActualQB) {
+            const { error: insertError } = await supabase.from("qbs").insert({
+              name: actualQB.name, team: selectedQB.team, espn_athlete_id: String(actualQB.id), active: true, is_active_starter: false,
             });
-
-          if (insertQbError) {
-            console.error(
-              "Erreur ajout QB remplaçant :",
-              insertQbError.message
-            );
+            if (insertError) warnings.push(`${actualQB.name} : ajout du QB remplaçant impossible (${insertError.message}).`);
           }
         }
-      }
-
-      const { error } = await supabase
-        .from("qb_ratings")
-        .upsert(
-          {
-            qb_id:
-              selectedQB.id,
-
-            week:
-              currentWeek,
-
-            passer_rating:
-              actualQB.rating,
-
-            actual_qb_name:
-              actualQB.name,
-
-            actual_espn_athlete_id:
-              actualQB.id,
-          },
-          {
-            onConflict:
-              "qb_id,week",
-          }
-        );
-
-      if (error) {
-        notFound.push(
-          `${selectedQB.name} (${error.message})`
-        );
-      } else {
+        const { error } = await supabase.from("qb_ratings").upsert({
+          qb_id: selectedQB.id, week: currentWeek, passer_rating: actualQB.rating,
+          actual_qb_name: actualQB.name, actual_espn_athlete_id: actualQB.id,
+        }, { onConflict: "qb_id,week" });
+        if (error) throw new Error(error.message);
         updated++;
+      } catch (error) {
+        notFound.push(`${selectedQB.name} (${error?.message || "résultat ESPN indisponible"})`);
       }
     }
-
-    return {
-      updated,
-      notFound,
-    };
+    return { updated, notFound, pending, warnings };
   }
 /* =========================================================
    STATS HEBDOMADAIRES DE TOUS LES QB NFL
    ========================================================= */
 
-async function updateAllQBWeeklyStatsFromEspn(
-  currentWeek
-) {
-  /*
-   * Cette table est complètement indépendante
-   * des choix du pool.
-   *
-   * On parcourt TOUS les matchs NFL de la semaine
-   * et on enregistre TOUS les passeurs trouvés
-   * dans les boxscores ESPN.
-   *
-   * qb_ratings continue de servir au pool.
-   * qb_weekly_stats sert aux vraies statistiques NFL.
-   */
-
-  const {
-    data: games,
-    error: gamesError,
-  } = await supabase
-    .from("games")
-    .select(
-      "id, external_game_id, home_team, away_team"
-    )
-    .eq("week", currentWeek);
-
-  if (gamesError) {
-    throw new Error(
-      "Games pour stats QB : " +
-        gamesError.message
-    );
-  }
-
+async function updateAllQBWeeklyStatsFromEspn(currentWeek) {
+  // NFL statistics remain independent of pool selections and their historical snapshots.
+  const { data: games, error: gamesError } = await supabase.from("games")
+    .select("id, external_game_id, home_team, away_team, result_status").eq("week", currentWeek);
+  if (gamesError) throw new Error("Games pour stats QB : " + gamesError.message);
   let updated = 0;
+  let pending = 0;
   const notFound = [];
-
   for (const game of games || []) {
+    const label = `${game.away_team} @ ${game.home_team}`;
     if (!game.external_game_id) {
+      if (game.result_status === "final") notFound.push(`${label} (identifiant ESPN manquant)`);
+      else pending++;
       continue;
     }
-
-    const url =
-      `https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary` +
-      `?event=${game.external_game_id}`;
-
-    let response;
-
     try {
-      response = await fetch(url);
+      const response = await fetch(
+        `https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary?event=${game.external_game_id}`
+      );
+      if (!response.ok) throw new Error(`ESPN ${response.status}`);
+      const summary = await response.json();
+      const state = espnCompetitionState(summary);
+      if (state === "pending") { pending++; continue; }
+      if (state !== "final") throw new Error("statut final ESPN non confirmé");
+      const boxscoreTeams = summary.boxscore?.players;
+      if (!Array.isArray(boxscoreTeams) || boxscoreTeams.length === 0) throw new Error("statistiques de passes finales manquantes");
+      if (boxscoreTeams.length < 2) notFound.push(`${label} (statistiques finales d’une équipe manquantes)`);
+      for (const teamBox of boxscoreTeams) {
+        const teamName = teamBox.team?.shortDisplayName || teamBox.team?.displayName || teamBox.team?.name || "";
+        const espnAbbr = teamBox.team?.abbreviation || "";
+        const passing = teamBox.statistics?.find((category) => category.name === "passing" || category.displayName === "Passing");
+        const ratingIndex = passing?.labels?.findIndex((label) => ["RTG", "RAT", "RATE"].includes(String(label).toUpperCase())) ?? -1;
+        if (ratingIndex === -1 || !passing?.athletes?.length) {
+          notFound.push(`${teamName || label} (statistiques de passes finales manquantes)`);
+          continue;
+        }
+        let localTeamName = teamName || null;
+        if (espnAbbr) {
+          const { data: localTeam, error: localTeamError } = await supabase.from("teams").select("name")
+            .ilike("espn_abbr", espnAbbr === "WSH" ? "WAS" : espnAbbr).maybeSingle();
+          if (localTeamError) notFound.push(`${teamName || espnAbbr} (association équipe : ${localTeamError.message})`);
+          else if (!localTeam?.name) notFound.push(`${teamName || espnAbbr} (équipe non associée)`);
+          if (localTeam?.name) localTeamName = localTeam.name;
+        } else if (!localTeamName) {
+          notFound.push(`${label} (équipe ESPN manquante)`);
+        }
+        for (const row of passing.athletes) {
+          const athleteId = row.athlete?.id;
+          const athleteName = row.athlete?.displayName;
+          const rawRating = row.stats?.[ratingIndex];
+          const rating = !["number", "string"].includes(typeof rawRating) || String(rawRating).trim() === "" ? NaN : Number(rawRating);
+          if (!athleteId || !athleteName || !Number.isFinite(rating)) {
+            notFound.push(`${athleteName || teamName || label} (rating final ESPN invalide)`);
+            continue;
+          }
+          const { error } = await supabase.from("qb_weekly_stats").upsert({
+            week: Number(currentWeek), espn_athlete_id: String(athleteId), qb_name: athleteName,
+            team: localTeamName, passer_rating: rating, updated_at: new Date().toISOString(),
+          }, { onConflict: "week,espn_athlete_id" });
+          if (error) notFound.push(`${athleteName} (${error.message})`);
+          else updated++;
+        }
+      }
     } catch (error) {
-      console.error(
-        `Erreur ESPN stats QB match ${game.external_game_id}:`,
-        error
-      );
-
-      notFound.push(
-        `${game.away_team} @ ${game.home_team}`
-      );
-
-      continue;
-    }
-
-    if (!response.ok) {
-      console.error(
-        `Erreur ESPN stats QB match ${game.external_game_id}:`,
-        response.status
-      );
-
-      notFound.push(
-        `${game.away_team} @ ${game.home_team} (ESPN ${response.status})`
-      );
-
-      continue;
-    }
-
-    const summary =
-      await response.json();
-
-    /*
-     * =====================================================
-     * STATS QB NFL : MATCHS TERMINÉS SEULEMENT
-     * =====================================================
-     *
-     * qb_weekly_stats sert maintenant de source officielle
-     * pour les moyennes QB affichées dans l'application.
-     *
-     * On ne doit donc jamais y enregistrer un passer rating
-     * temporaire provenant d'un match encore en cours.
-     *
-     * ESPN :
-     * pre  = pas commencé
-     * in   = en cours
-     * post = terminé
-     */
-    const gameState =
-      summary.header
-        ?.competitions?.[0]
-        ?.status?.type?.state;
-
-    if (gameState !== "post") {
-      continue;
-    }
-
-    const boxscoreTeams =
-      summary.boxscore?.players || [];
-
-    /*
-     * Chaque élément représente normalement
-     * une des deux équipes du match.
-     */
-    for (const teamBox of boxscoreTeams) {
-      const teamName =
-        teamBox.team?.shortDisplayName ||
-        teamBox.team?.displayName ||
-        teamBox.team?.name ||
-        "";
-
-      /*
-       * On essaie également de récupérer
-       * l'abréviation ESPN. Elle nous aidera
-       * à associer proprement le QB à notre
-       * table teams.
-       */
-      const espnAbbr =
-        teamBox.team?.abbreviation ||
-        "";
-
-      const passingCategory =
-        teamBox.statistics?.find(
-          (category) =>
-            category.name === "passing" ||
-            category.displayName ===
-              "Passing"
-        );
-
-      if (!passingCategory) {
-        continue;
-      }
-
-      const labels =
-        passingCategory.labels || [];
-
-      const ratingIndex =
-        labels.findIndex((label) =>
-          [
-            "RTG",
-            "RAT",
-            "RATE",
-          ].includes(
-            String(label).toUpperCase()
-          )
-        );
-
-      if (ratingIndex === -1) {
-        continue;
-      }
-
-      /*
-       * On détermine le nom d'équipe utilisé
-       * par notre application.
-       *
-       * Priorité :
-       * 1. espn_abbr dans teams
-       * 2. nom ESPN
-       */
-      let localTeamName =
-        teamName || null;
-
-      if (espnAbbr) {
-        const localAbbr =
-          espnAbbr === "WSH"
-            ? "WAS"
-            : espnAbbr;
-
-        const {
-          data: localTeam,
-          error: localTeamError,
-        } = await supabase
-          .from("teams")
-          .select("name")
-          .ilike(
-            "espn_abbr",
-            localAbbr
-          )
-          .maybeSingle();
-
-        if (localTeamError) {
-          console.error(
-            `Erreur association équipe ${espnAbbr}:`,
-            localTeamError.message
-          );
-        }
-
-        if (localTeam?.name) {
-          localTeamName =
-            localTeam.name;
-        }
-      }
-
-      /*
-       * Tous les joueurs apparaissant dans
-       * la catégorie Passing sont examinés.
-       *
-       * Il peut donc y avoir :
-       *
-       * - le QB partant;
-       * - son remplaçant;
-       * - deux QB ayant joué;
-       * - etc.
-       */
-      for (
-        const row of
-          passingCategory.athletes || []
-      ) {
-        const athleteId =
-          row.athlete?.id;
-
-        const athleteName =
-          row.athlete?.displayName;
-
-        const rating =
-          Number(
-            row.stats?.[
-              ratingIndex
-            ]
-          );
-
-        if (
-          !athleteId ||
-          !athleteName ||
-          !Number.isFinite(rating)
-        ) {
-          continue;
-        }
-
-        const {
-          error: upsertError,
-        } = await supabase
-          .from(
-            "qb_weekly_stats"
-          )
-          .upsert(
-            {
-              week:
-                Number(
-                  currentWeek
-                ),
-
-              espn_athlete_id:
-                String(
-                  athleteId
-                ),
-
-              qb_name:
-                athleteName,
-
-              team:
-                localTeamName,
-
-              passer_rating:
-                rating,
-
-              updated_at:
-                new Date()
-                  .toISOString(),
-            },
-            {
-              onConflict:
-                "week,espn_athlete_id",
-            }
-          );
-
-        if (upsertError) {
-          console.error(
-            `Erreur qb_weekly_stats ${athleteName}:`,
-            upsertError.message
-          );
-
-          notFound.push(
-            `${athleteName} (${upsertError.message})`
-          );
-
-          continue;
-        }
-
-        updated++;
-      }
+      notFound.push(`${label} (${error?.message || "résultat ESPN indisponible"})`);
     }
   }
-
-  return {
-    updated,
-    notFound,
-  };
+  return { updated, notFound, pending };
 }
-
 
   /* =========================================================
      CALCUL DES SCORES DU POOL
      ========================================================= */
 
-  async function calculateScores(
-    currentWeek
-  ) {
-    const {
-      data: picks,
-      error: picksError,
-    } = await supabase
-      .from("picks")
-      .select(`
-        *,
-        games (
-          week,
-          home_team,
-          away_team,
-          home_score,
-          away_score
-        )
-      `);
-
-    if (picksError) {
-      throw new Error(
-        "Picks : " +
-          picksError.message
-      );
-    }
-
-    const {
-      data: qbPicks,
-    } = await supabase
-      .from("qb_picks")
-      .select("*")
-      .eq("week", currentWeek);
-
-    const {
-      data: qbRatings,
-    } = await supabase
-      .from("qb_ratings")
-      .select("*")
-      .eq("week", currentWeek);
-
-    const scoresByUser = {};
-
-    (picks || [])
-      .filter(
-        (pick) =>
-          pick.games?.week ===
-          currentWeek
-      )
-      .forEach((pick) => {
-        const game =
-          pick.games;
-
-        if (
-          game.home_score == null ||
-          game.away_score == null
-        ) {
-          return;
-        }
-
-        let winner = null;
-
-        if (
-          game.home_score >
-          game.away_score
-        ) {
-          winner =
-            game.home_team;
-        }
-
-        if (
-          game.away_score >
-          game.home_score
-        ) {
-          winner =
-            game.away_team;
-        }
-
-        const realSpread =
-          Math.abs(
-            game.home_score -
-              game.away_score
-          );
-
-        let points = 0;
-
-        if (
-          pick.picked_team ===
-          winner
-        ) {
-          points = 1;
-
-          if (
-            Number(
-              pick.predicted_spread
-            ) === realSpread
-          ) {
-            points = 2;
-          }
-        }
-
-        scoresByUser[
-          pick.user_id
-        ] =
-          (
-            scoresByUser[
-              pick.user_id
-            ] || 0
-          ) + points;
-      });
-
-    const rows =
-      Object.entries(
-        scoresByUser
-      ).map(
-        ([
-          userId,
-          basePoints,
-        ]) => {
-          const qbPick =
-            (qbPicks || []).find(
-              (p) =>
-                p.user_id ===
-                userId
-            );
-
-          const qbRating =
-            (qbRatings || []).find(
-              (r) =>
-                r.qb_id ===
-                qbPick?.qb_id
-            );
-
-          const passerRating =
-            Number(
-              qbRating
-                ?.passer_rating ||
-                0
-            );
-
-          const multiplier =
-            passerRating > 0
-              ? passerRating / 100
-              : 1;
-
-          return {
-            user_id:
-              userId,
-
-            week:
-              currentWeek,
-
-            base_points:
-              basePoints,
-
-            multiplier:
-              Number(
-                multiplier.toFixed(3)
-              ),
-
-            final_score:
-              Number(
-                (
-                  basePoints *
-                  multiplier
-                ).toFixed(3)
-              ),
-          };
-        }
-      );
-
-    if (rows.length === 0) {
-      return 0;
-    }
-
-    const { error } = await supabase
-      .from("weekly_scores")
-      .upsert(
-        rows,
-        {
-          onConflict:
-            "user_id,week",
-        }
-      );
-
-    if (error) {
-      throw new Error(
-        "Weekly scores : " +
-          error.message
-      );
-    }
-
-    return rows.length;
+  async function calculateScores(currentWeek, currentSettings = settings) {
+    const { data, error } = await supabase.auth.getSession();
+    if (error) throw new Error("Session : " + error.message);
+    if (!data?.session?.access_token) throw new Error("Session expirée. Reconnecte-toi avant de publier les classements.");
+    const response = await fetch("/api/admin/regular-week-results", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${data.session.access_token}` },
+      body: JSON.stringify({ season: currentSettings.current_season, week: currentWeek, revision: currentSettings.revision }),
+    });
+    let result;
+    try { result = await response.json(); }
+    catch { throw new Error("La publication des classements n’a pas pu être confirmée."); }
+    if (!response.ok) throw new Error(result?.error || `Publication des classements impossible (${response.status}).`);
+    return result;
   }
   /* =========================================================
      MISE À JOUR COMPLÈTE
@@ -1562,225 +950,89 @@ async function updateAllQBWeeklyStatsFromEspn(
     if (fullUpdateRunning.current) return;
     fullUpdateRunning.current = true;
     let activeStep = null;
+    let hasIssues = false;
+    let hasAchievedResults = false;
     const startStep = (step) => {
       activeStep = step;
       setFullUpdateStatus((state) => ({ ...state, activeStep: step }));
     };
-    const completeStep = (step, count) => {
+    const completeStep = (step, report, labels = {}) => {
+      const warnings = [...(report?.warnings || []), ...(report?.errors || [])];
+      if (report?.notMatched?.length) warnings.push(`${labels.notMatched || "Équipes non associées"} : ${report.notMatched.join(", ")}`);
+      if (report?.notFound?.length) warnings.push(`${labels.notFound || "QB non trouvés"} : ${report.notFound.join(", ")}`);
+      const partial = warnings.length > 0 || report?.partial === true;
+      hasIssues = hasIssues || partial;
+      hasAchievedResults = hasAchievedResults || Number(report?.updated) > 0;
       activeStep = null;
       setFullUpdateStatus((state) => ({
-        ...state,
-        activeStep: null,
-        completed: { ...state.completed, [step]: count },
+        ...state, activeStep: null,
+        completed: { ...state.completed, [step]: report?.updated },
+        stepStates: { ...state.stepStates, [step]: { status: partial ? "partial" : "success", warnings, pending: report?.pending || 0 } },
+        warnings: [...state.warnings, ...warnings],
       }));
     };
     setMessage("");
     setFullUpdateStatus({
       status: "running", week: settings?.current_week ?? null,
-      activeStep: null, completed: {}, details: {}, warnings: [], error: null,
+      activeStep: null, completed: {}, stepStates: {}, details: {}, warnings: [], error: null,
     });
     try {
-
-      const currentSettings =
-        await loadSettings();
-
-      const currentWeek =
-        currentSettings.current_week;
+      const currentSettings = await loadSettings();
+      const currentWeek = currentSettings.current_week;
       setFullUpdateStatus((state) => ({ ...state, week: currentWeek }));
-
-      /*
-       * 1. Scores NFL
-       */
       startStep("scores");
-      const scoresResult =
-        await updateScoresFromEspn(
-          currentWeek
-        );
-
-      completeStep("scores", scoresResult.updated);
-
-      /*
-       * 2. Standings NFL
-       */
+      const scoresResult = await updateScoresFromEspn(currentWeek);
+      completeStep("scores", scoresResult);
       startStep("teams");
-      const standingsResult =
-        await updateTeamStandingsFromEspn();
-      completeStep("teams", standingsResult.updated);
-
-    /*
- * 3. QB ratings utilisés par le pool
- */
-startStep("qb");
-const qbResult =
-  await updateQBRatingsFromEspn(
-    currentWeek
-  );
-
-/*
- * 4. Stats NFL de TOUS les QB
- *
- * Indépendant des choix du pool.
- */
-const allQbStatsResult =
-  await updateAllQBWeeklyStatsFromEspn(
-    currentWeek
-  );
-
-completeStep("qb", qbResult.updated);
-setFullUpdateStatus((state) => ({
-  ...state, details: { ...state.details, qbStats: allQbStatsResult.updated },
-}));
-
-/*
- * 5. Scores du pool
- */
-startStep("rankings");
-const rankingsCalculated =
-  await calculateScores(
-    currentWeek
-  );
-
-completeStep("rankings", rankingsCalculated);
-
-      /*
-       * =====================================================
-       * 5. NOTIFICATION DES CLASSEMENTS
-       * =====================================================
-       *
-       * Seulement lorsqu'au moins un score de match
-       * admissible a réellement changé.
-       *
-       * Une erreur de notification ne doit JAMAIS
-       * faire échouer la mise à jour ESPN.
-       * =====================================================
-       */
-
-      let rankingNotificationResult =
-        null;
-
-      if (
-        scoresResult.changedGames.length >
-        0
-      ) {
-        try {
-          const {
-            data: { session },
-          } =
-            await supabase.auth.getSession();
-
-          if (!session?.access_token) {
-            console.error(
-              "Notification classement : session introuvable."
-            );
-          } else {
-            /*
-             * Un seul match modifié :
-             *
-             * Après Ravens @ Bengals...
-             *
-             * Plusieurs matchs modifiés :
-             *
-             * Après les derniers matchs...
-             */
-            let gameLabel = "";
-
-            if (
-              scoresResult.changedGames
-                .length === 1
-            ) {
-              const changedGame =
-                scoresResult
-                  .changedGames[0];
-
-              gameLabel =
-                `${changedGame.away_team} @ ${changedGame.home_team}`;
-            }
-
-            const notificationResponse =
-              await fetch(
-                "/api/push/rankings-updated",
-                {
-                  method:
-                    "POST",
-
-                  headers: {
-                    "Content-Type":
-                      "application/json",
-
-                    Authorization:
-                      `Bearer ${session.access_token}`,
-                  },
-
-                  body:
-                    JSON.stringify({
-                      week:
-                        Number(
-                          currentWeek
-                        ),
-
-                      gameLabel,
-                    }),
-                }
-              );
-
-            rankingNotificationResult =
-              await notificationResponse.json();
-
-            if (
-              !notificationResponse.ok
-            ) {
-              console.error(
-                "Erreur notification classement :",
-                rankingNotificationResult
-              );
-            } else {
-              console.log(
-                "Notification classement :",
-                rankingNotificationResult
-              );
-            }
-          }
-        } catch (
-          notificationError
-        ) {
-          console.error(
-            "Erreur notification classement :",
-            notificationError
-          );
-        }
-      }
-
-      const warnings = [];
-      if (standingsResult.notMatched.length > 0) {
-        warnings.push("Équipes non associées : " + standingsResult.notMatched.join(", "));
-      }
-      if (allQbStatsResult.notFound.length > 0) {
-        warnings.push("Stats QB NFL non trouvées : " + allQbStatsResult.notFound.join(", "));
-      }
-      const notificationNote = scoresResult.changedGames.length === 0
-        ? "Aucun nouveau score à notifier."
-        : rankingNotificationResult?.success
-          ? null
-          : "L’envoi des notifications de classement n’a pas été confirmé.";
+      const standingsResult = await updateTeamStandingsFromEspn();
+      completeStep("teams", standingsResult);
+      startStep("qb");
+      const qbResult = await updateQBRatingsFromEspn(currentWeek);
+      // Retain the pool rating count even if the independent NFL stats request fails.
+      completeStep("qb", qbResult);
+      startStep("qb");
+      const allQbStatsResult = await updateAllQBWeeklyStatsFromEspn(currentWeek);
+      const qbWarnings = [...(allQbStatsResult.warnings || []), ...(allQbStatsResult.errors || [])];
+      if (allQbStatsResult.notFound?.length) qbWarnings.push("Stats QB NFL non trouvées : " + allQbStatsResult.notFound.join(", "));
+      if (qbWarnings.length > 0) hasIssues = true;
+      hasAchievedResults = hasAchievedResults || Number(allQbStatsResult.updated) > 0;
       setFullUpdateStatus((state) => ({
-        ...state, warnings,
-        details: {
-          ...state.details,
-          notifications: rankingNotificationResult?.success ? rankingNotificationResult.sent : null,
-          notificationNote,
+        ...state,
+        stepStates: { ...state.stepStates, qb: {
+          ...state.stepStates.qb,
+          status: state.stepStates.qb?.status === "partial" || qbWarnings.length ? "partial" : "success",
+          warnings: [...(state.stepStates.qb?.warnings || []), ...qbWarnings],
+          pending: (state.stepStates.qb?.pending || 0) + (allQbStatsResult.pending || 0),
+        } },
+        warnings: [...state.warnings, ...qbWarnings],
+        details: { ...state.details, qbStats: allQbStatsResult.updated },
+      }));
+      startStep("rankings");
+      // The server publishes the score snapshot, then recovers queued notifications.
+      const rankingsResult = await calculateScores(currentWeek, currentSettings);
+      const notifications = rankingsResult.notifications || {};
+      const notificationWarnings = Number(notifications.failed) > 0
+        ? [`${notifications.failed} notification(s) de classement n’ont pas pu être envoyées.`] : [];
+      completeStep("rankings", { ...rankingsResult, warnings: [...(rankingsResult.warnings || []), ...notificationWarnings] });
+      const notificationNote = Number(notifications.scheduled) > 0
+        ? `${notifications.scheduled} notification(s) de classement programmée(s).`
+        : rankingsResult.publication?.baseline
+          ? "Référence des classements enregistrée."
+          : !rankingsResult.publication?.changed
+            ? "Aucun nouveau classement à notifier." : null;
+      setFullUpdateStatus((state) => ({
+        ...state, details: { ...state.details,
+          notifications: typeof notifications.sent === "number" ? notifications.sent : null, notificationNote,
         },
       }));
-
-      await loadSelectionStats(
-        Number(currentWeek)
-      );
-      setFullUpdateStatus((state) => ({ ...state, status: "success", activeStep: null }));
+      await loadSelectionStats(Number(currentWeek));
+      setFullUpdateStatus((state) => ({ ...state, status: hasIssues ? (hasAchievedResults ? "partial" : "error") : "success", activeStep: null }));
     } catch (error) {
-      console.error(error);
-
+      const message = error?.message || "La mise à jour a été interrompue.";
       setFullUpdateStatus((state) => ({
-        ...state, status: "error", activeStep: null,
-        error: { step: activeStep, message: error?.message || "La mise à jour a été interrompue." },
+        ...state, status: hasAchievedResults ? "partial" : "error", activeStep: null,
+        stepStates: activeStep ? { ...state.stepStates, [activeStep]: { ...state.stepStates[activeStep], status: "error", errors: [message] } } : state.stepStates,
+        error: { step: activeStep, message },
       }));
     } finally {
       fullUpdateRunning.current = false;
@@ -1791,139 +1043,51 @@ completeStep("rankings", rankingsCalculated);
    ========================================================= */
 
 const nextWeek = async () => {
+  if (nextWeekRunning.current) return;
+  const displayedSettings = settings;
   const confirmed = window.confirm(
     "Passer à la semaine suivante ?\n\n" +
       "Cette action ouvrira officiellement la prochaine semaine du pool."
   );
-
   if (!confirmed) return;
-
-
+  nextWeekRunning.current = true;
   setMessage("");
-
+  let committedWeek = null;
   try {
-    /* =====================================================
-       1. LIRE LA SEMAINE ACTUELLE
-       ===================================================== */
-
-    const { data: currentSettings, error: settingsError } =
-      await supabase
-        .from("settings")
-        .select("current_week")
-        .single();
-
-    if (settingsError) throw settingsError;
-
-    const currentWeek = Number(currentSettings?.current_week || 1);
-    const newWeek = currentWeek + 1;
-
-    /* =====================================================
-       2. ENREGISTRER LE MOMENT D'OUVERTURE
-       ===================================================== */
-
-    const startedAt = new Date().toISOString();
-
-    const { error: startError } = await supabase
-      .from("qb_selection_weeks")
-      .upsert(
-        {
-          week: newWeek,
-          started_at: startedAt,
-        },
-        {
-          onConflict: "week",
-        }
-      );
-
-    if (startError) throw startError;
-
-    /* =====================================================
-       3. PASSER À LA NOUVELLE SEMAINE
-       ===================================================== */
-
-    const { error: updateError } = await supabase
-      .from("settings")
-      .update({
-        current_week: newWeek,
-      })
-      .eq("id", 1);
-
-    if (updateError) throw updateError;
-
-    /* =====================================================
-       4. NOTIFIER LE PREMIER JOUEUR
-
-       - avant 8 h 30 Québec :
-         notification programmée pour 8 h 30
-
-       - à partir de 8 h 30 :
-         notification immédiate
-
-       Une erreur de notification ne doit JAMAIS annuler
-       le changement de semaine.
-       ===================================================== */
-
+    const { data, error } = await supabase.auth.getSession();
+    if (error) throw new Error("Session : " + error.message);
+    const token = data?.session?.access_token;
+    if (!token) throw new Error("Session expirée. Reconnecte-toi avant de passer à la semaine suivante.");
+    const response = await fetch("/api/admin/regular-next-week", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ season: displayedSettings.current_season, week: displayedSettings.current_week, revision: displayedSettings.revision, confirm: true }),
+    });
+    let result;
+    try { result = await response.json(); }
+    catch { throw new Error("Le passage à la semaine suivante n’a pas pu être confirmé. Recharge la page avant de réessayer."); }
+    if (!response.ok) throw new Error(result?.error || `Impossible de passer à la semaine suivante (${response.status}).`);
+    const newWeek = Number(result.week ?? result.current_week ?? result.settings?.current_week ?? Number(displayedSettings.current_week) + 1);
+    committedWeek = newWeek;
+    // Notify only after the server has committed the new week and its opening time.
+    let notificationWarning = "";
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      if (!session?.access_token) {
-        console.error(
-          "Notification premier joueur : session introuvable."
-        );
-      } else {
-        const notificationResponse = await fetch(
-          "/api/push/first-player",
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${session.access_token}`,
-            },
-          }
-        );
-
-        const notificationResult =
-          await notificationResponse.json();
-
-        if (!notificationResponse.ok) {
-          console.error(
-            "Erreur notification premier joueur :",
-            notificationResult
-          );
-        } else {
-          console.log(
-            "Notification premier joueur :",
-            notificationResult
-          );
-        }
-      }
-    } catch (notificationError) {
-      console.error(
-        "Erreur notification premier joueur :",
-        notificationError
-      );
+      const notificationResponse = await fetch("/api/push/first-player", {
+        method: "POST", headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!notificationResponse.ok) notificationWarning = " L’envoi de la notification au premier joueur n’a pas été confirmé.";
+    } catch {
+      notificationWarning = " L’envoi de la notification au premier joueur n’a pas été confirmé.";
     }
-
-    /* =====================================================
-       5. RECHARGER L'ADMIN
-       ===================================================== */
-
-  await loadSettings();
-await loadSelectionStats(newWeek);
-
-    setMessage(
-      `Semaine ${newWeek} ouverte avec succès ✅`
-    );
+    await loadSettings();
+    await loadSelectionStats(newWeek);
+    setMessage(`Semaine ${newWeek} ouverte avec succès ✅${notificationWarning}`);
   } catch (error) {
-    console.error(
-      "Erreur passage semaine suivante :",
-      error
-    );
-
-    setMessage(
-      `Erreur : ${error?.message || "Impossible de passer à la semaine suivante."}`
-    );
+    setMessage(committedWeek !== null
+      ? `Semaine ${committedWeek} ouverte. L’actualisation de l’affichage est incomplète. Recharge la page avant de poursuivre.`
+      : `Erreur : ${error?.message || "Impossible de passer à la semaine suivante."}`);
+  } finally {
+    nextWeekRunning.current = false;
   }
 };
 /* =========================================================
