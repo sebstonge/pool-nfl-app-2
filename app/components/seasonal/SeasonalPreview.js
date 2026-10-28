@@ -49,7 +49,7 @@ export default function SeasonalPreview() {
         <SeasonalHomeNavSample href="/matchs" icon="✅" title="Mes choix" subtitle="Faire mes prédictions" color="rgba(34,197,94,0.15)" />
         <SeasonalHomeNavSample href="/tous-les-choix" icon="👀" title="Tous les choix" subtitle="Voir les prédictions de tous" color="rgba(59,130,246,0.15)" />
         <SeasonalHomeNavSample href="/qb-ratings" icon="📊" title="QB Ratings" subtitle="Ratings et moyennes" color="rgba(168,85,247,0.15)" />
-      </div> : page === 'matchs' ? <section className="card">
+      </div> : page === 'matchs' ? <section className="card" data-seasonal-group="games">
         <h2 className={styles.heading}>Tes choix de matchs ✅</h2>
         <div className={styles.games}>
           {games.map((game,index) => <div key={game.id} data-seasonal-accent={gameAccent(game,index) || undefined} className={styles.submitted}>

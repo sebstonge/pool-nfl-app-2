@@ -5401,7 +5401,7 @@ export default function Matchs() {
       {/* ================= MATCHS À CHOISIR ================= */}
 
       {gamesToPick.length > 0 && (
-        <section className="card">
+        <section className="card" data-seasonal-group="games">
           <h2
             style={{
               color: "#22c55e",
@@ -5974,7 +5974,7 @@ export default function Matchs() {
       {/* ================= MATCHS SOUMIS ================= */}
 
       {submittedGames.length > 0 && (
-        <section className="card">
+        <section className="card" data-seasonal-group="games">
           <h2
             style={{
               marginTop: 0,

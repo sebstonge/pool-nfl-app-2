@@ -1,104 +1,127 @@
-/* Decoration only: no sizing, typography, functional colors or navigation rules. */
+/* Static decoration only: existing geometry, text and functional colors stay intact. */
 .thanksgiving {
-  --seasonal-glow: 183, 108, 54;
-  --seasonal-light: 230, 177, 101;
+  --seasonal-glow: 198, 122, 61;
+  background-image:
+    radial-gradient(ellipse at 0 30%, rgba(147, 79, 37, .18), transparent 36%),
+    radial-gradient(ellipse at 100% 68%, rgba(166, 96, 45, .12), transparent 32%);
 }
-
 .christmas {
-  --seasonal-glow: 40, 112, 87;
-  --seasonal-light: 228, 202, 148;
+  --seasonal-glow: 76, 139, 113;
+  background-image:
+    radial-gradient(circle at 1% 25%, rgba(218, 228, 233, .36) 0 1px, transparent 2px),
+    radial-gradient(circle at 99% 38%, rgba(223, 191, 124, .42) 0 1px, transparent 3px),
+    radial-gradient(circle at 2% 62%, rgba(218, 228, 233, .3) 0 1px, transparent 2px),
+    radial-gradient(circle at 98% 78%, rgba(218, 228, 233, .32) 0 1px, transparent 2px),
+    radial-gradient(ellipse at 0 32%, rgba(39, 99, 84, .19), transparent 36%),
+    radial-gradient(ellipse at 100% 68%, rgba(100, 40, 55, .14), transparent 32%);
 }
-
-.surface :global(.header-card) {
-  position: relative;
-  isolation: isolate;
-  border-color: rgba(var(--seasonal-glow), .32);
-  box-shadow: 0 0 34px -20px rgba(var(--seasonal-glow), .32);
+.surface :global(.header-card) { position: relative; isolation: isolate; }
+.thanksgiving :global(.header-card) {
+  background:
+    radial-gradient(ellipse at 92% 0, rgba(218, 135, 62, .24), transparent 58%),
+    linear-gradient(105deg, #101c35 5%, #1c2031 36%, #4b3029 73%, #643a25);
+  border-color: rgba(200, 139, 83, .58);
+  box-shadow: 0 12px 36px -24px rgba(197, 111, 47, .5);
 }
-
-.surface :global(.header-card)::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  border-radius: inherit;
-  pointer-events: none;
-  background: radial-gradient(ellipse at 85% 5%, rgba(var(--seasonal-glow), .15), transparent 64%);
+.christmas :global(.header-card) {
+  background:
+    radial-gradient(ellipse at 80% 0, rgba(66, 133, 109, .28), transparent 58%),
+    linear-gradient(110deg, #102039 8%, #112c36 62%, #17392f 86%, #332831);
+  border-color: rgba(112, 155, 142, .48);
+  box-shadow: 0 12px 36px -24px rgba(75, 136, 113, .45);
 }
-
 .surface :global(.header-card)::after {
-  content: "";
-  position: absolute;
-  top: 13px;
-  right: 19px;
-  width: 108px;
-  height: 86px;
-  z-index: -1;
-  pointer-events: none;
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: contain;
-  opacity: .17;
+  content: ""; position: absolute; inset: 0; z-index: -1;
+  border-radius: inherit; pointer-events: none; background-repeat: no-repeat;
 }
-
 .thanksgiving :global(.header-card)::after {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 90' fill='none' stroke='%23d69b60' stroke-width='1.4'%3E%3Cpath d='M31 67C11 47 30 28 48 17c6 21 13 42-17 50Zm0 0 10-32m-7 22-10-8m13-3 10-9M79 50c-8-21 8-29 25-34 0 20-1 37-25 34Zm0 0 16-24m-11 16 11-3m-7-3-3-8M58 82l7-13'/%3E%3C/svg%3E");
+  background-image: url('/seasonal/autumn-corner.svg'), url('/seasonal/autumn-leaf.svg');
+  background-position: right 12px center, left 4px bottom 6px;
+  background-size: 260px 166px, 22px 26px;
 }
-
 .christmas :global(.header-card)::after {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 90' fill='none' stroke='%23d9cfb2' stroke-width='1.2'%3E%3Cpath d='M78 14v40M61 24l34 20M61 44l34-20M78 14l-5 6m5-6 5 6M78 54l-5-6m5 6 5-6M61 24l7-1m-7 1 2 7M95 44l-7 1m7-1-2-7M61 44l2-7m-2 7 7 1M95 24l-2 7m2-7-7-1M34 51v16m-8-8h16M102 67v10m-5-5h10'/%3E%3Ccircle cx='21' cy='23' r='1.5'/%3E%3Ccircle cx='50' cy='79' r='1'/%3E%3C/svg%3E");
+  background-image:
+    url('/seasonal/winter-corner.svg'), url('/seasonal/snowflake.svg'),
+    radial-gradient(circle at 48% 15%, rgba(216, 233, 239, .6) 0 1px, transparent 2px),
+    radial-gradient(circle at 66% 75%, rgba(216, 233, 239, .5) 0 1px, transparent 2px),
+    radial-gradient(circle at 36% 86%, rgba(234, 200, 135, .6) 0 1px, transparent 3px);
+  background-position: right 10px center, left 12px bottom 12px, center, center, center;
+  background-size: 270px 168px, 32px 32px, 100% 100%, 100% 100%, 100% 100%;
 }
-
 .surface :global(.home-nav-card) {
-  box-shadow: 0 7px 26px -24px rgba(var(--seasonal-glow), .5);
+  box-shadow: inset 0 1px 0 rgba(var(--seasonal-glow), .2), 0 8px 28px -23px rgba(var(--seasonal-glow), .45);
 }
-
-/* Inset overlays preserve each existing card's inline border, background and size. */
-.surface [data-seasonal-accent] {
-  position: relative;
-  isolation: isolate;
+/* The existing match groups get warmth at their edges, outside the information area. */
+.surface [data-seasonal-group="games"] { position: relative; isolation: isolate; }
+.surface [data-seasonal-group="games"]::before {
+  content: ""; position: absolute; inset: 0; z-index: -1;
+  border-radius: inherit; pointer-events: none; background-repeat: no-repeat;
 }
-
+.thanksgiving [data-seasonal-group="games"]::before {
+  background-image:
+    url('/seasonal/autumn-leaf.svg'),
+    radial-gradient(ellipse at 0 0, rgba(155, 88, 42, .2), transparent 48%),
+    radial-gradient(ellipse at 100% 100%, rgba(128, 76, 43, .14), transparent 42%);
+  background-position: right 3px bottom 3px, center, center;
+  background-size: 30px 34px, 100% 100%, 100% 100%;
+  box-shadow: inset 0 0 0 1px rgba(184, 124, 70, .21);
+}
+.christmas [data-seasonal-group="games"]::before {
+  background-image:
+    url('/seasonal/snowflake.svg'),
+    radial-gradient(ellipse at 0 0, rgba(46, 110, 87, .17), transparent 48%),
+    radial-gradient(ellipse at 100% 100%, rgba(128, 52, 62, .1), transparent 42%);
+  background-position: right 5px bottom 5px, center, center;
+  background-size: 22px 22px, 100% 100%, 100% 100%;
+  box-shadow: inset 0 0 0 1px rgba(115, 146, 126, .2);
+}
+/* Inset treatment remains visible inside the original overflow:hidden cards. */
+.surface [data-seasonal-accent] { position: relative; isolation: isolate; }
 .surface [data-seasonal-accent]::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  border-radius: inherit;
-  pointer-events: none;
+  content: ""; position: absolute; inset: 0; z-index: -1;
+  border-radius: inherit; pointer-events: none; background-repeat: no-repeat;
 }
-
 .surface [data-seasonal-accent="thanksgiving"]::after {
-  background: linear-gradient(125deg, rgba(163, 91, 42, .055), transparent 65%);
-  box-shadow: inset 0 0 0 1px rgba(198, 133, 68, .48), inset 3px 0 13px -10px rgba(219, 158, 81, .55), 0 0 20px -13px rgba(190, 112, 47, .36);
+  background-image:
+    url('/seasonal/autumn-leaf.svg'),
+    linear-gradient(130deg, rgba(142, 78, 36, .3), rgba(88, 49, 31, .13) 48%, transparent 80%);
+  background-position: right 9px top 8px, center;
+  background-size: 31px 35px, 100% 100%;
+  box-shadow: inset 0 0 0 2px rgba(208, 144, 76, .88), inset 0 0 28px rgba(190, 108, 42, .12), 0 0 20px -8px rgba(190, 112, 47, .34);
 }
-
 .surface [data-seasonal-accent="christmas-eve"]::after {
-  background: linear-gradient(125deg, rgba(37, 100, 75, .045), transparent 65%);
-  box-shadow: inset 0 0 0 1px rgba(67, 126, 97, .32), inset 0 1px 0 rgba(211, 186, 122, .26);
+  background-image:
+    url('/seasonal/snowflake.svg'),
+    linear-gradient(130deg, rgba(31, 100, 74, .34), rgba(29, 64, 58, .13) 55%, transparent);
+  background-position: right 11px top 10px, center;
+  background-size: 23px 23px, 100% 100%;
+  box-shadow: inset 0 0 0 1px rgba(97, 158, 125, .78), inset 0 2px 0 rgba(223, 187, 111, .52), inset 0 0 20px rgba(57, 121, 91, .08);
 }
-
 .surface [data-seasonal-accent="christmas-day"]::after {
-  background: linear-gradient(125deg, rgba(127, 36, 56, .055), transparent 52%, rgba(32, 100, 72, .045));
-  box-shadow: inset 0 0 0 1px rgba(159, 68, 79, .52), inset -3px 0 10px -7px rgba(62, 133, 94, .6), 0 0 22px -14px rgba(147, 45, 62, .4);
+  background-image:
+    url('/seasonal/winter-corner.svg'),
+    radial-gradient(ellipse at 98% 0, rgba(224, 180, 95, .18), transparent 56%),
+    linear-gradient(120deg, rgba(133, 40, 59, .43), rgba(74, 33, 48, .16) 48%, rgba(28, 102, 71, .32));
+  background-position: right 4px top 2px, center, center;
+  background-size: 116px 73px, 100% 100%, 100% 100%;
+  box-shadow: inset 0 0 0 2px rgba(204, 123, 103, .91), inset 0 0 26px rgba(198, 136, 68, .15), 0 0 23px -8px rgba(176, 64, 70, .4);
 }
-
 @media (max-width: 700px) {
-  .surface :global(.header-card)::after {
-    top: 10px;
-    right: 10px;
-    width: 72px;
-    height: 66px;
-    opacity: .12;
+  .thanksgiving :global(.header-card)::after {
+    background-position: right 5px bottom 2px, left 4px top 4px;
+    background-size: 150px 96px, 32px 36px;
+  }
+  .christmas :global(.header-card)::after {
+    background-position: right 3px bottom 2px, left 10px top 10px, center, center, center;
+    background-size: 159px 100px, 19px 19px, 100% 100%, 100% 100%, 100% 100%;
+  }
+  .surface [data-seasonal-accent="christmas-day"]::after {
+    background-size: 89px 56px, 100% 100%, 100% 100%;
   }
 }
-
-/* The seasonal layer is static, including when reduced motion is requested. */
+/* No continuous motion, including when reduced motion is requested. */
 @media (prefers-reduced-motion: reduce) {
-  .surface :global(.header-card)::before,
   .surface :global(.header-card)::after,
-  .surface [data-seasonal-accent]::after {
-    animation: none;
-    transition: none;
-  }
+  .surface [data-seasonal-group="games"]::before,
+  .surface [data-seasonal-accent]::after { animation: none; transition: none; }
 }
