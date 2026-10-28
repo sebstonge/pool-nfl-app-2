@@ -2,51 +2,59 @@
 .thanksgiving {
   --seasonal-glow: 198, 122, 61;
   background-image:
-    radial-gradient(ellipse at 0 30%, rgba(147, 79, 37, .18), transparent 36%),
-    radial-gradient(ellipse at 100% 68%, rgba(166, 96, 45, .12), transparent 32%);
+    url('/seasonal/autumn-scatter.svg'), url('/seasonal/autumn-scatter.svg'),
+    radial-gradient(ellipse at 0 30%, rgba(147, 79, 37, .23), transparent 36%),
+    radial-gradient(ellipse at 100% 68%, rgba(166, 96, 45, .17), transparent 32%);
+  background-position: left 0 top 320px, right 0 top 560px, center, center;
+  background-size: 66px 198px, 74px 222px, 100% 100%, 100% 100%;
+  background-repeat: no-repeat;
 }
 .christmas {
   --seasonal-glow: 76, 139, 113;
   background-image:
+    url('/seasonal/winter-periphery.svg'), url('/seasonal/winter-periphery.svg'),
     radial-gradient(circle at 1% 25%, rgba(218, 228, 233, .36) 0 1px, transparent 2px),
     radial-gradient(circle at 99% 38%, rgba(223, 191, 124, .42) 0 1px, transparent 3px),
     radial-gradient(circle at 2% 62%, rgba(218, 228, 233, .3) 0 1px, transparent 2px),
     radial-gradient(circle at 98% 78%, rgba(218, 228, 233, .32) 0 1px, transparent 2px),
-    radial-gradient(ellipse at 0 32%, rgba(39, 99, 84, .19), transparent 36%),
-    radial-gradient(ellipse at 100% 68%, rgba(100, 40, 55, .14), transparent 32%);
+    radial-gradient(ellipse at 0 32%, rgba(39, 99, 84, .23), transparent 36%),
+    radial-gradient(ellipse at 100% 68%, rgba(100, 40, 55, .16), transparent 32%);
+  background-position: left 1px top 300px, right 0 top 575px, center, center, center, center, center, center;
+  background-size: 58px 215px, 66px 245px, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%;
+  background-repeat: no-repeat;
 }
 .surface :global(.header-card) { position: relative; isolation: isolate; }
 .thanksgiving :global(.header-card) {
   background:
-    radial-gradient(ellipse at 92% 0, rgba(218, 135, 62, .24), transparent 58%),
-    linear-gradient(105deg, #101c35 5%, #1c2031 36%, #4b3029 73%, #643a25);
+    radial-gradient(ellipse at 92% 0, rgba(218, 135, 62, .3), transparent 58%),
+    linear-gradient(105deg, #101c35 5%, #202132 36%, #523329 73%, #6d3e26);
   border-color: rgba(200, 139, 83, .58);
-  box-shadow: 0 12px 36px -24px rgba(197, 111, 47, .5);
+  box-shadow: 0 12px 36px -24px rgba(197, 111, 47, .5), 0 0 24px -16px rgba(221, 159, 86, .32);
 }
 .christmas :global(.header-card) {
   background:
     radial-gradient(ellipse at 80% 0, rgba(66, 133, 109, .28), transparent 58%),
     linear-gradient(110deg, #102039 8%, #112c36 62%, #17392f 86%, #332831);
   border-color: rgba(112, 155, 142, .48);
-  box-shadow: 0 12px 36px -24px rgba(75, 136, 113, .45);
+  box-shadow: 0 12px 36px -24px rgba(75, 136, 113, .45), 0 -7px 25px -20px rgba(229, 200, 143, .42);
 }
 .surface :global(.header-card)::after {
   content: ""; position: absolute; inset: 0; z-index: -1;
   border-radius: inherit; pointer-events: none; background-repeat: no-repeat;
 }
 .thanksgiving :global(.header-card)::after {
-  background-image: url('/seasonal/autumn-corner.svg'), url('/seasonal/autumn-leaf.svg');
-  background-position: right 12px center, left 4px bottom 6px;
-  background-size: 260px 166px, 22px 26px;
+  background-image: url('/seasonal/autumn-corner.svg'), url('/seasonal/autumn-leaf.svg'), url('/seasonal/autumn-scatter.svg');
+  background-position: right 12px center, left 4px bottom 6px, 53% center;
+  background-size: 260px 166px, 22px 26px, 38px 114px;
 }
 .christmas :global(.header-card)::after {
   background-image:
-    url('/seasonal/winter-corner.svg'), url('/seasonal/snowflake.svg'),
+    url('/seasonal/winter-corner.svg'), url('/seasonal/snowflake.svg'), url('/seasonal/warm-lights.svg'), url('/seasonal/winter-periphery.svg'),
     radial-gradient(circle at 48% 15%, rgba(216, 233, 239, .6) 0 1px, transparent 2px),
     radial-gradient(circle at 66% 75%, rgba(216, 233, 239, .5) 0 1px, transparent 2px),
     radial-gradient(circle at 36% 86%, rgba(234, 200, 135, .6) 0 1px, transparent 3px);
-  background-position: right 10px center, left 12px bottom 12px, center, center, center;
-  background-size: 270px 168px, 32px 32px, 100% 100%, 100% 100%, 100% 100%;
+  background-position: right 10px center, left 12px bottom 12px, 55% 2px, 67% center, center, center, center;
+  background-size: 270px 168px, 32px 32px, 240px 33px, 36px 134px, 100% 100%, 100% 100%, 100% 100%;
 }
 .surface :global(.home-nav-card) {
   box-shadow: inset 0 1px 0 rgba(var(--seasonal-glow), .2), 0 8px 28px -23px rgba(var(--seasonal-glow), .45);
@@ -59,21 +67,21 @@
 }
 .thanksgiving [data-seasonal-group="games"]::before {
   background-image:
-    url('/seasonal/autumn-leaf.svg'),
-    radial-gradient(ellipse at 0 0, rgba(155, 88, 42, .2), transparent 48%),
-    radial-gradient(ellipse at 100% 100%, rgba(128, 76, 43, .14), transparent 42%);
-  background-position: right 3px bottom 3px, center, center;
-  background-size: 30px 34px, 100% 100%, 100% 100%;
-  box-shadow: inset 0 0 0 1px rgba(184, 124, 70, .21);
+    url('/seasonal/autumn-leaf.svg'), url('/seasonal/autumn-scatter.svg'), url('/seasonal/autumn-scatter.svg'),
+    radial-gradient(ellipse at 0 0, rgba(155, 88, 42, .24), transparent 48%),
+    radial-gradient(ellipse at 100% 100%, rgba(128, 76, 43, .18), transparent 42%);
+  background-position: right 3px bottom 3px, left -13px top 44%, right -13px top 12%, center, center;
+  background-size: 30px 34px, 38px 114px, 38px 114px, 100% 100%, 100% 100%;
+  box-shadow: inset 0 0 0 1px rgba(184, 124, 70, .32), inset 0 0 30px -19px rgba(204, 140, 71, .24);
 }
 .christmas [data-seasonal-group="games"]::before {
   background-image:
-    url('/seasonal/snowflake.svg'),
-    radial-gradient(ellipse at 0 0, rgba(46, 110, 87, .17), transparent 48%),
-    radial-gradient(ellipse at 100% 100%, rgba(128, 52, 62, .1), transparent 42%);
-  background-position: right 5px bottom 5px, center, center;
-  background-size: 22px 22px, 100% 100%, 100% 100%;
-  box-shadow: inset 0 0 0 1px rgba(115, 146, 126, .2);
+    url('/seasonal/snowflake.svg'), url('/seasonal/winter-periphery.svg'), url('/seasonal/winter-periphery.svg'),
+    radial-gradient(ellipse at 0 0, rgba(46, 110, 87, .2), transparent 48%),
+    radial-gradient(ellipse at 100% 100%, rgba(128, 52, 62, .12), transparent 42%);
+  background-position: right 5px bottom 5px, left -8px top 14%, right -8px center, center, center;
+  background-size: 22px 22px, 32px 119px, 32px 119px, 100% 100%, 100% 100%;
+  box-shadow: inset 0 0 0 1px rgba(115, 146, 126, .28), inset 0 0 30px -20px rgba(156, 183, 171, .2);
 }
 /* Inset treatment remains visible inside the original overflow:hidden cards. */
 .surface [data-seasonal-accent] { position: relative; isolation: isolate; }
@@ -107,13 +115,29 @@
   box-shadow: inset 0 0 0 2px rgba(204, 123, 103, .91), inset 0 0 26px rgba(198, 136, 68, .15), 0 0 23px -8px rgba(176, 64, 70, .4);
 }
 @media (max-width: 700px) {
+  .thanksgiving {
+    background-position: left -8px top 300px, right -7px top 610px, center, center;
+    background-size: 29px 87px, 29px 87px, 100% 100%, 100% 100%;
+  }
+  .christmas {
+    background-position: left -5px top 300px, right -4px top 610px, center, center, center, center, center, center;
+    background-size: 25px 93px, 25px 93px, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%;
+  }
   .thanksgiving :global(.header-card)::after {
-    background-position: right 5px bottom 2px, left 4px top 4px;
-    background-size: 150px 96px, 32px 36px;
+    background-position: right 5px bottom 2px, left 4px top 4px, right -7px top 3px;
+    background-size: 150px 96px, 32px 36px, 26px 78px;
   }
   .christmas :global(.header-card)::after {
-    background-position: right 3px bottom 2px, left 10px top 10px, center, center, center;
-    background-size: 159px 100px, 19px 19px, 100% 100%, 100% 100%, 100% 100%;
+    background-position: right 3px bottom 2px, left 10px top 10px, center top 1px, right 1px top 30px, center, center, center;
+    background-size: 159px 100px, 19px 19px, 137px 19px, 20px 74px, 100% 100%, 100% 100%, 100% 100%;
+  }
+  .thanksgiving [data-seasonal-group="games"]::before {
+    background-position: right 3px bottom 3px, left -9px top 29%, right -9px top 6%, center, center;
+    background-size: 30px 34px, 30px 90px, 30px 90px, 100% 100%, 100% 100%;
+  }
+  .christmas [data-seasonal-group="games"]::before {
+    background-position: right 5px bottom 5px, left -7px top 12%, right -6px top 48%, center, center;
+    background-size: 22px 22px, 27px 100px, 27px 100px, 100% 100%, 100% 100%;
   }
   .surface [data-seasonal-accent="christmas-day"]::after {
     background-size: 89px 56px, 100% 100%, 100% 100%;
