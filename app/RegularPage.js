@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import BottomNav from "./components/BottomNav";
+import useSeasonalTheme from "./components/seasonal/useSeasonalTheme";
+import {loadHomeSeasonalSchedule} from "../lib/seasonal/homeSchedule.mjs";
 
 function NavItem({
   href,
@@ -128,6 +130,25 @@ export default function HomePage({phase='regular',playoffsHome=null}) {
     isDesktop,
     setIsDesktop,
   ] = useState(false);
+
+  const [seasonalSchedule, setSeasonalSchedule] = useState(null);
+  const {theme, pageClassName} = useSeasonalTheme(seasonalSchedule?.games, {
+    activeWeek: seasonalSchedule?.activeWeek,
+    season: seasonalSchedule?.season,
+    enabled: phase === 'regular',
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!user || phase !== 'regular') {
+      setSeasonalSchedule(null);
+      return;
+    }
+    loadHomeSeasonalSchedule(supabase)
+      .then(schedule => { if (!cancelled) setSeasonalSchedule(schedule); })
+      .catch(() => { if (!cancelled) setSeasonalSchedule(null); });
+    return () => { cancelled = true; };
+  }, [user?.id, phase]);
 
   /*
    * =========================================================
@@ -1082,7 +1103,8 @@ async function handleMandatoryPasswordChange() {
 
   return (
     <main
-      className="page"
+      className={`page${pageClassName ? ` ${pageClassName}` : ""}`}
+      data-seasonal-theme={theme || undefined}
       style={
         isDesktop
           ? {
@@ -2078,3 +2100,5 @@ async function handleMandatoryPasswordChange() {
     </main>
   );
 }
+
+export {NavItem as SeasonalHomeNavSample};

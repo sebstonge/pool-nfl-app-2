@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 import { supabase as rawSupabase } from "../../lib/supabase";
 import PersonalSelectionTime from "./PersonalSelectionTime";
 import BottomNav from "../components/BottomNav";
+import useSeasonalTheme from "../components/seasonal/useSeasonalTheme";
 import HistoryBadge from "../components/HistoryBadge";
 import {qbHistory} from "../../lib/seasons/qbHistory.mjs";
 import {selectionSnapshot,regularQbResult,isQbConsumed} from "../../lib/seasons/qbSnapshot.mjs";
@@ -1608,6 +1609,8 @@ export default function Matchs() {
     liveGames,
     setLiveGames,
   ] = useState({});
+
+  const {theme, pageClassName, gameAccent} = useSeasonalTheme(games, {activeWeek: currentWeek});
 
     /* =========================================================
      RESPONSIVE
@@ -3218,7 +3221,8 @@ export default function Matchs() {
 
     return (
     <main
-      className="page"
+      className={`page${pageClassName ? ` ${pageClassName}` : ""}`}
+      data-seasonal-theme={theme || undefined}
       style={
         isDesktop
           ? {
@@ -5422,7 +5426,7 @@ export default function Matchs() {
                 : 0,
             }}
           >
-            {gamesToPick.map((game) => {
+            {gamesToPick.map((game, index) => {
               const pick =
                 draftPicks[game.id] || {};
 
@@ -5437,6 +5441,7 @@ export default function Matchs() {
               return (
                 <div
                   key={game.id}
+                  data-seasonal-accent={gameAccent(game, index)}
                   style={{
                     padding: isDesktop
                       ? 18
@@ -5996,9 +6001,10 @@ export default function Matchs() {
                 : 0,
             }}
           >
-            {submittedGames.map((game) => (
+            {submittedGames.map((game, index) => (
               <div
                 key={game.id}
+                data-seasonal-accent={gameAccent(game, index)}
                 style={{
                   minWidth: 0,
 
@@ -6067,3 +6073,5 @@ isDesktop={isDesktop}
     </main>
   );
 }
+
+export {SubmittedGameCard as SeasonalSubmittedGameSample};

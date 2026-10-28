@@ -8,6 +8,7 @@ const supabase=regularClient(rawSupabase);
 import { useEffect, useState } from "react";
 import { supabase as rawSupabase } from "../../lib/supabase";
 import BottomNav from "../components/BottomNav";
+import useSeasonalTheme from "../components/seasonal/useSeasonalTheme";
 
 /* =========================================================
    IDENTITÉ JOUEUR
@@ -1694,6 +1695,7 @@ function GamePicksCard({
   qbPicks,
   qbRatings,
   liveGames,
+  seasonalAccent,
 }) {
   /*
    * SCORE OFFICIEL SUPABASE
@@ -1837,6 +1839,7 @@ function GamePicksCard({
   return (
     <section
       className="card"
+      data-seasonal-accent={seasonalAccent}
       style={{
         overflow: "hidden",
       }}
@@ -2449,6 +2452,8 @@ const [
     liveGames,
     setLiveGames,
   ] = useState({});
+
+  const {theme, pageClassName, gameAccent} = useSeasonalTheme(weekGames, {activeWeek: currentWeek, viewedWeek});
 
     /* =========================================================
      RESPONSIVE
@@ -3297,7 +3302,8 @@ const [
 
   return (
     <main
-      className="page"
+      className={`page${pageClassName ? ` ${pageClassName}` : ""}`}
+      data-seasonal-theme={theme || undefined}
       style={
         isDesktop
           ? {
@@ -3430,7 +3436,7 @@ const [
               }}
             >
               {weekGames.map(
-                (game) => {
+                (game, index) => {
                   const gamePicks =
                     picks.filter(
                       (pick) =>
@@ -3442,6 +3448,7 @@ const [
                     <GamePicksCard
                       key={game.id}
                       game={game}
+                      seasonalAccent={gameAccent(game, index)}
                       gamePicks={
                         gamePicks
                       }
@@ -3487,3 +3494,5 @@ const [
     </main>
   );
 }
+
+export {GamePicksCard as SeasonalCollectiveGameSample};
