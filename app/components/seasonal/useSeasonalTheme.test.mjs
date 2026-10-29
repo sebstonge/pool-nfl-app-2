@@ -103,3 +103,35 @@ test('decoration is static, scoped and pointer-transparent with no functional st
   assert.doesNotMatch(css, /font-size:|font-family:|font-weight:|padding:|:global\(\.bottom-nav\)|:global\(body\)|transform:/);
   assert.doesNotMatch(source, /fetch\(|\.from\(|\.rpc\(|localStorage|sessionStorage/);
 });
+
+test('Production decorates every Thanksgiving card across future seasons, never only a preview index', () => {
+  for (const [year, day] of [[2027, 25], [2028, 23], [2029, 22]]) {
+    const games = Array.from({ length: 8 }, (_, index) => ({
+      id: `future-${index}`, season: year, week: 2, is_pool_eligible: true,
+      game_date: `${year}-11-${day}T${String(10 + index).padStart(2, '0')}:00:00-05:00`,
+    }));
+    const h = harness('production', '?seasonalPreview=christmas');
+    const ui = h.render(games, { activeWeek: 2, season: year });
+    h.mount();
+    assert.equal(ui.theme, 'thanksgiving');
+    assert.deepEqual(games.map((row, index) => ui.gameAccent(row, index)), Array(8).fill('thanksgiving'));
+    assert.equal(h.listeners.size, 0);
+  }
+});
+
+test('Production decorates every Christmas Eve and Day card while leaving ordinary dates normal', () => {
+  for (const year of [2027, 2028, 2029]) {
+    const games = [23, 24, 24, 24, 24, 25, 25, 25, 25, 25, 26].map((day, index) => ({
+      id: `future-${index}`, season: year, week: 1, is_pool_eligible: true,
+      game_date: `${year}-12-${day}T18:00:00Z`,
+    }));
+    const h = harness('production', '?seasonalPreview=thanksgiving');
+    const ui = h.render(games, { activeWeek: 1, season: year });
+    h.mount();
+    assert.equal(ui.theme, 'christmas');
+    assert.deepEqual(games.map((row, index) => ui.gameAccent(row, index)), [
+      null, ...Array(4).fill('christmas-eve'), ...Array(5).fill('christmas-day'), null,
+    ]);
+    assert.equal(h.listeners.size, 0);
+  }
+});
