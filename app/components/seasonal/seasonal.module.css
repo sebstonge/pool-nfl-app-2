@@ -92,21 +92,29 @@
 .surface [data-seasonal-accent="thanksgiving"]::after {
   background-image:
     url('/seasonal/autumn-leaf.svg'),
-    linear-gradient(130deg, rgba(142, 78, 36, .3), rgba(88, 49, 31, .13) 48%, transparent 80%);
+    linear-gradient(130deg, rgba(154, 83, 36, .37), rgba(98, 54, 32, .18) 48%, transparent 80%);
   background-position: right 9px top 8px, center;
   background-size: 31px 35px, 100% 100%;
   box-shadow: inset 0 0 0 2px rgba(208, 144, 76, .88), inset 0 0 28px rgba(190, 108, 42, .12), 0 0 20px -8px rgba(190, 112, 47, .34);
 }
-/* Only Christmas frames release their decorative cap above the existing border.
+/* Seasonal frames release their decorative cap above the existing border.
    Absolute artwork does not move the card or its functional content. */
+.surface [data-seasonal-accent="thanksgiving"],
 .surface [data-seasonal-accent="christmas-eve"],
 .surface [data-seasonal-accent="christmas-day"] {
   overflow: visible !important;
 }
+.surface [data-seasonal-accent="thanksgiving"]::before,
 .surface [data-seasonal-accent="christmas-eve"]::before,
 .surface [data-seasonal-accent="christmas-day"]::before {
   content: ""; position: absolute; left: 0; right: 0; height: 62px;
   z-index: 2; pointer-events: none; background-repeat: no-repeat;
+}
+.surface [data-seasonal-accent="thanksgiving"]::before {
+  top: -49px; height: 74px;
+  background-image: url('/seasonal/thanksgiving-turkey.svg'), url('/seasonal/autumn-frame.svg'), url('/seasonal/autumn-frame.svg'), url('/seasonal/autumn-frame.svg');
+  background-position: right 8px top, left 3px top 42px, center top 43px, right 4px top 42px;
+  background-size: 54px 52px, 128px 24px, 128px 24px, 128px 24px;
 }
 .surface [data-seasonal-accent="christmas-eve"]::before {
   top: -38px;
@@ -123,7 +131,7 @@
 .surface [data-seasonal-accent="christmas-eve"]::after {
   background-image:
     url('/seasonal/snowflake.svg'),
-    linear-gradient(130deg, rgba(31, 100, 74, .34), rgba(29, 64, 58, .13) 55%, transparent);
+    linear-gradient(130deg, rgba(31, 116, 78, .51), rgba(29, 77, 61, .24) 60%, rgba(25, 65, 54, .12));
   background-position: right 15px top 13px, center;
   background-size: 14px 14px, 100% 100%;
   box-shadow: inset 0 0 0 1px rgba(97, 158, 125, .78), inset 0 2px 0 rgba(223, 187, 111, .52), inset 0 0 20px rgba(57, 121, 91, .08);
@@ -132,7 +140,7 @@
   background-image:
     url('/seasonal/winter-corner.svg'),
     radial-gradient(ellipse at 98% 0, rgba(224, 180, 95, .18), transparent 56%),
-    linear-gradient(120deg, rgba(133, 40, 59, .43), rgba(74, 33, 48, .16) 48%, rgba(28, 102, 71, .32));
+    linear-gradient(120deg, rgba(151, 40, 60, .61), rgba(85, 32, 49, .25) 48%, rgba(28, 116, 75, .46));
   background-position: right 9px top 8px, center, center;
   background-size: 88px 55px, 100% 100%, 100% 100%;
   box-shadow: inset 0 0 0 2px rgba(204, 123, 103, .91), inset 0 0 26px rgba(198, 136, 68, .15), 0 0 23px -8px rgba(176, 64, 70, .4);
@@ -169,6 +177,12 @@
     top: -32px;
     background-position: right 6px top, center top 24px;
     background-size: 42px 42px, 100% 24px;
+  }
+  .surface [data-seasonal-accent="thanksgiving"]::before {
+    top: -35px; height: 56px;
+    background-image: url('/seasonal/thanksgiving-turkey.svg'), url('/seasonal/autumn-frame.svg'), url('/seasonal/autumn-frame.svg');
+    background-position: right 6px top, left 2px top 27px, right 3px top 27px;
+    background-size: 38px 37px, 82px 16px, 82px 16px;
   }
   .surface [data-seasonal-accent="christmas-day"]::before {
     top: -34px;
