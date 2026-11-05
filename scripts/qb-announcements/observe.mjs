@@ -1,0 +1,166 @@
+import { createHmac, timingSafeEqual } from 'node:crypto';
+import { sameIds } from '../../lib/regular-publication/espn.mjs';
+import { readWeek } from './espn.mjs';
+import { runCollector } from './run.mjs';
+import { TEAM_SOURCES } from './sources.mjs';
+
+const MAX_BODY = 128 * 1024;
+const MAX_RUNTIME_MS = 45_000;
+const ESPN_ORIGINS = new Set(['https://site.api.espn.com', 'https://sports.core.api.espn.com']);
+const NEWS_ORIGINS = new Set(['https://www.nfl.com', ...Object.values(TEAM_SOURCES).map(team => team.origin)]);
+const SIGNATURE_HEADER = 'X-QB-Observation-Signature';
+const isObject = value => value != null && typeof value === 'object' && !Array.isArray(value);
+const instant = value => typeof value === 'string' && /(?:Z|[+-]\d\d:\d\d)$/.test(value)
+  ? Date.parse(value) : NaN;
+const athleteId = value => typeof value === 'string' && /^\d{1,18}$/.test(value);
+
+export function signObservation(text, secret) {
+  return createHmac('sha256', secret).update(text, 'utf8').digest('hex');
+}
+
+function authentic(body, signature, secret) {
+  return typeof signature === 'string' && /^[0-9a-f]{64}$/.test(signature) &&
+    timingSafeEqual(Buffer.from(signature, 'hex'), Buffer.from(signObservation(body, secret), 'hex'));
+}
+
+async function readBody(request) {
+  if (Number(request.headers.get('content-length')) > MAX_BODY || !request.body) throw new Error('Invalid body');
+  const reader = request.body.getReader();
+  const decoder = new TextDecoder('utf-8', { fatal: true });
+  let bytes = 0;
+  let text = '';
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) return text + decoder.decode();
+    bytes += value.byteLength;
+    if (bytes > MAX_BODY) {
+      await reader.cancel();
+      throw new Error('Invalid body');
+    }
+    text += decoder.decode(value, { stream: true });
+  }
+}
+
+function validRequest(value, now) {
+  if (!isObject(value)) return false;
+  const { runId, season, week, revision, dispatchedAt, openedAt, firstKickoffAt, eventIds, baseline,
+    seenUrls, retryAfterByOrigin = {} } = value;
+  const dispatched = instant(dispatchedAt), opening = instant(openedAt), kickoff = instant(firstKickoffAt);
+  return typeof runId === 'string' && /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(runId) &&
+    Number.isInteger(season) && season >= 2000 && season <= 2100 &&
+    Number.isInteger(week) && week >= 1 && week <= 18 &&
+    Number.isSafeInteger(revision) && revision >= 0 &&
+    dispatched <= now + 30_000 && dispatched >= now - 120_000 && opening < kickoff &&
+    Array.isArray(eventIds) && eventIds.length > 0 && eventIds.length <= 32 &&
+    eventIds.every(athleteId) && new Set(eventIds).size === eventIds.length &&
+    isObject(baseline) && Object.entries(baseline).every(([abbr, qb]) =>
+      Object.hasOwn(TEAM_SOURCES, abbr) && isObject(qb) && athleteId(qb.id) &&
+      typeof qb.name === 'string' && qb.name.trim() && qb.name.length <= 160 &&
+      (qb.publishedAt == null || Number.isFinite(instant(qb.publishedAt)))) &&
+    Array.isArray(seenUrls) && seenUrls.length <= 200 &&
+    seenUrls.every(url => typeof url === 'string' && url.length <= 500) &&
+    isObject(retryAfterByOrigin) && Object.entries(retryAfterByOrigin)
+      .every(([origin, until]) => NEWS_ORIGINS.has(origin) && Number.isFinite(instant(until)));
+}
+
+// Three rotating slots for teams playing this week. The remaining slot lets
+// an official announcement from a bye team be discovered for later review.
+export function observationClubs(games, timestamp) {
+  const playing = [...new Set(games.flatMap(game => game.teams))].sort();
+  const others = Object.keys(TEAM_SOURCES).filter(team => !playing.includes(team)).sort();
+  const slot = Math.floor(timestamp / 7_200_000);
+  const count = Math.min(playing.length, others.length ? 3 : 4);
+  const clubs = Array.from({ length: count }, (_, n) => playing[(slot * count + n) % playing.length]);
+  if (others.length && clubs.length < 4) clubs.push(others[slot % others.length]);
+  return clubs;
+}
+
+const response = (data, status = 200) =>
+  Response.json(data, { status, headers: { 'Cache-Control': 'no-store' } });
+
+export function createObservationHandler({
+  env = process.env, now = Date.now, fetcher = fetch, readSchedule = readWeek, collect = runCollector,
+} = {}) {
+  return async function observe(request) {
+    if (request.method !== 'POST') return response({ error: 'method_not_allowed' }, 405);
+    const secret = env.QB_OBSERVATION_SECRET;
+    if (env.QB_OBSERVATION_ENABLED !== 'true' || typeof secret !== 'string' || secret.length < 32 ||
+        Object.keys(env).some(key => /^(?:NEXT_PUBLIC_)?SUPABASE_|^POSTGRES_|^DATABASE_URL$/.test(key))) {
+      return response({ error: 'observation_disabled_or_database_environment' }, 503);
+    }
+
+    let payload;
+    try {
+      const body = await readBody(request);
+      if (!authentic(body, request.headers.get(SIGNATURE_HEADER), secret)) {
+        return response({ error: 'invalid_signature' }, 401);
+      }
+      payload = JSON.parse(body);
+    } catch {
+      return response({ error: 'invalid_request' }, 400);
+    }
+    const started = now();
+    if (!validRequest(payload, started)) return response({ error: 'invalid_request' }, 400);
+    const { runId, season, week, revision, baseline, seenUrls, retryAfterByOrigin } = payload;
+    const opening = instant(payload.openedAt);
+    let cutoff = instant(payload.firstKickoffAt);
+    const httpRequests = { sources: 0, espn: 0 };
+    const finish = (status, reason, result = {}) => {
+      const report = JSON.stringify({
+        mode: 'observation', runId, season, week, revision, status, reason,
+        firstKickoffAt: new Date(cutoff).toISOString(), observedAt: new Date(now()).toISOString(),
+        decisions: [], errors: [], ...result, httpRequests,
+      });
+      return response({ report, signature: signObservation(report, secret) });
+    };
+    if (started < opening) return finish('skipped', 'week_not_open');
+    if (started >= cutoff) return finish('skipped', 'first_kickoff_reached');
+
+    const deadline = started + MAX_RUNTIME_MS;
+    const guardedFetch = (value, options = {}) => {
+      const url = new URL(value);
+      const kind = ESPN_ORIGINS.has(url.origin) ? 'espn' : 'sources';
+      if ((!ESPN_ORIGINS.has(url.origin) && !NEWS_ORIGINS.has(url.origin)) ||
+          url.username || url.password || httpRequests.espn + httpRequests.sources >= 64) {
+        throw new Error('Observation request outside allowed sources or budget');
+      }
+      const remaining = Math.min(deadline, cutoff) - now();
+      if (remaining <= 0) throw new Error('Observation window elapsed');
+      httpRequests[kind]++;
+      const timeout = AbortSignal.timeout(remaining);
+      return fetcher(url.href, {
+        ...options, method: 'GET', redirect: kind === 'espn' ? 'error' : 'manual',
+        signal: options.signal ? AbortSignal.any([options.signal, timeout]) : timeout,
+      });
+    };
+    try {
+      const schedule = await readSchedule(season, week, TEAM_SOURCES, guardedFetch);
+      const espnKickoff = instant(schedule.firstKickoffAt);
+      if (!Number.isFinite(espnKickoff)) return finish('failed', 'calendar_invalid');
+      cutoff = Math.min(cutoff, espnKickoff);
+      if (now() >= cutoff || schedule.games.some(game => game.phase !== 'pre')) {
+        return finish('skipped', 'first_kickoff_reached');
+      }
+      if (!sameIds(schedule.games.map(game => game.id), payload.eventIds)) {
+        return finish('failed', 'calendar_mismatch');
+      }
+      const result = await collect({
+        season, week, baseline, seenUrls, retryAfterByOrigin, fetcher: guardedFetch, now,
+        schedule: { ...schedule, firstKickoffAt: new Date(cutoff).toISOString() },
+        sourceTeams: observationClubs(schedule.games, started),
+        sourceBudgetMs: Math.max(0, Math.min(25_000, deadline - now(), cutoff - now())),
+      });
+      if (now() >= cutoff || result.frozen) return finish('skipped', 'first_kickoff_reached', { errors: result.errors });
+      if (now() >= deadline) return finish('failed', 'collection_timeout', { errors: result.errors });
+      return finish('completed', null, {
+        decisions: result.decisions.filter(row => row.newQB || row.reason === 'multiple_candidates'),
+        counts: result.counts, errors: result.errors,
+      });
+    } catch (error) {
+      if (now() >= cutoff) return finish('skipped', 'first_kickoff_reached');
+      return finish('failed', now() >= deadline ? 'collection_timeout' : 'collection_error', {
+        errors: [{ message: String(error?.message || 'Source unavailable').slice(0, 400) }],
+      });
+    }
+  };
+}

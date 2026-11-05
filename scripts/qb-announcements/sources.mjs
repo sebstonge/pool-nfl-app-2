@@ -305,8 +305,9 @@ function rankedLinks({ url, text }, origin) {
 // targeted article URLs can add origins to a run.
 export async function collectArticles({
   teams = [], urls = [], seenUrls = [], limit = 24, fetcher = fetch, retryAfterByOrigin = {},
+  timeBudgetMs = RUN_MS,
 } = {}) {
-  const deadline = Date.now() + RUN_MS;
+  const deadline = Date.now() + Math.min(RUN_MS, timeBudgetMs);
   const errors = [];
   const states = new Map();
   const known = new Set(Array.from(seenUrls, value => articleUrl(value)).filter(Boolean));

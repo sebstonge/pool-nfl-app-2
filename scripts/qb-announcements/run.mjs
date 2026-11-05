@@ -48,8 +48,10 @@ function summarizeBenchmark(bench, detections, discoveredUrls, rosters) {
 
 export async function runCollector({
   season, week, priorities = [], baseline = {}, benchmark = false, limit = 24, fetcher = fetch,
+  schedule, sourceTeams, seenUrls = [], retryAfterByOrigin = {}, sourceBudgetMs,
+  now = Date.now,
 }) {
-  const started = new Date().toISOString();
+  const started = new Date(now()).toISOString();
   const bench = benchmark ? cases.filter(item => item.season === season) : [];
   const byCaseUrl = new Map(bench.map(item => [articleKey(item.url), item]));
   const errors = [];
@@ -63,10 +65,11 @@ export async function runCollector({
     });
   };
 
-  const active = await readWeek(season, week, TEAM_SOURCES, espnFetch);
-  const clubs = rotateClubs(active.games, started, priorities);
+  const active = schedule ?? await readWeek(season, week, TEAM_SOURCES, espnFetch);
+  const clubs = sourceTeams ?? rotateClubs(active.games, started, priorities);
   const collected = await collectArticles({
     teams: clubs, urls: bench.map(item => item.url), limit, fetcher,
+    seenUrls, retryAfterByOrigin, timeBudgetMs: sourceBudgetMs,
   });
   errors.push(...collected.errors);
 
@@ -87,13 +90,13 @@ export async function runCollector({
   const rosters = {};
   await mapBounded(rosterTeams, async team => {
     try {
-      rosters[team] = await readRoster(TEAM_SOURCES[team], season, new Date().toISOString(), espnFetch);
+      rosters[team] = await readRoster(TEAM_SOURCES[team], season, new Date(now()).toISOString(), espnFetch);
     } catch (error) {
       errors.push({ team, message: error.message });
     }
   }, 3);
 
-  const asOf = new Date().toISOString();
+  const asOf = new Date(now()).toISOString();
   const previous = { ...baseline };
   for (const item of bench.filter(item => item.week === week)) previous[item.team] = item.baseline;
   const groups = new Map();
