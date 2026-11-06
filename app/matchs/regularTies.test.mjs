@@ -64,6 +64,12 @@ test('both match views confirm saved legacy games before exposing the weekly gam
     const confirmation=source.indexOf('await confirmLegacyRegularResults(');
     assert.ok(confirmation>0);
     assert.ok(source.indexOf(`${setter}(`,confirmation)>confirmation);
-    assert.match(source,/season: await supabase\.regularSeason\?\.\(\)/);
+    if(path==='matchs'){
+      const pinnedSeason=source.indexOf('const season = await supabase.regularSeason();');
+      assert.ok(pinnedSeason>0 && pinnedSeason<confirmation);
+      assert.match(source,/confirmLegacyRegularResults\([^\n]+,\{season\}\)/);
+    }else{
+      assert.match(source,/season: await supabase\.regularSeason\?\.\(\)/);
+    }
   }
 });

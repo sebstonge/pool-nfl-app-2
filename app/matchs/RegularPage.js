@@ -32,6 +32,38 @@ function normalizeName(value = "") {
     .trim();
 }
 
+const QB_MENU_UNAVAILABLE = "Le menu QB est temporairement indisponible. Recharge la page pour réessayer.";
+
+async function readWeeklyQbMenu(client, season, week) {
+  const {data: menu, error} = await client.rpc("read_regular_qb_menu", {
+    p_season: season,
+    p_week: week,
+  });
+  // A missing RPC is compatible with an installation without the migration.
+  if (error?.code === "PGRST202" ||
+      (error?.code === "42883" && /\bfunction (?:public\.)?read_regular_qb_menu\b/i.test(error.message || ""))) {
+    return null;
+  }
+  if (error) throw error;
+  if (menu?.enabled === false) return null;
+  if (menu?.enabled !== true || !Array.isArray(menu.qbs) || menu.qbs.some(qb =>
+    !qb?.id || !qb.name || !qb.team || !qb.espn_athlete_id ||
+    !qb.menu_game_id || typeof qb.menu_is_home !== "boolean")) {
+    throw new Error("Réponse du menu QB invalide.");
+  }
+  return menu.qbs;
+}
+
+function qbMenuMatchup(qb, weekSchedule) {
+  const team = normalizeName(qb.team);
+  const game = qb.menu_game_id
+    ? weekSchedule.find(row => row.id === qb.menu_game_id)
+    : weekSchedule.find(row => [row.home_team, row.away_team].some(name => normalizeName(name) === team));
+  if (!game) return {game: null, isHome: false, opponent: null};
+  const isHome = qb.menu_is_home ?? (normalizeName(game.home_team) === team);
+  return {game, isHome, opponent: isHome ? game.away_team : game.home_team};
+}
+
 function playerRealName(player) {
   return (
     player?.real_name ||
@@ -1533,11 +1565,6 @@ export default function Matchs() {
   ] = useState([]);
 
   const [
-    qbs,
-    setQbs,
-  ] = useState([]);
-
-  const [
     availableQbs,
     setAvailableQbs,
   ] = useState([]);
@@ -1551,6 +1578,8 @@ export default function Matchs() {
     qbMenuOpen,
     setQbMenuOpen,
   ] = useState(false);
+  const [weeklyQbMenuScope, setWeeklyQbMenuScope] = useState(null);
+  const [qbMenuRefreshing, setQbMenuRefreshing] = useState(false);
 
   const [
     existingQbPick,
@@ -1720,9 +1749,8 @@ export default function Matchs() {
       );
     }
 
-    const weekSchedule = await confirmLegacyRegularResults(allWeekGamesData || [],teamsData || [],{
-      season: await supabase.regularSeason?.(),
-    });
+    const season = await supabase.regularSeason();
+    const weekSchedule = await confirmLegacyRegularResults(allWeekGamesData || [],teamsData || [],{season});
 
     setAllWeekGames(
       weekSchedule
@@ -1742,33 +1770,6 @@ export default function Matchs() {
 
     setGames(
       poolGames
-    );
-
-    /* ================= QB ACTIFS ================= */
-
-    const {
-      data: qbsData,
-    } =
-      await supabase
-        .from("qbs")
-        .select("*")
-        .eq(
-          "active",
-          true
-        )
-        .eq(
-          "is_active_starter",
-          true
-        )
-        .order(
-          "name",
-          {
-            ascending: true,
-          }
-        );
-
-    setQbs(
-      qbsData || []
     );
 
     if (!currentUser) {
@@ -2113,73 +2114,7 @@ export default function Matchs() {
     );
 
     /* =========================================================
-       QB DÉJÀ PRIS CETTE SEMAINE
-       ========================================================= */
-
-    const {
-      data:
-        takenQbsData,
-      error:
-        takenQbsError,
-    } =
-      await supabase
-        .from(
-          "qb_picks"
-        )
-        .select(
-          "qb_id"
-        )
-        .eq(
-          "week",
-          week
-        );
-
-    if (
-      takenQbsError
-    ) {
-      console.error(
-        "Erreur chargement QB pris :",
-        takenQbsError.message
-      );
-    }
-
-    const takenQbIds =
-      new Set(
-        (
-          takenQbsData ||
-          []
-        ).map(
-          (row) =>
-            row.qb_id
-        )
-      );
-
-    /* =========================================================
        QB DÉJÀ UTILISÉS PAR CE JOUEUR
-       =========================================================
-
-       NOUVELLE RÈGLE :
-
-       Un QB sélectionné est considéré comme utilisé
-       seulement s'il a réellement joué.
-
-       Exemple :
-
-       - Sam Darnold sélectionné
-       - Drew Lock joue à sa place
-       - qb_ratings conserve qb_id = Darnold
-       - actual_espn_athlete_id = Drew Lock
-
-       Résultat :
-       Darnold n'est PAS consommé et pourra être
-       sélectionné de nouveau plus tard.
-
-       Le remplaçant automatique n'est pas consommé
-       non plus puisqu'il n'a jamais été sélectionné.
-
-       Tant qu'un ancien choix n'a pas encore de
-       qb_ratings officiel, on le considère utilisé
-       par sécurité.
        ========================================================= */
 
     const {
@@ -2194,13 +2129,7 @@ export default function Matchs() {
           week,
           selected_qb_name,
           selected_espn_athlete_id,
-          selected_team,
-          qbs (
-            id,
-            name,
-            team,
-            espn_athlete_id
-          )
+          selected_team
         `)
         .eq(
           "user_id",
@@ -2237,6 +2166,7 @@ export default function Matchs() {
 
     let previousRatings =
       [];
+    let historyError = previousQbPicksError;
 
     if (
       previousQbIds.length >
@@ -2250,6 +2180,7 @@ export default function Matchs() {
           .from("qb_ratings")
           .select(`
             qb_id,
+            season,
             week,
             actual_espn_athlete_id,
             actual_qb_name,
@@ -2263,6 +2194,7 @@ export default function Matchs() {
       if (
         previousRatingsError
       ) {
+        historyError = previousRatingsError;
         console.error(
           "Erreur chargement anciens ratings QB :",
           previousRatingsError.message
@@ -2276,76 +2208,62 @@ export default function Matchs() {
     // Availability compares stable athlete identities, not mutable catalog row identities.
     setUsedQbs(qbHistory(previousQbPicks, previousRatings));
 
-    /* =========================================================
-       ÉQUIPES QUI JOUENT CETTE SEMAINE
-       ========================================================= */
+    /* ================= QB DISPONIBLES ================= */
 
-    const playingTeams =
-      new Set();
-
-    weekSchedule.forEach(
-      (game) => {
-        if (
-          game.home_team
-        ) {
-          playingTeams.add(
-            normalizeName(
-              game.home_team
-            )
-          );
-        }
-
-        if (
-          game.away_team
-        ) {
-          playingTeams.add(
-            normalizeName(
-              game.away_team
-            )
-          );
-        }
+    try {
+      let options = await readWeeklyQbMenu(supabase, season, week);
+      setWeeklyQbMenuScope(options === null ? null : {season, week});
+      if (options === null) {
+        if (historyError) throw historyError;
+        const [catalog, taken] = await Promise.all([
+          supabase.from("qbs").select("*").eq("active", true).eq("is_active_starter", true).order("name"),
+          supabase.from("qb_picks").select("qb_id").eq("week", week),
+        ]);
+        if (catalog.error || taken.error) throw catalog.error || taken.error;
+        const playingTeams = new Set(weekSchedule.flatMap(game =>
+          [game.home_team, game.away_team].filter(Boolean).map(normalizeName)));
+        const takenQbIds = new Set((taken.data || []).map(pick => pick.qb_id));
+        options = (catalog.data || []).filter(qb =>
+          playingTeams.has(normalizeName(qb.team)) &&
+          !takenQbIds.has(qb.id) &&
+          !isQbConsumed(qb, previousQbPicks, previousRatings));
       }
-    );
-
-    /* =========================================================
-       QB DISPONIBLES
-       ========================================================= */
-
-    const filteredQbs =
-      (
-        qbsData ||
-        []
-      ).filter(
-        (qb) => {
-          const teamIsPlaying =
-            playingTeams.has(
-              normalizeName(
-                qb.team
-              )
-            );
-
-          const alreadyTaken =
-            takenQbIds.has(
-              qb.id
-            );
-
-          const alreadyUsed = isQbConsumed(qb, previousQbPicks, previousRatings);
-
-          return (
-            teamIsPlaying &&
-            !alreadyTaken &&
-            !alreadyUsed
-          );
-        }
-      );
-
-    setAvailableQbs(
-      filteredQbs
-    );
+      applyQbMenuOptions(options);
+    } catch (error) {
+      console.error("Erreur chargement menu QB :", error.message);
+      applyQbMenuOptions([]);
+      if (!existingQbPickData) setMessage(QB_MENU_UNAVAILABLE);
+    }
   }
      useEffect(() => {
     loadData();
   }, []);
+
+  function applyQbMenuOptions(options) {
+    setAvailableQbs(options);
+    setSelectedQbId(id => options.some(qb => qb.id === id) ? id : "");
+  }
+
+  async function toggleQbMenu() {
+    const opening = !qbMenuOpen;
+    setQbMenuOpen(opening);
+    if (!opening || !weeklyQbMenuScope || qbMenuRefreshing) return;
+
+    setQbMenuRefreshing(true);
+    try {
+      const {season, week} = weeklyQbMenuScope;
+      const options = await readWeeklyQbMenu(supabase, season, week);
+      if (options === null) throw new Error("Le mode du menu QB a changé.");
+      applyQbMenuOptions(options);
+      setMessage(message => message === QB_MENU_UNAVAILABLE ? "" : message);
+    } catch (error) {
+      console.error("Erreur actualisation menu QB :", error.message);
+      applyQbMenuOptions([]);
+      setMessage(QB_MENU_UNAVAILABLE);
+    } finally {
+      setQbMenuRefreshing(false);
+    }
+  }
 
      /* =========================================================
      ESPN TEMPORAIRE — LIVE + POST
@@ -2720,7 +2638,7 @@ export default function Matchs() {
      ========================================================= */
 
   const selectedQb =
-    qbs.find(
+    availableQbs.find(
       (qb) =>
         qb.id ===
         selectedQbId
@@ -4148,11 +4066,8 @@ export default function Matchs() {
                     <button
                       type="button"
                       className="input"
-                      onClick={() =>
-                        setQbMenuOpen(
-                          (prev) => !prev
-                        )
-                      }
+                      onClick={toggleQbMenu}
+                      aria-busy={qbMenuRefreshing}
                       style={{
                         width: "100%",
                         minWidth: 0,
@@ -4270,7 +4185,7 @@ export default function Matchs() {
                         CONTENU DU MENU
                         =========================================== */}
 
-                    {qbMenuOpen && (
+                    {qbMenuOpen && !qbMenuRefreshing && (
                       <div
                         style={{
                           position: "absolute",
@@ -4316,43 +4231,7 @@ export default function Matchs() {
                                 )
                               ];
 
-                            const qbGame =
-                              allWeekGames.find(
-                                (game) =>
-                                  normalizeName(
-                                    game.home_team
-                                  ) ===
-                                    normalizeName(
-                                      qb.team
-                                    ) ||
-                                  normalizeName(
-                                    game.away_team
-                                  ) ===
-                                    normalizeName(
-                                      qb.team
-                                    )
-                              );
-
-                            const opponent =
-                              qbGame
-                                ? normalizeName(
-                                    qbGame.home_team
-                                  ) ===
-                                  normalizeName(
-                                    qb.team
-                                  )
-                                  ? qbGame.away_team
-                                  : qbGame.home_team
-                                : null;
-
-                            const isHome =
-                              qbGame &&
-                              normalizeName(
-                                qbGame.home_team
-                              ) ===
-                                normalizeName(
-                                  qb.team
-                                );
+                            const {opponent, isHome} = qbMenuMatchup(qb, allWeekGames);
 
                             return (
                               <button
@@ -4727,22 +4606,11 @@ export default function Matchs() {
                 >
                   {selectedQb ? (
                     (() => {
-                      const selectedQbGame =
-                        allWeekGames.find(
-                          (game) =>
-                            normalizeName(
-                              game.home_team
-                            ) ===
-                              normalizeName(
-                                selectedQb.team
-                              ) ||
-                            normalizeName(
-                              game.away_team
-                            ) ===
-                              normalizeName(
-                                selectedQb.team
-                              )
-                        );
+                      const {
+                        game: selectedQbGame,
+                        isHome: selectedQbIsHome,
+                        opponent: selectedQbOpponent,
+                      } = qbMenuMatchup(selectedQb, allWeekGames);
 
                       if (!selectedQbGame) {
                         return (
@@ -4776,19 +4644,6 @@ export default function Matchs() {
                           </>
                         );
                       }
-
-                      const selectedQbIsHome =
-                        normalizeName(
-                          selectedQbGame.home_team
-                        ) ===
-                        normalizeName(
-                          selectedQb.team
-                        );
-
-                      const selectedQbOpponent =
-                        selectedQbIsHome
-                          ? selectedQbGame.away_team
-                          : selectedQbGame.home_team;
 
                       return (
                         <>
@@ -4935,11 +4790,8 @@ export default function Matchs() {
                     <button
                       type="button"
                       className="input"
-                      onClick={() =>
-                        setQbMenuOpen(
-                          (prev) => !prev
-                        )
-                      }
+                      onClick={toggleQbMenu}
+                      aria-busy={qbMenuRefreshing}
                       style={{
                         width: "100%",
                         minWidth: 0,
@@ -5088,7 +4940,7 @@ export default function Matchs() {
                       </span>
                     </button>
 
-                    {qbMenuOpen && (
+                    {qbMenuOpen && !qbMenuRefreshing && (
                       <div
                         style={{
                           position: "absolute",
@@ -5137,43 +4989,7 @@ export default function Matchs() {
                                 )
                               ];
 
-                            const qbGame =
-                              allWeekGames.find(
-                                (game) =>
-                                  normalizeName(
-                                    game.home_team
-                                  ) ===
-                                    normalizeName(
-                                      qb.team
-                                    ) ||
-                                  normalizeName(
-                                    game.away_team
-                                  ) ===
-                                    normalizeName(
-                                      qb.team
-                                    )
-                              );
-
-                            const opponent =
-                              qbGame
-                                ? normalizeName(
-                                    qbGame.home_team
-                                  ) ===
-                                  normalizeName(
-                                    qb.team
-                                  )
-                                  ? qbGame.away_team
-                                  : qbGame.home_team
-                                : null;
-
-                            const isHome =
-                              qbGame &&
-                              normalizeName(
-                                qbGame.home_team
-                              ) ===
-                                normalizeName(
-                                  qb.team
-                                );
+                            const {opponent, isHome} = qbMenuMatchup(qb, allWeekGames);
 
                             return (
                               <button

@@ -300,6 +300,51 @@ test('QB observation journal in disposable PostgreSQL', { skip: !process.env.PGL
       assert.deepEqual(await tick(), { status: 'outside_window', harvested: 1 });
       assert.equal((await adminJournal()).entries.find(row => row.url === observedBeforeGel.url).proposalEligible, true);
     });
+
+    await t.test('nflverse signals sharing a source URL remain distinct, deduplicated and never alter business data', async () => {
+      await sql(`
+        update settings set current_week=7, revision=revision+1;
+        insert into qb_selection_weeks(season,week,started_at) values(2026,7,now()-interval '1 hour');
+        insert into games(external_game_id,season,week,home_team,away_team,game_date,season_type)
+          values('10007',2026,7,'Washington Commanders','Philadelphia Eagles',now()+interval '1 day','regular');
+      `);
+      const before = await state();
+      const manual = role => as('authenticated', role, async () =>
+        (await one('select public.request_qb_observation_check() result')).result);
+      await assert.rejects(manual(member), /Administrator required/);
+      assert.equal((await manual(admin)).status, 'dispatched');
+      const request = await lastRequest();
+      const url = 'https://github.com/nflverse/nflverse-data/releases/download/schedules/games.csv.gz';
+      const projected = [
+        decision(request, 'unused', null, {
+          url, match: { id: '10007', opponent: 'PHI', kickoffAt: request.payload.firstKickoffAt },
+          title: null, evidence: null, status: 'ambiguous', reason: 'nflverse_projection',
+        }),
+        decision(request, 'unused', null, {
+          url, team: 'PHI', match: { id: '10007', opponent: 'WAS', kickoffAt: request.payload.firstKickoffAt },
+          previousQB: { id: '124', name: 'Eagles QB' }, newQB: { id: '125', name: 'Another QB' },
+          espnAthleteId: '125', title: null, evidence: null, status: 'ambiguous', reason: 'nflverse_projection',
+        }),
+      ];
+      await respond(request, report(request, { decisions: projected }));
+      assert.equal((await tick()).status, 'too_recent');
+      const first = (await adminJournal()).entries.filter(row => row.url === url);
+      assert.equal(first.length, 2);
+      assert(first.every(row => row.currentSignal && !row.proposalEligible && row.publishedAt === null));
+      const dismiss = role => as('authenticated', role, () =>
+        query('select public.dismiss_qb_observation_candidate($1)', [first[0].entryId]));
+      await assert.rejects(dismiss(member), /Administrator required/);
+      await dismiss(admin);
+      await sql(`update qb_observation.runs set dispatched_at=clock_timestamp()-interval '6 minutes' where week=7`);
+      assert.equal((await tick()).status, 'dispatched');
+      const second = await lastRequest();
+      await respond(second, report(second, { decisions: projected }));
+      assert.equal((await tick()).harvested, 1);
+      const deduplicated = (await adminJournal()).entries.filter(row => row.url === url);
+      assert.equal(deduplicated.length, 2);
+      assert.equal(deduplicated.filter(row => row.currentSignal).length, 1);
+      assert.deepEqual(await state(), before);
+    });
   } finally {
     await db.close();
   }

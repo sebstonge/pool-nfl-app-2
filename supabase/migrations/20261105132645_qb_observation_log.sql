@@ -12,6 +12,7 @@ create table qb_observation.runs (
   revision bigint not null,
   opened_at timestamptz not null,
   period integer not null,
+  manually_requested boolean not null default false,
   first_kickoff_at timestamptz not null,
   dispatched_at timestamptz not null,
   observed_at timestamptz,
@@ -32,9 +33,11 @@ create index qb_observation_runs_recent on qb_observation.runs (dispatched_at de
 create index qb_observation_runs_pending on qb_observation.runs (dispatched_at) where status = 'pending';
 
 create table qb_observation.entries (
+  id uuid primary key default gen_random_uuid(),
   season integer not null,
   week integer not null,
   url text not null,
+  source_key text not null,
   run_id uuid not null references qb_observation.runs (run_id),
   decision jsonb not null,
   team text,
@@ -43,7 +46,8 @@ create table qb_observation.entries (
   first_detected_at timestamptz not null,
   last_detected_at timestamptz not null,
   scoped_before_freeze boolean not null,
-  primary key (season, week, url)
+  dismissed_at timestamptz,
+  unique (season, week, source_key)
 );
 
 create index qb_observation_entries_recent on qb_observation.entries (first_detected_at desc);
@@ -159,6 +163,8 @@ declare
   v_previous jsonb;
   v_new jsonb;
   v_url text;
+  v_key text;
+  v_projection boolean;
   v_team text;
   v_published_at timestamptz;
   v_match_kickoff timestamptz;
@@ -216,9 +222,12 @@ begin
     v_new := v_decision->'newQB';
     v_team := v_decision->>'team';
     v_url := regexp_replace(split_part(split_part(v_decision->>'url', '?', 1), '#', 1), '/$', '');
+    v_projection := v_decision->>'reason' = 'nflverse_projection';
     if jsonb_typeof(v_decision) is distinct from 'object'
       or jsonb_typeof(v_decision->'url') is distinct from 'string'
-      or coalesce(v_url, '') !~* '^https://[a-z0-9]+([.-][a-z0-9]+)+/news/[a-zA-Z0-9][a-zA-Z0-9_-]*$'
+      or not coalesce(case when v_projection then
+        v_url = 'https://github.com/nflverse/nflverse-data/releases/download/schedules/games.csv.gz'
+      else v_url ~* '^https://[a-z0-9]+([.-][a-z0-9]+)+/news/[a-zA-Z0-9][a-zA-Z0-9_-]*$' end, false)
       or length(v_url) > 500
       or v_decision->>'status' is null or v_decision->>'status' not in ('proposed','ambiguous','rejected')
       or jsonb_typeof(v_decision->'reason') is distinct from 'string'
@@ -243,8 +252,10 @@ begin
     ) then
       raise exception 'Observation match outside request' using errcode = '22023';
     end if;
-    if v_decision->>'status' = 'proposed' and (
-      v_team is null or v_match_kickoff is null or v_published_at is null
+    if (v_projection or v_decision->>'status' = 'proposed') and (
+      v_team is null or v_match_kickoff is null
+      or (v_projection and (v_decision->>'status' <> 'ambiguous' or v_published_at is not null))
+      or (not v_projection and v_published_at is null)
       or p_run.baseline->v_team is null
       or v_previous->>'id' is distinct from p_run.baseline->v_team->>'id'
       or v_previous->>'name' is distinct from p_run.baseline->v_team->>'name'
@@ -255,6 +266,8 @@ begin
     ) then
       raise exception 'Observation proposal outside request' using errcode = '22023';
     end if;
+    v_key := case when v_projection then concat_ws(':', 'nflverse', v_match->>'id', v_team, v_new->>'id')
+      else v_url end;
 
     -- These are the fixture-scoped signals that resolveLatest treats as
     -- chronological evidence, including contradictory or same-QB reports.
@@ -267,10 +280,10 @@ begin
         )
       ), false);
     insert into qb_observation.entries as saved
-      (season, week, url, run_id, decision, team, event_id, published_at,
+      (season, week, url, source_key, run_id, decision, team, event_id, published_at,
        first_detected_at, last_detected_at, scoped_before_freeze)
     values (
-      p_run.season, p_run.week, v_url, p_run.run_id,
+      p_run.season, p_run.week, v_url, v_key, p_run.run_id,
       jsonb_build_object(
         'url', v_url, 'team', v_team, 'match', case when v_match_kickoff is not null then
           jsonb_build_object('id', v_match->>'id', 'opponent', v_match->>'opponent',
@@ -285,8 +298,12 @@ begin
       ),
       v_team, v_match->>'id', v_published_at, v_observed_at, v_observed_at, v_scoped
     )
-    on conflict (season, week, url) do update
-      set last_detected_at = greatest(saved.last_detected_at, excluded.last_detected_at);
+    on conflict (season, week, source_key) do update
+      set last_detected_at = greatest(saved.last_detected_at, excluded.last_detected_at),
+          run_id = case when v_projection then excluded.run_id else saved.run_id end,
+          decision = case when v_projection then excluded.decision ||
+            jsonb_strip_nulls(jsonb_build_object('reviewOutcome', saved.decision->'reviewOutcome'))
+            else saved.decision end;
   end loop;
 
   for v_error in select value from jsonb_array_elements(p_body->'errors') loop
@@ -317,7 +334,7 @@ begin
 end
 $$;
 
-create function public.run_qb_observation_tick() returns jsonb
+create function qb_observation.tick(p_manual boolean) returns jsonb
 language plpgsql security invoker set search_path = '' as $$
 declare
   v_pending qb_observation.runs;
@@ -424,7 +441,8 @@ begin
     return jsonb_build_object('status', 'outside_window', 'harvested', v_harvested);
   end if;
 
-  v_period := floor(extract(epoch from v_now - v_opened_at) / 7200)::integer;
+  v_period := case when p_manual then -1 - floor(extract(epoch from v_now) / 300)::integer
+    else floor(extract(epoch from v_now - v_opened_at) / 7200)::integer end;
   if exists (
     select 1 from qb_observation.runs r
     where r.season = v_settings.current_season and r.week = v_settings.current_week and r.opened_at = v_opened_at
@@ -432,12 +450,21 @@ begin
   ) then
     return jsonb_build_object('status', 'already_dispatched', 'harvested', v_harvested);
   end if;
+  if exists (select 1 from qb_observation.runs where season = v_settings.current_season
+    and week = v_settings.current_week and opened_at = v_opened_at
+    and dispatched_at > v_now - interval '5 minutes' and (p_manual or manually_requested)) then
+    return jsonb_build_object('status', 'too_recent', 'harvested', v_harvested);
+  end if;
 
   v_baseline := qb_observation.baseline(v_settings.current_season, v_settings.current_week);
+  if to_regprocedure('qb_observation.regular_menu_override_baseline(integer,integer,jsonb)') is not null then
+    v_baseline := qb_observation.regular_menu_override_baseline(
+      v_settings.current_season, v_settings.current_week, v_baseline);
+  end if;
   insert into qb_observation.runs
-    (season, week, revision, opened_at, period, first_kickoff_at, dispatched_at, status, event_ids, baseline)
+    (season, week, revision, opened_at, period, manually_requested, first_kickoff_at, dispatched_at, status, event_ids, baseline)
   values (
-    v_settings.current_season, v_settings.current_week, v_settings.revision, v_opened_at, v_period,
+    v_settings.current_season, v_settings.current_week, v_settings.revision, v_opened_at, v_period, p_manual,
     v_calendar.first_kickoff_at, v_now, 'pending', v_calendar.event_ids, v_baseline
   ) returning run_id into v_run_id;
 
@@ -503,6 +530,53 @@ begin
 end
 $$;
 
+create function public.run_qb_observation_tick() returns jsonb
+language sql security invoker set search_path = '' as $$
+  select qb_observation.tick(false)
+$$;
+
+create function public.request_qb_observation_check() returns jsonb
+language plpgsql security definer set search_path = '' as $$
+begin
+  if not exists (select 1 from public.users where id = (select auth.uid()) and is_admin is true) then
+    raise exception 'Administrator required' using errcode = '42501';
+  end if;
+  return qb_observation.tick(true);
+end
+$$;
+
+create function qb_observation.current_projection(p_entry qb_observation.entries) returns boolean
+language sql stable set search_path = '' as $$
+  select p_entry.decision->>'reason' = 'nflverse_projection' and p_entry.dismissed_at is null and exists (
+    select 1
+    from public.settings s
+    join qb_observation.runs r on r.run_id = p_entry.run_id
+    join public.qb_selection_weeks w on w.season = r.season and w.week = r.week
+    where s.id = 1 and s.phase = 'regular' and not s.regular_writes_paused and s.regular_finalized_at is null
+      and r.season = s.current_season and r.week = s.current_week and r.revision = s.revision
+      and r.opened_at = w.started_at and r.status = 'completed'
+      and r.observed_at >= r.opened_at and r.observed_at < r.first_kickoff_at
+      and r.observed_at > statement_timestamp() - interval '3 hours'
+      and statement_timestamp() < r.first_kickoff_at
+      and not exists (
+        select 1 from qb_observation.runs newer where newer.season = r.season and newer.week = r.week
+          and newer.opened_at = r.opened_at and newer.revision = r.revision and newer.status = 'completed'
+          and newer.dispatched_at > r.dispatched_at
+      )
+  )
+$$;
+
+create function public.dismiss_qb_observation_candidate(p_entry_id uuid) returns void
+language plpgsql security definer set search_path = '' as $$
+begin
+  if not exists (select 1 from public.users where id = (select auth.uid()) and is_admin is true) then
+    raise exception 'Administrator required' using errcode = '42501';
+  end if;
+  update qb_observation.entries set dismissed_at = clock_timestamp()
+    where id = p_entry_id and dismissed_at is null and decision->>'reason' = 'nflverse_projection';
+end
+$$;
+
 create function public.read_qb_observation_log(p_limit integer default 20) returns jsonb
 language plpgsql stable security definer set search_path = '' as $$
 declare
@@ -524,6 +598,8 @@ begin
     ), '[]'),
     'entries', coalesce((
       select jsonb_agg(e.decision || jsonb_build_object(
+        'entryId', e.id, 'dismissedAt', qb_observation.iso(e.dismissed_at),
+        'currentSignal', coalesce(qb_observation.current_projection(e), false),
         'runId', e.run_id, 'season', e.season, 'week', e.week, 'revision', r.revision,
         'firstDetectedAt', qb_observation.iso(e.first_detected_at), 'lastDetectedAt', qb_observation.iso(e.last_detected_at),
         'proposalEligible', e.scoped_before_freeze and e.decision->>'status' = 'proposed' and not exists (
@@ -550,5 +626,11 @@ alter function public.read_qb_observation_log(integer) owner to postgres;
 revoke all on function public.run_qb_observation_tick() from public, anon, authenticated, service_role;
 revoke all on function public.read_qb_observation_log(integer) from public, anon, authenticated, service_role;
 grant execute on function public.read_qb_observation_log(integer) to authenticated;
+alter function public.request_qb_observation_check() owner to postgres;
+alter function public.dismiss_qb_observation_candidate(uuid) owner to postgres;
+revoke all on function public.request_qb_observation_check(), public.dismiss_qb_observation_candidate(uuid)
+  from public, anon, authenticated, service_role;
+grant execute on function public.request_qb_observation_check(), public.dismiss_qb_observation_candidate(uuid)
+  to authenticated;
 
 commit;

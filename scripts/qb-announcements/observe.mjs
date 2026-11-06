@@ -1,13 +1,10 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { sameIds } from '../../lib/regular-publication/espn.mjs';
-import { readWeek } from './espn.mjs';
-import { runCollector } from './run.mjs';
+import { collectNflverse, NFLVERSE_ORIGINS, readNflverseWeek } from './nflverse.mjs';
 import { TEAM_SOURCES } from './sources.mjs';
 
 const MAX_BODY = 128 * 1024;
 const MAX_RUNTIME_MS = 45_000;
-const ESPN_ORIGINS = new Set(['https://site.api.espn.com', 'https://sports.core.api.espn.com']);
-const NEWS_ORIGINS = new Set(['https://www.nfl.com', ...Object.values(TEAM_SOURCES).map(team => team.origin)]);
 const SIGNATURE_HEADER = 'X-QB-Observation-Signature';
 const isObject = value => value != null && typeof value === 'object' && !Array.isArray(value);
 const instant = value => typeof value === 'string' && /(?:Z|[+-]\d\d:\d\d)$/.test(value)
@@ -60,26 +57,14 @@ function validRequest(value, now) {
     Array.isArray(seenUrls) && seenUrls.length <= 200 &&
     seenUrls.every(url => typeof url === 'string' && url.length <= 500) &&
     isObject(retryAfterByOrigin) && Object.entries(retryAfterByOrigin)
-      .every(([origin, until]) => NEWS_ORIGINS.has(origin) && Number.isFinite(instant(until)));
-}
-
-// Three rotating slots for teams playing this week. The remaining slot lets
-// an official announcement from a bye team be discovered for later review.
-export function observationClubs(games, timestamp) {
-  const playing = [...new Set(games.flatMap(game => game.teams))].sort();
-  const others = Object.keys(TEAM_SOURCES).filter(team => !playing.includes(team)).sort();
-  const slot = Math.floor(timestamp / 7_200_000);
-  const count = Math.min(playing.length, others.length ? 3 : 4);
-  const clubs = Array.from({ length: count }, (_, n) => playing[(slot * count + n) % playing.length]);
-  if (others.length && clubs.length < 4) clubs.push(others[slot % others.length]);
-  return clubs;
+      .every(([origin, until]) => NFLVERSE_ORIGINS.has(origin) && Number.isFinite(instant(until)));
 }
 
 const response = (data, status = 200) =>
   Response.json(data, { status, headers: { 'Cache-Control': 'no-store' } });
 
 export function createObservationHandler({
-  env = process.env, now = Date.now, fetcher = fetch, readSchedule = readWeek, collect = runCollector,
+  env = process.env, now = Date.now, fetcher = fetch, readSchedule = readNflverseWeek, collect = collectNflverse,
 } = {}) {
   return async function observe(request) {
     if (request.method !== 'POST') return response({ error: 'method_not_allowed' }, 405);
@@ -101,10 +86,10 @@ export function createObservationHandler({
     }
     const started = now();
     if (!validRequest(payload, started)) return response({ error: 'invalid_request' }, 400);
-    const { runId, season, week, revision, baseline, seenUrls, retryAfterByOrigin } = payload;
+    const { runId, season, week, revision, baseline, retryAfterByOrigin = {} } = payload;
     const opening = instant(payload.openedAt);
     let cutoff = instant(payload.firstKickoffAt);
-    const httpRequests = { sources: 0, espn: 0 };
+    const httpRequests = { sources: 0 };
     const finish = (status, reason, result = {}) => {
       const report = JSON.stringify({
         mode: 'observation', runId, season, week, revision, status, reason,
@@ -119,25 +104,24 @@ export function createObservationHandler({
     const deadline = started + MAX_RUNTIME_MS;
     const guardedFetch = (value, options = {}) => {
       const url = new URL(value);
-      const kind = ESPN_ORIGINS.has(url.origin) ? 'espn' : 'sources';
-      if ((!ESPN_ORIGINS.has(url.origin) && !NEWS_ORIGINS.has(url.origin)) ||
-          url.username || url.password || httpRequests.espn + httpRequests.sources >= 64) {
+      if (!NFLVERSE_ORIGINS.has(url.origin) || url.username || url.password || httpRequests.sources >= 6) {
         throw new Error('Observation request outside allowed sources or budget');
       }
+      if (instant(retryAfterByOrigin[url.origin]) > now()) throw new Error('Source in HTTP backoff');
       const remaining = Math.min(deadline, cutoff) - now();
       if (remaining <= 0) throw new Error('Observation window elapsed');
-      httpRequests[kind]++;
+      httpRequests.sources++;
       const timeout = AbortSignal.timeout(remaining);
       return fetcher(url.href, {
-        ...options, method: 'GET', redirect: kind === 'espn' ? 'error' : 'manual',
+        ...options, method: 'GET', redirect: options.redirect ?? 'error',
         signal: options.signal ? AbortSignal.any([options.signal, timeout]) : timeout,
       });
     };
     try {
-      const schedule = await readSchedule(season, week, TEAM_SOURCES, guardedFetch);
-      const espnKickoff = instant(schedule.firstKickoffAt);
-      if (!Number.isFinite(espnKickoff)) return finish('failed', 'calendar_invalid');
-      cutoff = Math.min(cutoff, espnKickoff);
+      const schedule = await readSchedule(season, week, TEAM_SOURCES, guardedFetch, now);
+      const sourceKickoff = instant(schedule.firstKickoffAt);
+      if (!Number.isFinite(sourceKickoff)) return finish('failed', 'calendar_invalid');
+      cutoff = Math.min(cutoff, sourceKickoff);
       if (now() >= cutoff || schedule.games.some(game => game.phase !== 'pre')) {
         return finish('skipped', 'first_kickoff_reached');
       }
@@ -145,21 +129,22 @@ export function createObservationHandler({
         return finish('failed', 'calendar_mismatch');
       }
       const result = await collect({
-        season, week, baseline, seenUrls, retryAfterByOrigin, fetcher: guardedFetch, now,
+        season, baseline, fetcher: guardedFetch, now,
         schedule: { ...schedule, firstKickoffAt: new Date(cutoff).toISOString() },
-        sourceTeams: observationClubs(schedule.games, started),
-        sourceBudgetMs: Math.max(0, Math.min(25_000, deadline - now(), cutoff - now())),
       });
-      if (now() >= cutoff || result.frozen) return finish('skipped', 'first_kickoff_reached', { errors: result.errors });
+      if (now() >= cutoff) return finish('skipped', 'first_kickoff_reached', { errors: result.errors });
       if (now() >= deadline) return finish('failed', 'collection_timeout', { errors: result.errors });
       return finish('completed', null, {
-        decisions: result.decisions.filter(row => row.newQB || row.reason === 'multiple_candidates'),
+        decisions: result.decisions,
         counts: result.counts, errors: result.errors,
       });
     } catch (error) {
       if (now() >= cutoff) return finish('skipped', 'first_kickoff_reached');
       return finish('failed', now() >= deadline ? 'collection_timeout' : 'collection_error', {
-        errors: [{ message: String(error?.message || 'Source unavailable').slice(0, 400) }],
+        errors: [{
+          message: String(error?.message || 'Source unavailable').slice(0, 400),
+          url: error?.url, status: error?.status, retryAfter: error?.retryAfter,
+        }],
       });
     }
   };

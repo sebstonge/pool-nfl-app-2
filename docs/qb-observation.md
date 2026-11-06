@@ -1,14 +1,15 @@
-# Observation des annonces de QB titulaires
+# Veille et menu hebdomadaire des QB
 
-Le journal se consulte dans l’Admin régulier, sous **Observation QB**. La collecte utilise NFL.com, les sites officiels des clubs et le calendrier et les effectifs ESPN. Le QB affiché comme référence vient du titulaire actif du catalogue régulier. Une équipe sans titulaire identifiable de façon unique ne produit pas de proposition admissible.
+L’Admin régulier affiche les différences entre les QB indiqués par nflverse et les titulaires proposés dans le pool. Il peut confirmer un signal après vérification, l’écarter, retirer un QB indisponible ou sélectionner un QB du catalogue par nom et identifiant ESPN. Une correction confirmée s’applique seulement à la semaine régulière visée.
 
 ## Flux d’observation
 
 - Le tick PostgreSQL utilise la saison et la semaine régulières actives, l’ouverture réelle dans `qb_selection_weeks.started_at` et tous les matchs NFL de la semaine, admissibles au pool ou non. Il envoie au plus une collecte par tranche de deux heures à partir de l’ouverture.
-- Le worker compare les IDs de ces matchs à ceux du calendrier ESPN complet et retient le plus tôt des deux premiers coups d’envoi. Un calendrier non concordant, un match commencé ou un gel atteint arrête la collecte ou rend son résultat inutilisable.
-- NFL.com est prioritaire. Le worker sélectionne jusqu’à quatre sites de clubs par passage, avec trois places en rotation pour les équipes qui jouent et une pour les autres, lorsqu’il y en a. Si toutes les équipes jouent, les quatre places servent aux équipes de la semaine. Chaque passage est limité à 45 secondes et à 64 requêtes HTTP, toutes sources confondues. Les limites du prototype sur les articles et les robots continuent de s’appliquer. Les demandes `Retry-After` sont conservées entre passages.
-- PostgreSQL récupère la réponse asynchrone de `pg_net` et vérifie sa signature, son contexte et son heure d’observation avant de journaliser les propositions. La déduplication utilise la saison, la semaine et l’URL canonique. Les signaux plus récents ou contradictoires peuvent rendre une ancienne proposition inadmissible dans le journal.
-- Le worker isolé effectue uniquement des lectures HTTPS de sources publiques. Il ne reçoit ni identifiants Supabase, ni accès au catalogue. Le tick écrit seulement dans le schéma privé `qb_observation` et la file HTTP de `pg_net`. Le journal Admin passe par une RPC de lecture qui vérifie le rôle Admin de l’utilisateur.
+- Le worker utilise les fichiers de calendrier et de roster des [releases nflverse](https://github.com/nflverse/nflverse-data/releases) sous [CC BY 4.0](https://github.com/nflverse#licensing), avec attribution à nflverse et aux fournisseurs applicables. Il valide la fraîcheur, l’empreinte publiée et la concordance de tous les IDs de match. Le premier kickoff est le plus tôt des deux calendriers. Jusqu’à six GET, 45 secondes maximum, avec respect de `Retry-After`. La copie des effectifs est lue uniquement en présence d’un écart et peut être mise en cache. Les timestamps horaires sont interprétés dans `America/Toronto`.
+- Un écart nflverse reste **à confirmer**, même lorsque l’ID ESPN du candidat a été rapproché de façon unique. La date de détection reste distincte d’une date d’annonce. Aucune source gratuite autorisée et suffisamment explicite n’a été retenue pour une affectation automatique. Les articles du prototype restent des fixtures et du code de recherche local. Le worker déployable ne consulte ni NFL.com, ni ESPN, ni RotoWire, ni les sites des équipes. Sleeper ne participe pas à la décision.
+- PostgreSQL récolte la réponse asynchrone de `pg_net` et valide sa signature et son contexte. Les signaux nflverse sont dédupliqués par saison, semaine, match, équipe et QB. Un signal écarté ne crée pas d’alerte répétée. Un clic Admin peut demander une vérification supplémentaire, dans la même fenêtre et avec au moins cinq minutes entre cette demande et la précédente collecte.
+- Le worker effectue seulement des lectures HTTPS. Il ne reçoit aucun identifiant Supabase. Seul un Admin authentifié peut confirmer ou corriger le menu. La transaction revalide le calendrier, l’heure réelle et la saison. Un changement de titulaire ne libère jamais une équipe déjà réservée. Le résultat officiel consomme le QB réellement crédité. En attente de preuve, le choix original reste indisponible. L’affichage live et le calcul de remplacement se fondent toujours sur le match individuel.
+- Le contrôle d’admissibilité utilise le résultat enregistré dans `qb_ratings`. La migration empêche les joueurs ordinaires d’insérer ou de modifier cette preuve. La lecture des ratings et les écritures Admin ou serveur autorisées sont conservées.
 
 ## Vérification de l’infrastructure avant activation
 
@@ -44,15 +45,34 @@ Le propriétaire doit pouvoir exécuter `net.http_post`, lire la réponse et dé
 
 ## Installation ultérieure, sur approbation
 
-1. Appliquer manuellement `supabase/migrations/20261105132645_qb_observation_log.sql`. Elle crée le journal et ses RPC dans une transaction. La création de secrets, l’installation d’extensions et la création d’un job Cron sont des opérations distinctes.
-2. Générer le paquet autonome avec `node scripts/qb-announcements/package-observer.mjs /chemin/vers/un-nouveau-dossier`. Le déployer dans un **projet Vercel séparé**, Node.js 22, avec une durée de fonction de 60 secondes. Utiliser l’URL HTTPS canonique du worker se terminant par `/api/cron/qb-observation`, sans redirection ni écran d’authentification. Le projet ne doit contenir aucun identifiant de base.
+1. Après revue, appliquer manuellement les versions de cette branche de `20261105132645_qb_observation_log.sql` puis `202611060001_regular_weekly_qb_menu.sql`. L’observation et le menu sont séparés. Le menu est désactivé à l’installation. Les migrations n’activent aucun job, ne contiennent aucun secret et ne changent aucune sélection existante.
+2. Générer le paquet autonome avec `node scripts/qb-announcements/package-observer.mjs /chemin/vers/un-nouveau-dossier`. Compresser le **contenu** du dossier en ZIP. Configurer une AWS Lambda Function URL en Node.js 24, handler `index.handler`, 512 Mo, timeout 50 secondes, sans VPC privé, NAT ou concurrence provisionnée. Utiliser la Function URL HTTPS avec le suffixe `/api/cron/qb-observation`. `AuthType=NONE` permet le POST de `pg_net`; le worker vérifie HMAC avant toute collecte. Limiter la concurrence et surveiller l’usage. L’endpoint refuse les appels non signés. N’y installer aucun identifiant de base.
 3. Générer un secret aléatoire dédié de 32 octets, encodé en hexadécimal. Configurer `QB_OBSERVATION_SECRET` sur le worker et `qb_observation_secret` dans Vault, avec la même valeur. Stocker l’URL du worker dans Vault sous `qb_observation_url`. Garder `QB_OBSERVATION_ENABLED` absent ou désactivé jusqu’au feu vert. Les requêtes `POST` et les réponses sont signées en HMAC-SHA256. Le secret lui-même ne transite pas dans la file HTTP.
-4. Après approbation, planifier sous le rôle propriétaire `postgres` la commande `select public.run_qb_observation_tick();` avec l’expression `*/5 * * * *`. Ce tick récolte rapidement les réponses de `pg_net` et prend en compte une ouverture dans les cinq minutes environ. Il ne lance qu’une collecte par tranche de deux heures. Activer le worker avec `QB_OBSERVATION_ENABLED=true` uniquement lorsque le projet et les permissions ont été vérifiés.
-5. Pour suspendre l’observation, désactiver le job et retirer ou désactiver `QB_OBSERVATION_ENABLED`.
+4. Vérifier hors Production un POST signé, son délai réel, la récolte et l’absence de proposition admissible produite par une projection. Une fois autorisé, planifier sous `postgres` le job `qb-observation-tick` à `*/5 * * * *` avec `set local lock_timeout = '250ms'; select public.run_qb_observation_tick();`. Le premier tick éligible suit l’ouverture et prend le titulaire connu comme référence. La réponse reste asynchrone. Le job récolte les réponses et ne lance qu’une collecte automatique par tranche de deux heures.
+5. Garder le menu désactivé pendant l’observation. Après validation, l’activer comme propriétaire de préférence à l’ouverture d’une semaine vierge de choix. Un premier relevé complet et signé est requis pour écrire une correction. Vérifier l’Admin, le menu, les QB pris et la réservation avant de poursuivre.
+
+```sql
+-- Commande manuelle distincte, uniquement après validation du menu.
+update qb_observation.regular_menu_config set enabled = true where singleton;
+```
+
+Pour suspendre la collecte, désactiver Cron et le flag du worker. Garder les réservations actives jusqu’à la fin de la semaine. Le menu continue de servir les affectations déjà enregistrées. Pour revenir au catalogue, passer `enabled = false` à une frontière de semaine avant le premier choix de la nouvelle semaine, après revue des offres. La règle de consommation reste celle du code applicatif déployé.
+
+```sql
+-- Planifier manuellement, une fois le worker signé validé et l’activation autorisée.
+select cron.schedule('qb-observation-tick', '*/5 * * * *',
+  $$set local lock_timeout = '250ms'; select public.run_qb_observation_tick();$$);
+
+-- Désactivation rapide, sans toucher au menu ni aux réservations.
+select cron.alter_job(jobid, active := false) from cron.job where jobname = 'qb-observation-tick';
+```
+
+Coût estimé pour la collecte. nflverse est gratuit. Pour Lambda à la demande, 372 passages de 50 s avec 512 Mo représentent 9 300 Go-secondes. Le coût de calcul et d’invocations attendu dans le quota gratuit est de 0 $ US, ou environ 0,16 $ US hors quota, journaux, transfert et taxes. Les appels non signés peuvent consommer des invocations.
 
 Références officielles
 
 - [Supabase Cron](https://supabase.com/docs/guides/cron/quickstart)
 - [Supabase pg_net](https://supabase.com/docs/guides/database/extensions/pg_net)
 - [Supabase Vault](https://supabase.com/docs/guides/database/vault)
-- [Vercel Node.js](https://vercel.com/docs/functions/runtimes/node-js)
+- [AWS Lambda Function URLs](https://docs.aws.amazon.com/lambda/latest/dg/urls-invocation.html)
+- [Tarifs Lambda](https://aws.amazon.com/lambda/pricing/)
