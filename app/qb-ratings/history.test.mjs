@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildQbWeeklyHistory } from './history.mjs';
+import { buildQbWeeklyHistory, compactQbSelections } from './history.mjs';
 
 const qb = (id, name = id) => ({ id: `actual-${id}`, name, espn_athlete_id: id });
 const pick = (week, name = 'Jalen Hurts', id = 'hurts', user = 'katy', extra = {}) => ({
@@ -143,4 +143,58 @@ test('presentation leaves picks, results, NFL stats and user records unchanged',
 test('empty data or invalid season creates no fabricated weeks', () => {
   assert.deepEqual(build(qb('hurts')), []);
   assert.deepEqual(buildQbWeeklyHistory({ qb: qb('hurts'), season: undefined, picks: [pick(1)] }), []);
+});
+
+const selection = (id, value, name = id) => ({ pickId: id, userId: id,
+  displayName: name, creditedRating: value, replaced: false });
+const historyWeek = (week, participants, season = 2026) => ({ season, week, nflRating: 158.3, participants });
+
+test('compact list contains selections only, sorted by credited rating with zero before pending results', () => {
+  const history = [historyWeek(1, []), historyWeek(2, [selection('zero', 0)]),
+    historyWeek(8, [selection('high', 153.3)]), historyWeek(9, [selection('mid', 105)]),
+    historyWeek(10, [selection('pending', null)])];
+  const row = { history };
+  const before = structuredClone(row);
+  const entries = compactQbSelections(row);
+  assert.deepEqual(entries.map(entry => [entry.pickId, entry.creditedRating]),
+    [['high', 153.3], ['mid', 105], ['zero', 0], ['pending', null]]);
+  assert.deepEqual(row, before);
+});
+
+test('only exact summary selections are excluded, never all ties or identical participant names', () => {
+  const history = [historyWeek(2, [selection('best', 100, 'Sam'), selection('tied-user', 100, 'Sam')]),
+    historyWeek(3, [selection('tied-week', 100, 'Sam')]), historyWeek(4, [selection('worst', 0)])];
+  const row = { history,
+    best: { selected_pick_id: 'best', season: 2026, week: 2, passer_rating: '100' },
+    worst: { selected_pick_id: 'worst', season: 2026, week: 4, passer_rating: 0 } };
+  assert.deepEqual(compactQbSelections(row).map(entry => entry.pickId), ['tied-week', 'tied-user']);
+});
+
+test('a summary needs matching selection, season, week and credited result before hiding an entry', () => {
+  const history = [historyWeek(6, [selection('pick', 77.5)])];
+  for (const best of [
+    { selected_pick_id: 'other', season: 2026, week: 6, passer_rating: 77.5 },
+    { selected_pick_id: 'pick', season: 2027, week: 6, passer_rating: 77.5 },
+    { selected_pick_id: 'pick', season: 2026, week: 5, passer_rating: 77.5 },
+    { selected_pick_id: 'pick', season: 2026, week: 6, passer_rating: 78 },
+    { season: 2026, week: 6, passer_rating: 77.5 },
+    { selected_pick_id: 'pick', week: 6, passer_rating: 77.5 },
+  ]) assert.equal(compactQbSelections({ history, best }).length, 1);
+});
+
+test('one or two fully represented selections yield no duplicate detail, even if both summaries share an entry', () => {
+  const best = { selected_pick_id: 'one', season: 2026, week: 1, passer_rating: 100 };
+  const worst = { selected_pick_id: 'two', season: 2026, week: 2, passer_rating: 50 };
+  assert.deepEqual(compactQbSelections({ history: [historyWeek(1, [selection('one', 100)])], best, worst: best }), []);
+  assert.deepEqual(compactQbSelections({ history: [historyWeek(1, [selection('one', 100)]), historyWeek(2, [selection('two', 50)])], best, worst }), []);
+});
+
+test('a replacement line retains the actual credited rating instead of the selected QB NFL rating', () => {
+  const row = { history: build(qb('hurts'), { picks: [pick(6)], ratings: [rating(6, 'Tanner McKee', 'mckee', 77.5)],
+    weeklyStats: [stat(6, 'hurts', 52)] }) };
+  const entries = compactQbSelections(row);
+  assert.equal(entries[0].creditedRating, 77.5);
+  assert.equal(entries[0].replaced, true);
+  assert.equal(entries[0].selected.name, 'Jalen Hurts');
+  assert.equal(entries[0].actual.name, 'Tanner McKee');
 });

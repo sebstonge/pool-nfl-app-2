@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
+import { compactQbSelections } from './history.mjs';
+import { ratingColor } from '../components/weekly-summary/presentation.mjs';
 
 const require = createRequire(import.meta.url);
 const React = require('react');
@@ -19,7 +21,7 @@ new Function('require', 'exports', code)(id => {
   if (id.endsWith('/regularClient.mjs')) return { regularClient: () => ({}) };
   if (id.endsWith('/supabase')) return { supabase: {} };
   if (id.endsWith('/BottomNav')) return () => null;
-  if (id === './history.mjs') return { buildQbWeeklyHistory: () => [] };
+  if (id === './history.mjs') return { buildQbWeeklyHistory: () => [], compactQbSelections };
   if (id.endsWith('.module.css')) return { __esModule: true, default: styles };
   if (id.endsWith('/qbSnapshot.mjs')) return {};
   return require(id);
@@ -70,11 +72,11 @@ for (const name of ['DesktopPodiumQB', 'DesktopCompactQB']) {
     const opened = html(true);
     assert.match(opened, /aria-expanded="true"/);
     assert.match(opened, /role="region"/);
-    assert.match(opened, /Semaine 6.*Saison 2026/);
-    assert.match(opened, /QB sélectionné.*Jalen Hurts/);
-    assert.match(opened, /QB ayant joué.*Tanner McKee/);
-    assert.match(opened, /Rating crédité.*104\.2/);
-    assert.match(opened, /🔄 Remplacement/);
+    assert.match(opened, /Semaine 6/);
+    assert.match(opened, /Katy/);
+    assert.match(opened, /104\.2/);
+    assert.match(opened, /title="Remplacement : Jalen Hurts → Tanner McKee"/);
+    assert.doesNotMatch(opened, /<h3|QB sélectionné|QB ayant joué|Rating crédité|Saison 2026/);
     assert.equal(html(false), closed);
   });
 }
@@ -85,11 +87,12 @@ test('details distinguish the QB NFL rating from each participant’s credited r
     { ...row.history[0].participants[0], pickId: 'p-other', displayName: 'Louis-Simon', creditedRating: 0, replaced: false },
   ] }];
   const html = renderToStaticMarkup(React.createElement(components.QbWeeklyDetails, { row: { ...row, history } }));
-  assert.match(html, /Passer rating du QB.*82\.5/);
+  assert.doesNotMatch(html, /82\.5|Passer rating du QB/);
   assert.match(html, /Katy/);
   assert.match(html, /Louis-Simon/);
-  assert.match(html, /Rating crédité.*0\.0/);
-  assert.equal(html.match(/🔄 Remplacement/g)?.length, 1);
+  assert.match(html, /0\.0/);
+  assert.equal(html.match(/🔄/g)?.length, 1);
+  assert.ok(html.indexOf('Katy') < html.indexOf('Louis-Simon'));
 });
 
 test('missing results and empty participant weeks are shown without inventing zero or replacement', () => {
@@ -100,10 +103,28 @@ test('missing results and empty participant weeks are shown without inventing ze
     }] },
   ];
   const html = renderToStaticMarkup(React.createElement(components.QbWeeklyDetails, { row: { ...row, history } }));
-  assert.match(html, /0\.0/);
-  assert.match(html, /Aucun participant pour ce QB cette semaine/);
-  assert.match(html, /Non disponible/);
-  assert.match(html, /Identité sélectionnée à confirmer/);
-  assert.match(html, /En attente de résultat/);
-  assert.doesNotMatch(html, /🔄 Remplacement/);
+  assert.doesNotMatch(html, /Semaine 1|0\.0|Aucun participant|Non disponible|Identité sélectionnée|QB ayant joué/);
+  assert.match(html, /Sam/);
+  assert.match(html, /En attente/);
+  assert.doesNotMatch(html, /🔄/);
+});
+
+test('a fully represented history stays compact with one empty-state sentence', () => {
+  const current = { ...row, best: { ...row.best, selected_pick_id: 'p6', season: 2026 } };
+  const html = renderToStaticMarkup(React.createElement(components.QbWeeklyDetails, { row: current }));
+  assert.match(html, /Aucune autre sélection\./);
+  assert.doesNotMatch(html, /<li|<h3|Semaine 6/);
+});
+
+test('rating colors reuse the existing application formatter and exactly match Tous les choix', async () => {
+  const reference = await readFile(new URL('../tous-les-choix/RegularPage.js', import.meta.url), 'utf8');
+  const definition = reference.match(/function ratingColor\(rating\) \{[\s\S]*?\n\}/)[0];
+  const referenceColor = new Function(`return (${definition})`)();
+  for (const value of [0, 69.9, 70, 89.9, 90, 99.9, 100, 158.3]) {
+    assert.equal(ratingColor(value), referenceColor(value));
+    const history = [{ season: 2026, week: 2, participants: [{ pickId: 'color', displayName: 'Sam', creditedRating: value }] }];
+    const html = renderToStaticMarkup(React.createElement(components.QbWeeklyDetails, { row: { ...row, history } }));
+    assert.ok(html.includes(`color:${referenceColor(value)}`));
+  }
+  assert.match(source, /import \{ ratingColor \} from "\.\.\/components\/weekly-summary\/presentation\.mjs"/);
 });

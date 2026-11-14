@@ -23,99 +23,78 @@
 }
 
 .history {
-  margin-top: 18px;
-  padding-top: 16px;
-  border-top: 1px solid rgba(148, 163, 184, 0.16);
-  color: #e2e8f0;
+  margin-top: 12px;
+  padding-top: 4px;
+  border-top: 1px solid rgba(148, 163, 184, 0.08);
   min-width: 0;
 }
 
-.title {
-  margin: 0 0 12px;
-  font-size: 15px;
+.list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 24px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.entry {
+  display: grid;
+  grid-template-columns: 68px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 8px 2px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.08);
 }
 
 .week {
-  padding: 12px 0;
-}
-
-.week + .week {
-  border-top: 1px solid rgba(148, 163, 184, 0.12);
-}
-
-.weekHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px 16px;
-  flex-wrap: wrap;
-  font-size: 13px;
-}
-
-.weekHeader > span,
-.participantName > span,
-.empty,
-.result dt {
   color: #94a3b8;
   font-size: 12px;
+  white-space: nowrap;
 }
 
-.weekHeader span strong {
-  color: #e2e8f0;
-}
-
-.participant {
-  margin-top: 12px;
-  min-width: 0;
-}
-
-.participantName {
+.player {
   display: flex;
-  flex-wrap: wrap;
-  gap: 4px 8px;
-  font-size: 13px;
-  overflow-wrap: anywhere;
-}
-
-.result {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px 16px;
-  margin: 8px 0 0;
-}
-
-.result > div {
+  align-items: center;
+  gap: 5px;
   min-width: 0;
-}
-
-.result dd {
-  margin: 4px 0 0;
+  color: #f8fafc;
   font-size: 13px;
-  font-weight: 700;
+  line-height: 1.15;
   overflow-wrap: anywhere;
 }
 
-.result .rating {
-  color: #e2e8f0;
+.player strong {
+  font-weight: 900;
+}
+
+.rating {
+  font-size: 13px;
+  font-weight: 900;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .replacement {
-  display: inline-block;
-  margin-top: 5px;
+  flex-shrink: 0;
   color: #facc15;
   font-size: 11px;
 }
 
 .empty {
-  margin: 8px 0 0;
+  margin: 6px 0 0;
+  color: #94a3b8;
+  font-size: 12px;
 }
 
-@media (max-width: 600px) {
-  .result {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+@media (max-width: 899px) {
+  .list {
+    grid-template-columns: minmax(0, 1fr);
   }
 
-  .result > div:last-child {
-    grid-column: 1 / -1;
+  .entry {
+    padding: 8px 0;
   }
 }

@@ -62,3 +62,22 @@ export function buildQbWeeklyHistory({ qb, season, picks = [], ratings = [], wee
 
   return [...weeks.values()].sort((a, b) => a.week - b.week);
 }
+
+// Hide only the exact selections already represented in the existing summary.
+// Equal ratings from other weeks or participants remain separate entries.
+export function compactQbSelections(row) {
+  const summaries = [row.best, row.worst].filter(Boolean);
+  return (row.history || []).flatMap(week => week.participants.map(participant => ({
+    ...participant, season: week.season, week: week.week,
+  }))).filter(entry => !summaries.some(summary =>
+    entry.pickId != null && summary.selected_pick_id === entry.pickId &&
+    Number(summary.season) === Number(entry.season) && Number(summary.week) === Number(entry.week) &&
+    entry.creditedRating != null && ratingValue(summary.passer_rating) === entry.creditedRating
+  )).sort((a, b) => {
+    if (a.creditedRating == null && b.creditedRating != null) return 1;
+    if (a.creditedRating != null && b.creditedRating == null) return -1;
+    return (b.creditedRating ?? 0) - (a.creditedRating ?? 0) ||
+      Number(b.season) - Number(a.season) || b.week - a.week ||
+      a.displayName.localeCompare(b.displayName, 'fr') || String(a.pickId).localeCompare(String(b.pickId));
+  });
+}

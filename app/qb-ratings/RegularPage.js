@@ -1,7 +1,8 @@
 "use client";
 import {regularClient} from "../../lib/seasons/regularClient.mjs";
 import { regularQbResult } from "../../lib/seasons/qbSnapshot.mjs";
-import { buildQbWeeklyHistory } from "./history.mjs";
+import { buildQbWeeklyHistory, compactQbSelections } from "./history.mjs";
+import { ratingColor } from "../components/weekly-summary/presentation.mjs";
 import styles from "./details.module.css";
 const supabase=regularClient(rawSupabase);
 
@@ -539,6 +540,7 @@ function historyButton(row, expanded, onToggle) {
 }
 
 function QbWeeklyDetails({ row }) {
+  const entries = compactQbSelections(row);
   return (
     <section
       id={`qb-history-${row.qb.id}`}
@@ -546,43 +548,26 @@ function QbWeeklyDetails({ row }) {
       aria-label={`Historique hebdomadaire de ${row.qb.name}`}
       className={styles.history}
     >
-      <h3 className={styles.title}>Historique hebdomadaire</h3>
-      {row.history.length === 0 && <p>Aucun détail hebdomadaire disponible.</p>}
-      {row.history.map(week => (
-        <div key={`${week.season}-${week.week}`} className={styles.week}>
-          <div className={styles.weekHeader}>
-            <strong>Semaine {week.week} · Saison {week.season}</strong>
-            <span>
-              Passer rating du QB : <strong>{week.nflRating == null ? "Non disponible" : week.nflRating.toFixed(1)}</strong>
-            </span>
-          </div>
-          {week.participants.length === 0 ? (
-            <p className={styles.empty}>Aucun participant pour ce QB cette semaine.</p>
-          ) : week.participants.map(participant => (
-            <div key={participant.pickId} className={styles.participant}>
-              <div className={styles.participantName}>
-                <strong>{participant.displayName}</strong>
-                {participant.realName && <span>{participant.realName}</span>}
-              </div>
-              <dl className={styles.result}>
-                <div>
-                  <dt>QB sélectionné</dt>
-                  <dd>{participant.selected?.name || "Identité sélectionnée à confirmer"}</dd>
-                </div>
-                <div>
-                  <dt>QB ayant joué</dt>
-                  <dd>{participant.actual?.name || "En attente de résultat"}</dd>
-                  {participant.replaced && <span className={styles.replacement}>🔄 Remplacement</span>}
-                </div>
-                <div>
-                  <dt>Rating crédité</dt>
-                  <dd className={styles.rating}>{participant.creditedRating == null ? "En attente" : participant.creditedRating.toFixed(1)}</dd>
-                </div>
-              </dl>
-            </div>
+      {entries.length === 0 ? <p className={styles.empty}>Aucune autre sélection.</p> : (
+        <ul className={styles.list}>
+          {entries.map(entry => (
+            <li key={entry.pickId || `${entry.season}-${entry.week}-${entry.userId}`} className={styles.entry}>
+              <span className={styles.week}>Semaine {entry.week}</span>
+              <span className={styles.player}>
+                <strong>{entry.displayName}</strong>
+                {entry.replaced && (
+                  <span className={styles.replacement}
+                    title={`Remplacement : ${entry.selected.name} → ${entry.actual.name}`}
+                    aria-label={`Remplacement : ${entry.selected.name} → ${entry.actual.name}`}>🔄</span>
+                )}
+              </span>
+              <strong className={styles.rating} style={{color: entry.creditedRating == null ? "#64748b" : ratingColor(entry.creditedRating)}}>
+                {entry.creditedRating == null ? "En attente" : entry.creditedRating.toFixed(1)}
+              </strong>
+            </li>
           ))}
-        </div>
-      ))}
+        </ul>
+      )}
     </section>
   );
 }
@@ -1239,6 +1224,7 @@ export default function QBRatingsPage() {
 
                   return {
                     ...rating,
+                    selected_pick_id: pick?.id ?? null,
 
                     selected_by:
                       displayName(user),
