@@ -1,6 +1,8 @@
 "use client";
 import {regularClient} from "../../lib/seasons/regularClient.mjs";
 import { regularQbResult } from "../../lib/seasons/qbSnapshot.mjs";
+import { buildQbWeeklyHistory } from "./history.mjs";
+import styles from "./details.module.css";
 const supabase=regularClient(rawSupabase);
 
 import { useEffect, useState } from "react";
@@ -522,10 +524,75 @@ function DesktopPodiumRating({
    TOP 3 — CARTE HORIZONTALE DESKTOP
    ========================================================= */
 
+function historyButton(row, expanded, onToggle) {
+  return {
+    type: "button",
+    className: styles.nameButton,
+    "aria-expanded": expanded,
+    "aria-controls": `qb-history-${row.qb.id}`,
+    "aria-label": `${expanded ? "Replier" : "Afficher"} l’historique hebdomadaire de ${row.qb.name}`,
+    onClick(event) {
+      event.stopPropagation();
+      onToggle();
+    },
+  };
+}
+
+function QbWeeklyDetails({ row }) {
+  return (
+    <section
+      id={`qb-history-${row.qb.id}`}
+      role="region"
+      aria-label={`Historique hebdomadaire de ${row.qb.name}`}
+      className={styles.history}
+    >
+      <h3 className={styles.title}>Historique hebdomadaire</h3>
+      {row.history.length === 0 && <p>Aucun détail hebdomadaire disponible.</p>}
+      {row.history.map(week => (
+        <div key={`${week.season}-${week.week}`} className={styles.week}>
+          <div className={styles.weekHeader}>
+            <strong>Semaine {week.week} · Saison {week.season}</strong>
+            <span>
+              Passer rating du QB : <strong>{week.nflRating == null ? "Non disponible" : week.nflRating.toFixed(1)}</strong>
+            </span>
+          </div>
+          {week.participants.length === 0 ? (
+            <p className={styles.empty}>Aucun participant pour ce QB cette semaine.</p>
+          ) : week.participants.map(participant => (
+            <div key={participant.pickId} className={styles.participant}>
+              <div className={styles.participantName}>
+                <strong>{participant.displayName}</strong>
+                {participant.realName && <span>{participant.realName}</span>}
+              </div>
+              <dl className={styles.result}>
+                <div>
+                  <dt>QB sélectionné</dt>
+                  <dd>{participant.selected?.name || "Identité sélectionnée à confirmer"}</dd>
+                </div>
+                <div>
+                  <dt>QB ayant joué</dt>
+                  <dd>{participant.actual?.name || "En attente de résultat"}</dd>
+                  {participant.replaced && <span className={styles.replacement}>🔄 Remplacement</span>}
+                </div>
+                <div>
+                  <dt>Rating crédité</dt>
+                  <dd className={styles.rating}>{participant.creditedRating == null ? "En attente" : participant.creditedRating.toFixed(1)}</dd>
+                </div>
+              </dl>
+            </div>
+          ))}
+        </div>
+      ))}
+    </section>
+  );
+}
+
 function DesktopPodiumQB({
   row,
   rank,
   teamLogo,
+  expanded,
+  onToggle,
 }) {
   const rankDisplay =
     rank === 1
@@ -542,6 +609,8 @@ function DesktopPodiumQB({
       }}
     >
       <div
+        className={styles.toggle}
+        onClick={onToggle}
         style={{
           display: "grid",
           gridTemplateColumns:
@@ -597,7 +666,7 @@ function DesktopPodiumQB({
               lineHeight: 1.1,
             }}
           >
-            {row.qb.name}
+            <button {...historyButton(row, expanded, onToggle)}>{row.qb.name}</button>
           </h2>
 
           <div
@@ -653,6 +722,7 @@ function DesktopPodiumQB({
           />
         </div>
       </div>
+      {expanded && <QbWeeklyDetails row={row} />}
     </section>
   );
 }
@@ -847,9 +917,14 @@ function DesktopCompactQB({
   rank,
   teamLogo,
   isLast,
+  expanded,
+  onToggle,
 }) {
   return (
+    <>
     <div
+      className={styles.toggle}
+      onClick={onToggle}
       style={{
         display: "grid",
         gridTemplateColumns:
@@ -890,7 +965,7 @@ function DesktopCompactQB({
             lineHeight: 1.15,
           }}
         >
-          {row.qb.name}
+          <button {...historyButton(row, expanded, onToggle)}>{row.qb.name}</button>
         </strong>
 
         <div
@@ -937,6 +1012,8 @@ function DesktopCompactQB({
         rating={row.worst}
       />
     </div>
+    {expanded && <QbWeeklyDetails row={row} />}
+    </>
   );
 }
 
@@ -949,6 +1026,8 @@ export default function QBRatingsPage() {
   const [teams, setTeams] = useState([]);
   const [message, setMessage] = useState("");
   const [isDesktop, setIsDesktop] = useState(false);
+  const [expandedQb, setExpandedQb] = useState(null);
+  const toggleQb = id => setExpandedQb(current => current === id ? null : id);
 
   /* =========================================================
      RESPONSIVE
@@ -1045,7 +1124,7 @@ export default function QBRatingsPage() {
       } = await supabase
         .from("qb_weekly_stats")
         .select(
-          "week, espn_athlete_id, qb_name, team, passer_rating"
+          "season, week, espn_athlete_id, qb_name, team, passer_rating"
         );
 
       if (weeklyStatsError) {
@@ -1057,6 +1136,7 @@ export default function QBRatingsPage() {
         return;
       }
 
+      const season = await supabase.regularSeason();
       const ratingsByActualQb = {};
 
       const findPick = (rating) =>
@@ -1211,6 +1291,11 @@ export default function QBRatingsPage() {
 
               return {
                 qb: actualQb,
+                history: buildQbWeeklyHistory({
+                  qb: actualQb, season,
+                  picks: qbPicksData || [], ratings: ratingsData || [],
+                  weeklyStats: weeklyStatsData || [], users: usersData || [],
+                }),
 
                 best:
                   attachSelector(best),
@@ -1348,6 +1433,8 @@ export default function QBRatingsPage() {
                 key={row.qb.id}
                 row={row}
                 rank={index + 1}
+                expanded={expandedQb === row.qb.id}
+                onToggle={() => toggleQb(row.qb.id)}
                 teamLogo={getTeamLogo(
                   row.qb.team
                 )}
@@ -1373,6 +1460,8 @@ export default function QBRatingsPage() {
                     key={row.qb.id}
                     row={row}
                     rank={index + 4}
+                    expanded={expandedQb === row.qb.id}
+                    onToggle={() => toggleQb(row.qb.id)}
                     teamLogo={getTeamLogo(
                       row.qb.team
                     )}
@@ -1397,6 +1486,7 @@ export default function QBRatingsPage() {
             key={row.qb.id}
             className="card"
           >
+            <div className={styles.toggle} onClick={() => toggleQb(row.qb.id)}>
             <div
               style={{
                 display: "grid",
@@ -1440,7 +1530,7 @@ export default function QBRatingsPage() {
                     margin: 0,
                   }}
                 >
-                  {row.qb.name}
+                  <button {...historyButton(row, expandedQb === row.qb.id, () => toggleQb(row.qb.id))}>{row.qb.name}</button>
                 </h2>
 
                 <div
@@ -1530,6 +1620,8 @@ export default function QBRatingsPage() {
                 isMobile
               />
             </div>
+            </div>
+            {expandedQb === row.qb.id && <QbWeeklyDetails row={row} />}
           </section>
         ))}
 

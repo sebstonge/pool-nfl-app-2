@@ -1,0 +1,121 @@
+.toggle {
+  cursor: pointer;
+  border-radius: 12px;
+}
+
+.nameButton {
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  max-width: 100%;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-align: inherit;
+  cursor: pointer;
+}
+
+.nameButton:focus-visible {
+  outline: 2px solid #60a5fa;
+  outline-offset: 5px;
+}
+
+.history {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(148, 163, 184, 0.16);
+  color: #e2e8f0;
+  min-width: 0;
+}
+
+.title {
+  margin: 0 0 12px;
+  font-size: 15px;
+}
+
+.week {
+  padding: 12px 0;
+}
+
+.week + .week {
+  border-top: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.weekHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  flex-wrap: wrap;
+  font-size: 13px;
+}
+
+.weekHeader > span,
+.participantName > span,
+.empty,
+.result dt {
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.weekHeader span strong {
+  color: #e2e8f0;
+}
+
+.participant {
+  margin-top: 12px;
+  min-width: 0;
+}
+
+.participantName {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.result {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px 16px;
+  margin: 8px 0 0;
+}
+
+.result > div {
+  min-width: 0;
+}
+
+.result dd {
+  margin: 4px 0 0;
+  font-size: 13px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.result .rating {
+  color: #e2e8f0;
+}
+
+.replacement {
+  display: inline-block;
+  margin-top: 5px;
+  color: #facc15;
+  font-size: 11px;
+}
+
+.empty {
+  margin: 8px 0 0;
+}
+
+@media (max-width: 600px) {
+  .result {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .result > div:last-child {
+    grid-column: 1 / -1;
+  }
+}
