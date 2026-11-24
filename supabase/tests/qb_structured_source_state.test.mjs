@@ -143,7 +143,8 @@ test('structured QB source state in disposable PostgreSQL', { skip: !process.env
     await t.test('wrong signatures, expired timestamps and future timestamps are refused before any receipt', async () => {
       const previous = await one('select count(*)::int n from qb_observation.exchange_nonces');
       await assert.rejects(exchange('claim', undefined, { valid: false }), /authentication refused/);
-      for (const age of [-120001, 15001]) {
+      // Allow for time spent getting the signed message to PostgreSQL.
+      for (const age of [-125_000, 20_000]) {
         await assert.rejects(exchange('claim', undefined, {
           timestamp: new Date(Date.now() + age).toISOString(),
         }), /authentication refused/);
