@@ -10,41 +10,6 @@ const CONFIDENCE = {
   contradictory: 'Contradictoire',
 };
 
-const CURRENT_STATUS = {
-  unavailable: 'Absence signalée',
-  reported: 'Disponibilité à vérifier',
-  unknown: 'Statut à vérifier',
-};
-
-const SLEEPER_STATUS = {
-  ACTIVE: 'actif',
-  OUT: 'absent',
-  IR: 'liste des blessés',
-  PUP: 'liste d’inaptitude physique',
-  SUSPENDED: 'suspendu',
-  DOUBTFUL: 'retour peu probable',
-  QUESTIONABLE: 'présence incertaine',
-};
-
-const ACTIONS = {
-  reviewReplacement: {
-    label: 'Vérifier le remplaçant',
-    instruction: 'Confirmer le titulaire pour ce match auprès du club avant de l’affecter.',
-  },
-  reviewExclusion: {
-    label: 'Examiner le retrait de l’équipe',
-    instruction: 'Vérifier l’absence pour ce match. Si elle est établie et qu’aucun remplaçant n’est confirmé, la commande Admin retire l’offre de cette équipe.',
-  },
-  reviewReturn: {
-    label: 'Vérifier la réintégration',
-    instruction: 'Confirmer le retour comme titulaire pour ce match avant de réintégrer ce QB.',
-  },
-  verifySources: {
-    label: 'Vérifier les sources',
-    instruction: 'Résoudre les divergences ou confirmer l’identité et le rôle du QB avant d’intervenir.',
-  },
-};
-
 function Source({ source }) {
   let href;
   try {
@@ -78,58 +43,55 @@ function menuImpact(recommendation) {
   return 'L’offre reste en place pendant la vérification.';
 }
 
-function Recommendation({ recommendation, menu }) {
+function Recommendation({ recommendation }) {
   const { team, teamName, match, currentQb, currentStatus, candidates, recommendedQb } = recommendation;
-  const action = ACTIONS[recommendation.action] ?? ACTIONS.verifySources;
-  const possibleQb = recommendedQb ?? (candidates.length === 1 ? candidates[0] : null);
-  const sleeperStatus = SLEEPER_STATUS[recommendation.reportedStatus?.toUpperCase()];
+  const [draft, setDraft] = useState({ recommended: false, other: '', prepared: false });
+  const choice = draft.recommended ? recommendedQb?.name : draft.other.trim();
+  const absent = currentStatus === 'unavailable';
+  const alternatives = candidates.filter(candidate => candidate.id !== recommendedQb?.id);
 
   return (
     <article className={styles.recommendation}>
       <header className={styles.recommendationHeader}>
-        <div>
-          <h3>{teamName ?? team}{match?.opponent && ` c. ${match.opponent}`}</h3>
-          {match?.kickoffAt && <span className={styles.note}>{torontoDate(match.kickoffAt)}</span>}
-        </div>
-        <span className={`${styles.certainty} ${styles[recommendation.confidence] ?? ''}`}>
-          {CONFIDENCE[recommendation.confidence] ?? CONFIDENCE.uncertain}
-        </span>
+        <h3>{teamName ?? team}{match?.opponent && ` c. ${match.opponent}`}</h3>
       </header>
-      <div className={styles.qbComparison}>
-        <div>
-          <span className={styles.note}>{recommendation.currentQbVerified ? 'QB associé à l’équipe' : 'QB relevé lors de la collecte'}</span>
-          <strong>{currentQb?.name ?? 'QB non identifié'}</strong>
-          {recommendation.noCurrentOffer && <span className={styles.note}>Aucun QB proposé actuellement</span>}
-          <span className={styles.note}>{CURRENT_STATUS[currentStatus] ?? CURRENT_STATUS.unknown}</span>
-          {sleeperStatus && <span className={styles.note}>Sleeper · {sleeperStatus}</span>}
-        </div>
-        <div>
-          <span className={styles.note}>{!recommendedQb && possibleQb ? 'Piste à vérifier' : 'Remplaçant recommandé'}</span>
-          <strong>{possibleQb?.name ?? 'Aucun remplaçant recommandé'}</strong>
-          {possibleQb && <span className={styles.note}>ESPN {possibleQb.id}</span>}
-        </div>
+      <div className={styles.currentQb}>
+        <strong>{currentQb?.name ?? 'QB non identifié'}</strong>
+        <span className={`${styles.certainty} ${absent ? styles.contradictory : styles.uncertain}`}
+          title={absent ? 'Absence signalée par la source' : undefined}>{absent ? 'Absent' : 'Incertain'}</span>
       </div>
-      <p className={styles.recommendationReason}>{recommendation.justification}</p>
+      <form className={styles.draft} onSubmit={event => {
+        event.preventDefault();
+        if (choice) setDraft({ ...draft, prepared: true });
+      }}>
+        {recommendedQb ? (
+          <button type="button" className={styles.suggestion} aria-pressed={draft.recommended}
+            onClick={() => setDraft({ recommended: true, other: '', prepared: false })}>
+            <span className={styles.note}>Remplaçant recommandé</span>
+            <strong>{recommendedQb.name}</strong>
+          </button>
+        ) : <span className={styles.note}>Aucun remplaçant recommandé</span>}
+        <div className={styles.otherRow}>
+          <input type="text" className={styles.otherInput} placeholder="Autre QB"
+            aria-label={`Autre QB pour ${teamName ?? team}`} value={draft.other} maxLength={120}
+            onChange={event => setDraft({ recommended: false, other: event.target.value, prepared: false })} />
+          <button type="submit" className={styles.draftSubmit} disabled={!choice || draft.prepared}>OK</button>
+        </div>
+      </form>
+      {draft.prepared && <p className={styles.note} role="status">Préparé : {choice} · sans effet sur le menu.</p>}
 
       <details className={styles.review}>
-        <summary>{action.label}</summary>
-        <h4>Remplaçants possibles</h4>
-        {candidates.length > 0 ? <ul className={styles.reviewList}>
-          {candidates.map(candidate => <li key={candidate.id}>{candidate.name} · ESPN {candidate.id}</li>)}
-        </ul> : <p>Aucun candidat identifié dans les relevés disponibles.</p>}
-        <h4>Sources</h4>
+        <summary>Sources et effets</summary>
+        <p><strong>{CONFIDENCE[recommendation.confidence] ?? CONFIDENCE.uncertain}</strong> · {recommendation.justification}</p>
+        {match?.kickoffAt && <p className={styles.note}>Match le {torontoDate(match.kickoffAt)}</p>}
+        {alternatives.length > 0 && <ul className={styles.reviewList} aria-label="Autres pistes">
+          {alternatives.map(candidate => <li key={candidate.id}>{candidate.name} · ESPN {candidate.id}</li>)}
+        </ul>}
         {recommendation.sources.length > 0 ? <ul className={styles.reviewList}>
           {recommendation.sources.map(source => <Source key={`${source.label}:${source.url}`} source={source} />)}
         </ul> : <p>Aucune source exploitable.</p>}
         {recommendation.observedAt && <p className={styles.note}>Observation du {torontoDate(recommendation.observedAt)}</p>}
-        <h4>Décision Admin</h4>
-        <p>{action.instruction}</p>
         <p>{menuImpact(recommendation)}</p>
-        <p className={styles.note}>
-          {!menu.enabled ? 'L’application de la décision est indisponible tant que le menu hebdomadaire est désactivé.'
-            : menu.open ? 'Toute correction exige une confirmation Admin avant le gel.'
-              : 'Les corrections du menu sont fermées.'}
-        </p>
       </details>
     </article>
   );
@@ -154,7 +116,7 @@ export default function Recommendations({ journal, menu, limited }) {
           <h2 id="qb-recommendations">Recommandations</h2>
           {menu?.week != null && <p className={styles.note}>Saison {menu.season} · Semaine {menu.week}</p>}
         </div>
-        {menu && <span className={styles.observation}>Mode observation</span>}
+        {menu && <span className={styles.observation}>Lecture seule</span>}
       </header>
       {!menu ? <p>Contexte du menu indisponible. Actualise la page pour vérifier les recommandations.</p> : <>
         {Number.isFinite(kickoff) && (
@@ -165,7 +127,7 @@ export default function Recommendations({ journal, menu, limited }) {
         {!frozen && recommendations.length > 0 && (
           <div className={styles.recommendationGrid}>
             {recommendations.map(recommendation => (
-              <Recommendation key={recommendation.id} recommendation={recommendation} menu={menu} />
+              <Recommendation key={recommendation.id} recommendation={recommendation} />
             ))}
           </div>
         )}

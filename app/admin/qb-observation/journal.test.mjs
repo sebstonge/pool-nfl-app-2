@@ -12,7 +12,8 @@ test('the Admin QB observation page reads only the journal and the Admin menu co
   assert.match(page, /\.rpc\('read_regular_qb_menu_admin', \{\}, \{ get: true \}\)/);
   assert.equal([...page.matchAll(/\.rpc\(/g)].length, 2);
   assert.doesNotMatch(page + panel, /manage_regular_qb_menu|dismiss_qb_observation_candidate|qb_observer_exchange|\.from\(/);
-  assert.doesNotMatch(panel, /\.rpc\(|<form\b/);
+  assert.doesNotMatch(panel, /\.rpc\(|\bfetch\(|<form[^>]+\baction=|localStorage|sessionStorage/);
+  assert.match(panel, /event\.preventDefault\(\)/);
 });
 
 test('recommendations are prioritized and reviewing them cannot submit a decision', async () => {
@@ -22,7 +23,7 @@ test('recommendations are prioritized and reviewing them cannot submit a decisio
   assert.match(page, /<summary>Journal technique<\/summary>/);
   assert.ok(page.indexOf('<Recommendations journal=') < page.indexOf('<summary>Journal technique</summary>'));
   assert.match(panel, /<details className=\{styles\.review\}>/);
-  assert.match(panel, /menu hebdomadaire est désactivé/);
+  assert.match(panel, /sans effet sur le menu/);
   assert.match(panel, /frozen \? <p>/);
 });
 
@@ -68,12 +69,14 @@ test('renders the quarterback, probable replacement, evidence and reserved team 
 
   const html = render(menu);
   for (const text of ['Recommandations', 'Washington c. PHI', qb.name, replacement.name, 'Probable',
-    'Absence signalée', 'Vérifier le remplaçant', 'nflverse', 'Sleeper', 'L’équipe est réservée',
-    'les choix soumis sont conservés', 'le menu hebdomadaire est désactivé']) {
+    'Absent', 'Remplaçant recommandé', 'Autre QB', 'Sources et effets', 'nflverse', 'Sleeper',
+    'L’équipe est réservée', 'les choix soumis sont conservés', 'Lecture seule']) {
     assert.ok(html.includes(text), text);
   }
-  assert.doesNotMatch(html, /<button|<form|>Confirmé</);
+  assert.match(html, /type="button"[^>]*aria-pressed="false"/);
+  assert.match(html, /type="submit"[^>]*disabled[^>]*>OK<\/button>/);
+  assert.doesNotMatch(html, /<details[^>]+open|>Confirmé</);
   assert.match(render({ ...menu, firstKickoffAt: iso(-1) }), /Menu gelé/);
-  assert.doesNotMatch(render({ ...menu, firstKickoffAt: iso(-1) }), /QB proposé|Vérifier le remplaçant/);
+  assert.doesNotMatch(render({ ...menu, firstKickoffAt: iso(-1) }), /QB proposé|Autre QB/);
   assert.match(render(null), /Contexte du menu indisponible/);
 });

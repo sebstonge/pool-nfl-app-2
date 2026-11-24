@@ -132,8 +132,7 @@
 
 .recommendationsHeader h2,
 .recommendationsHeader p,
-.recommendation h3,
-.review h4 {
+.recommendation h3 {
   margin: 0;
 }
 
@@ -167,11 +166,6 @@
   font-weight: 600;
 }
 
-.confirmed {
-  color: #86efac;
-}
-
-.probable,
 .observation {
   color: #93c5fd;
 }
@@ -184,24 +178,69 @@
   color: #fca5a5;
 }
 
-.qbComparison {
+.currentQb {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  margin-top: 6px;
+}
+
+.draft {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px 12px;
-  margin-top: 12px;
+  gap: 6px;
+  margin-top: 8px;
 }
 
-.qbComparison > div {
-  min-width: 0;
-  padding: 9px 10px;
+.suggestion,
+.otherInput,
+.draftSubmit {
+  border: 1px solid #475569;
   border-radius: 9px;
-  background: rgba(148, 163, 184, 0.08);
+  padding: 7px 9px;
+  color: inherit;
+  background: #151e30;
 }
 
-.recommendationReason {
-  margin: 10px 0 0;
-  color: #cbd5e1;
-  font-size: 14px;
+.suggestion {
+  text-align: left;
+  cursor: pointer;
+}
+
+.suggestion[aria-pressed="true"] {
+  border-color: #93c5fd;
+  background: #173453;
+}
+
+.otherRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px;
+}
+
+.otherInput {
+  min-width: 0;
+  font-size: 16px;
+}
+
+.otherInput::placeholder {
+  color: #94a3b8;
+}
+
+.draftSubmit {
+  min-width: 44px;
+  min-height: 44px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.draftSubmit:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.recommendation > p[role="status"] {
+  margin: 6px 0 0;
 }
 
 .recommendation .review {
@@ -215,11 +254,6 @@
 .technical > summary {
   cursor: pointer;
   font-weight: 700;
-}
-
-.review h4 {
-  margin-top: 12px;
-  font-size: inherit;
 }
 
 .reviewList,
