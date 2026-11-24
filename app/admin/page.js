@@ -1296,7 +1296,7 @@ async function resetUserPassword() {
       </section>
 
       <a href="/admin/qb-observation" className="button-secondary" style={{ display: "inline-block", marginBottom: 18 }}>
-        Journal d’observation des QB
+        Recommandations QB
       </a>
       <FullUpdateStatus state={fullUpdateStatus} />
 

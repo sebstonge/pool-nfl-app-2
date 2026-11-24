@@ -89,6 +89,25 @@ menu, job, ressource AWS ou donnée Production n’a été modifié pour cette �
   nonce, le contexte et le gel. Les observations et les tentatives Sleeper
   sont dédupliquées. L’interface Admin de cette livraison consulte le journal.
 
+## Recommandations Admin
+
+L’Observatoire affiche les recommandations de la semaine avant le journal
+technique. Il lit le contexte Admin et les 100 derniers signaux. Le statut du
+QB, les identités, les sources et l’effet éventuel sur le menu sont présentés
+ensemble. Une piste basée sur nflverse et Sleeper reste soumise à une
+confirmation pour le match. Le rapport de blessures nflverse peut corroborer
+une absence, et une annonce explicite du club peut confirmer le titulaire.
+
+La révision est en lecture seule. Avec `enabled=false`, le RPC Admin existant
+refuse la confirmation, le retrait et la réintégration. Les tests locaux
+reproduisent aussi le cas d’un retrait générique affiché pour un ancien QB
+qui peut masquer une affectation confirmée entre-temps lorsque le menu est actif.
+Avant de relier un retrait à une recommandation, la commande devra vérifier
+le match, l’identité du QB encore affecté et la fraîcheur de l’absence sous
+le verrou existant. Une confirmation Admin plus récente devra invalider la
+recommandation. Les tests de cette commande devront couvrir le rejeu, la
+concurrence, le gel et la conservation des choix et réservations.
+
 ## Vérification de l’infrastructure avant activation
 
 Exécuter ces lectures après la migration, avant l’activation. Le contrôle

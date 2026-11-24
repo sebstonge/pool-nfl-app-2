@@ -3,7 +3,11 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { torontoDate } from '../../../lib/notifications/adminLog.mjs';
+import Recommendations from './Recommendations';
 import styles from './journal.module.css';
+
+const SIGNAL_LIMIT = 100;
+const JOURNAL_LIMIT = 20;
 
 const RUN_STATUS = {
   pending: 'En attente',
@@ -159,9 +163,12 @@ export default function QbObservationPage() {
           return;
         }
 
-        const { data, error } = await supabase
-          .rpc('read_qb_observation_log', { p_limit: 20 }, { get: true })
-          .abortSignal(controller.signal);
+        const [{ data, error }, menuResult] = await Promise.all([
+          supabase.rpc('read_qb_observation_log', { p_limit: SIGNAL_LIMIT }, { get: true })
+            .abortSignal(controller.signal),
+          supabase.rpc('read_regular_qb_menu_admin', {}, { get: true })
+            .abortSignal(controller.signal),
+        ]);
         if (controller.signal.aborted) return;
         if (error?.code === '42501') {
           setResult({ error: 'Ce journal est réservé aux administrateurs.' });
@@ -170,7 +177,8 @@ export default function QbObservationPage() {
         if (error || !Array.isArray(data?.runs) || !Array.isArray(data?.entries)) {
           throw new Error('Journal indisponible');
         }
-        setResult({ data });
+        const menu = !menuResult.error && Array.isArray(menuResult.data?.teams) ? menuResult.data : null;
+        setResult({ data, menu });
       } catch {
         if (!controller.signal.aborted) {
           setResult({ error: 'Le journal d’observation est indisponible.' });
@@ -191,30 +199,28 @@ export default function QbObservationPage() {
   return (
     <main className={`page ${styles.page}`}>
       <header className="header-card">
-        <h1>Journal d’observation des QB</h1>
-        <p>Projections de titulaires et signaux de disponibilité. Heures de Toronto.</p>
+        <h1>Observatoire des QB</h1>
+        <p>Aide à la décision pour les titulaires et leur disponibilité. Heures de Toronto.</p>
         <div className={styles.actions}>
           <a href="/admin" className="button-secondary">← Admin</a>
-          <button type="button" className="button-secondary" disabled={!result} onClick={reload}>Actualiser le journal</button>
+          <button type="button" className="button-secondary" disabled={!result} onClick={reload}>Actualiser</button>
         </div>
       </header>
       {!result && <p role="status">Chargement du journal…</p>}
       {result?.error && <p role="alert">{result.error}</p>}
       {journal && <>
-        <section className="card" aria-labelledby="qb-observation-entries">
-          <h2 id="qb-observation-entries">Signaux de titulaires</h2>
+        <Recommendations journal={journal} menu={result.menu} limited={journal.entries.length >= SIGNAL_LIMIT} />
+        <details className={`card ${styles.technical}`}>
+          <summary>Journal technique</summary>
+          <h3>Signaux de titulaires</h3>
           {journal.entries.length === 0 && <p>Aucun signal enregistré.</p>}
-          {journal.entries.map(entry => (
-            <Entry key={entry.entryId ?? `${entry.season}:${entry.week}:${entry.url}`}
-              entry={entry}
-            />
+          {journal.entries.slice(0, JOURNAL_LIMIT).map(entry => (
+            <Entry key={entry.entryId ?? `${entry.season}:${entry.week}:${entry.url}`} entry={entry} />
           ))}
-        </section>
-        <section className="card" aria-labelledby="qb-observation-runs">
-          <h2 id="qb-observation-runs">Collectes récentes</h2>
+          <h3>Collectes récentes</h3>
           {journal.runs.length === 0 && <p>Aucune collecte enregistrée.</p>}
-          {journal.runs.map(run => <Run key={run.runId} run={run} />)}
-        </section>
+          {journal.runs.slice(0, JOURNAL_LIMIT).map(run => <Run key={run.runId} run={run} />)}
+        </details>
         <p className={styles.note}>
           Sources : <a href="https://github.com/nflverse#licensing">nflverse</a> (calendrier de{' '}
           <a href="https://github.com/nflverse/nfldata">Lee Sharpe</a>, CC BY 4.0) et{' '}
