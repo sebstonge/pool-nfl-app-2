@@ -1,0 +1,122 @@
+.page h1 {
+  font-size: clamp(26px, 5vw, 40px);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.actions :disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.row {
+  margin-top: 8px;
+  padding: 10px 12px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 12px;
+  overflow-wrap: anywhere;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.row summary {
+  cursor: pointer;
+}
+
+.note {
+  display: block;
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+.fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  gap: 6px 12px;
+  margin-bottom: 0;
+  padding-top: 12px;
+  border-top: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.fields dt {
+  color: #94a3b8;
+}
+
+.fields dd {
+  margin: 0;
+}
+
+.source {
+  text-decoration: underline;
+}
+
+.evidence {
+  margin: 12px 0 0;
+  padding-left: 12px;
+  border-left: 2px solid #475569;
+  color: #cbd5e1;
+}
+
+.errors {
+  margin-bottom: 0;
+  padding-left: 18px;
+  color: #fca5a5;
+}
+
+.editor {
+  margin-top: 16px;
+  border-top: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+
+.editor textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+.search,
+.candidate {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.search input {
+  flex: 1 1 160px;
+  min-width: 0;
+  margin: 0;
+}
+
+.matches {
+  display: grid;
+  min-width: 0;
+  gap: 8px;
+  margin: 0 0 12px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 12px;
+}
+
+.matches label {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.candidate img {
+  object-fit: contain;
+}
+
+.review {
+  margin-top: 12px;
+}
