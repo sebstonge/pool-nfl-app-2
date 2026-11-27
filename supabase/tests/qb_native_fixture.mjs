@@ -57,6 +57,51 @@ function startProcess(binary, args, env, input = '', timeout = 20_000) {
   return { child, done };
 }
 
+export async function readQbCriticalState(sql) {
+  return JSON.parse(await sql(`select jsonb_build_object(
+    'picks', (select jsonb_agg(to_jsonb(t) order by id) from public.picks t),
+    'qb_picks', (select jsonb_agg(to_jsonb(t) order by id) from public.qb_picks t),
+    'ratings', (select jsonb_agg(to_jsonb(t) order by id) from public.qb_ratings t),
+    'scores', (select jsonb_agg(to_jsonb(t) order by id) from public.weekly_scores t),
+    'catalog', (select jsonb_agg(to_jsonb(t) order by id) from public.qbs t),
+    'settings', (select jsonb_agg(to_jsonb(t) order by id) from public.settings t),
+    'offers', (select jsonb_agg(to_jsonb(t) order by season, week, team_id) from qb_observation.regular_menu_overrides t),
+    'reservations', (select jsonb_agg(to_jsonb(t) order by season, week, team_id) from qb_observation.regular_menu_reservations t)
+  );`));
+}
+
+export async function prepareQbFixture(sql, secret) {
+  for (const file of ['lifecycle_fixture.sql', 'lifecycle_transition_fixture.sql']) {
+    await sql(await readFile(new URL(file, import.meta.url), 'utf8'));
+  }
+  await sql(`create role authenticator noinherit;
+    update settings set current_season=2026 where id=1;
+    insert into users(id,is_admin) values ('${admin}',true),('${member}',false),('${other}',false);
+    insert into teams(name,espn_abbr) values ('Washington Commanders','WAS'),('Buffalo Bills','BUF');
+    insert into qbs(name,team,espn_athlete_id,active,is_active_starter) values
+      ('Current QB','Commanders','99',true,true),('Backup QB','Commanders','100',true,false),
+      ('Bills QB','Bills','123',true,true);`);
+  for (const file of migrations) {
+    const migration = await readFile(new URL(`../migrations/${file}`, import.meta.url), 'utf8');
+    if (file === '202610090001_lifecycle_completion.sql') {
+      await sql(migration.slice(0, migration.indexOf('-- END REGULAR WRITE PAUSE BOOTSTRAP')) + 'commit;');
+      await sql('update settings set regular_writes_paused=true where id=1;');
+    }
+    await sql(migration);
+  }
+  // The settings guard checks the old pause state for changes to the week.
+  await sql('update settings set regular_writes_paused=false where id=1;');
+  await sql(`update settings set current_week=5 where id=1;
+    insert into season_participants(season,user_id,confirmed) values
+      (2026,'${member}',true),(2026,'${other}',true);
+    insert into qb_selection_weeks(season,week,started_at) values(2026,5,now()-interval '1 hour');
+    insert into games(external_game_id,season,week,home_team,away_team,game_date,is_pool_eligible)
+      values('5005',2026,5,'Washington Commanders','Buffalo Bills',now()+interval '1 day',false);
+    create schema extensions;
+    create extension pgcrypto with schema extensions;
+    update qb_observation.transport_control set dispatch_enabled=true,hmac_secret=${quoteSql(secret)} where singleton;`);
+}
+
 // The DSN and authentication environment are deliberately constructed here.
 // No test can fall back to a project URL or a pre-existing PostgreSQL instance.
 export async function withNativeQbFixture(task) {
@@ -80,16 +125,6 @@ export async function withNativeQbFixture(task) {
   const scalar = sql;
   const secret = randomBytes(32).toString('hex');
   let started = false;
-  const criticalState = async () => JSON.parse(await sql(`select jsonb_build_object(
-    'picks', (select jsonb_agg(to_jsonb(t) order by id) from public.picks t),
-    'qb_picks', (select jsonb_agg(to_jsonb(t) order by id) from public.qb_picks t),
-    'ratings', (select jsonb_agg(to_jsonb(t) order by id) from public.qb_ratings t),
-    'scores', (select jsonb_agg(to_jsonb(t) order by id) from public.weekly_scores t),
-    'catalog', (select jsonb_agg(to_jsonb(t) order by id) from public.qbs t),
-    'settings', (select jsonb_agg(to_jsonb(t) order by id) from public.settings t),
-    'offers', (select jsonb_agg(to_jsonb(t) order by season, week, team_id) from qb_observation.regular_menu_overrides t),
-    'reservations', (select jsonb_agg(to_jsonb(t) order by season, week, team_id) from qb_observation.regular_menu_reservations t)
-  );`));
   try {
     await run('initdb', ['-D', data, '-U', 'postgres', '-A', 'trust', '--no-locale', '-E', 'UTF8'], '', 40_000).done;
     await appendFile(join(data, 'postgresql.conf'), `
@@ -105,35 +140,8 @@ statement_timeout = '12s'
       throw new Error(`${error.message}\n${logText}`);
     }
     started = true;
-    for (const file of ['lifecycle_fixture.sql', 'lifecycle_transition_fixture.sql']) {
-      await sql(await readFile(new URL(file, import.meta.url), 'utf8'));
-    }
-    await sql(`create role authenticator noinherit;
-      update settings set current_season=2026 where id=1;
-      insert into users(id,is_admin) values ('${admin}',true),('${member}',false),('${other}',false);
-      insert into teams(name,espn_abbr) values ('Washington Commanders','WAS'),('Buffalo Bills','BUF');
-      insert into qbs(name,team,espn_athlete_id,active,is_active_starter) values
-        ('Current QB','Commanders','99',true,true),('Backup QB','Commanders','100',true,false),
-        ('Bills QB','Bills','123',true,true);`);
-    for (const file of migrations) {
-      const migration = await readFile(new URL(`../migrations/${file}`, import.meta.url), 'utf8');
-      if (file === '202610090001_lifecycle_completion.sql') {
-        await sql(migration.slice(0, migration.indexOf('-- END REGULAR WRITE PAUSE BOOTSTRAP')) + 'commit;');
-        await sql('update settings set regular_writes_paused=true where id=1;');
-      }
-      await sql(migration);
-    }
-    // The settings guard checks the old pause state for changes to the week.
-    await sql('update settings set regular_writes_paused=false where id=1;');
-    await sql(`update settings set current_week=5 where id=1;
-      insert into season_participants(season,user_id,confirmed) values
-        (2026,'${member}',true),(2026,'${other}',true);
-      insert into qb_selection_weeks(season,week,started_at) values(2026,5,now()-interval '1 hour');
-      insert into games(external_game_id,season,week,home_team,away_team,game_date,is_pool_eligible)
-        values('5005',2026,5,'Washington Commanders','Buffalo Bills',now()+interval '1 day',false);
-      create schema extensions;
-      create extension pgcrypto with schema extensions;
-      update qb_observation.transport_control set dispatch_enabled=true,hmac_secret=${quoteSql(secret)} where singleton;`);
+    await prepareQbFixture(sql, secret);
+    const criticalState = () => readQbCriticalState(sql);
     return await task({ sql, scalar, startSql, asRole, criticalState, secret, socket, env });
   } finally {
     if (started) await run('pg_ctl', ['-D', data, '-w', '-t', '10', '-m', 'immediate', 'stop']).done;

@@ -101,10 +101,13 @@ function Run({ run }) {
   );
 }
 
-function Entry({ entry }) {
+function Entry({ entry, receipt }) {
   const source = sourceHref(entry.url);
   let status = ENTRY_STATUS[entry.status] ?? entry.status;
-  if (entry.reviewOutcome === 'confirmed') status = 'Titulaire confirmé par l’Admin';
+  if (receipt?.outcome === 'maintained') status = 'Titulaire maintenu par l’Admin';
+  else if (receipt?.outcome === 'confirmed' || entry.reviewOutcome === 'confirmed') status = 'Titulaire confirmé par l’Admin';
+  else if (entry.reviewOutcome === 'excluded') status = 'Offre retirée par l’Admin';
+  else if (entry.reviewOutcome === 'restored') status = 'Titulaire réintégré par l’Admin';
   else if (entry.dismissedAt) status = 'Signal écarté';
   else if (entry.reason === 'nflverse_projection') status = 'Titulaire indiqué · à confirmer';
   else if (['sleeper_unavailable', 'sleeper_return_review', 'source_conflict', 'source_missing'].includes(entry.reason)) {
@@ -149,6 +152,7 @@ function Entry({ entry }) {
 export default function QbObservationPage() {
   const [result, setResult] = useState(null);
   const [refresh, setRefresh] = useState(0);
+  const [notice, setNotice] = useState(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -190,9 +194,23 @@ export default function QbObservationPage() {
     return () => controller.abort();
   }, [refresh]);
 
-  function reload() {
+  function reload(message = null) {
+    setNotice(message);
     setResult(null);
     setRefresh(value => value + 1);
+  }
+
+  async function requestStarter(params) {
+    const { data } = await supabase.auth.getSession();
+    const token = data?.session?.access_token;
+    if (!token) return { ok: false, error: 'Reconnecte-toi pour confirmer.' };
+    const response = await fetch('/api/admin/qb-starter', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(params),
+    });
+    const result = await response.json();
+    return { ok: response.ok, status: response.status, code: result.code, error: result.error, data: result };
   }
 
   const journal = result?.data;
@@ -203,19 +221,22 @@ export default function QbObservationPage() {
         <p>Aide à la décision pour les titulaires et leur disponibilité. Heures de Toronto.</p>
         <div className={styles.actions}>
           <a href="/admin" className="button-secondary">← Admin</a>
-          <button type="button" className="button-secondary" disabled={!result} onClick={reload}>Actualiser</button>
+          <button type="button" className="button-secondary" disabled={!result} onClick={() => reload()}>Actualiser</button>
         </div>
       </header>
       {!result && <p role="status">Chargement du journal…</p>}
+      {notice && <p role="status">{notice}</p>}
       {result?.error && <p role="alert">{result.error}</p>}
       {journal && <>
-        <Recommendations journal={journal} menu={result.menu} limited={journal.entries.length >= SIGNAL_LIMIT} />
+        <Recommendations journal={journal} menu={result.menu} limited={journal.entries.length >= SIGNAL_LIMIT}
+          onRequest={requestStarter} onRefresh={reload} />
         <details className={`card ${styles.technical}`}>
           <summary>Journal technique</summary>
           <h3>Signaux de titulaires</h3>
           {journal.entries.length === 0 && <p>Aucun signal enregistré.</p>}
           {journal.entries.slice(0, JOURNAL_LIMIT).map(entry => (
-            <Entry key={entry.entryId ?? `${entry.season}:${entry.week}:${entry.url}`} entry={entry} />
+            <Entry key={entry.entryId ?? `${entry.season}:${entry.week}:${entry.url}`} entry={entry}
+              receipt={result.menu?.reviewed?.find(item => item.entryId === entry.entryId && item.runId === entry.runId)} />
           ))}
           <h3>Collectes récentes</h3>
           {journal.runs.length === 0 && <p>Aucune collecte enregistrée.</p>}

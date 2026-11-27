@@ -178,21 +178,27 @@
   color: #fca5a5;
 }
 
-.currentQb {
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 4px 8px;
-  margin-top: 6px;
-}
-
-.draft {
+.decision,
+.identityMatches {
   display: grid;
   gap: 6px;
+}
+
+.decision {
   margin-top: 8px;
 }
 
-.suggestion,
+.identityTiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.identityTiles > :only-child {
+  grid-column: 1 / -1;
+}
+
+.identityTile,
 .otherInput,
 .draftSubmit {
   border: 1px solid #475569;
@@ -202,12 +208,15 @@
   background: #151e30;
 }
 
-.suggestion {
+.identityTile {
+  min-width: 0;
+  min-height: 44px;
   text-align: left;
+  overflow-wrap: anywhere;
   cursor: pointer;
 }
 
-.suggestion[aria-pressed="true"] {
+.identityTile[aria-pressed="true"] {
   border-color: #93c5fd;
   background: #173453;
 }
@@ -234,13 +243,18 @@
   cursor: pointer;
 }
 
-.draftSubmit:disabled {
+.draftSubmit:disabled,
+.identityTile:disabled {
   opacity: 0.6;
   cursor: default;
 }
 
-.recommendation > p[role="status"] {
-  margin: 6px 0 0;
+.decision p {
+  margin: 2px 0;
+}
+
+.decisionError {
+  color: #fca5a5;
 }
 
 .recommendation .review {

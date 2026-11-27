@@ -5,7 +5,7 @@ import {regularClient} from "../../lib/seasons/regularClient.mjs";
 import {loadRegularOrder,remainingSelectionOrder,assertRegularTurn} from "../../lib/seasons/selectionOrder.mjs";
 const supabase=regularClient(rawSupabase);
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase as rawSupabase } from "../../lib/supabase";
 import PersonalSelectionTime from "./PersonalSelectionTime";
 import BottomNav from "../components/BottomNav";
@@ -30,6 +30,10 @@ function normalizeName(value = "") {
     .replace(/[-_]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function readStartingQbs() {
+  return supabase.from("qbs").select("*").eq("active", true).eq("is_active_starter", true).order("name");
 }
 
 function playerRealName(player) {
@@ -1537,15 +1541,15 @@ export default function Matchs() {
     setQbs,
   ] = useState([]);
 
-  const [
-    availableQbs,
-    setAvailableQbs,
-  ] = useState([]);
-
-  const [
-    selectedQbId,
-    setSelectedQbId,
-  ] = useState("");
+  const [qbMenuContext, setQbMenuContext] = useState(null);
+  const [selectedQb, setSelectedQb] = useState(null);
+  const selectedQbId = selectedQb?.id ?? "";
+  const availableQbs = useMemo(() => {
+    if (!qbMenuContext) return [];
+    const { playingTeams, takenQbIds, previousQbPicks, previousRatings } = qbMenuContext;
+    return qbs.filter(qb => playingTeams.has(normalizeName(qb.team)) && !takenQbIds.has(qb.id)
+      && !isQbConsumed(qb, previousQbPicks, previousRatings));
+  }, [qbs, qbMenuContext]);
 
   const [
     qbMenuOpen,
@@ -1746,26 +1750,7 @@ export default function Matchs() {
 
     /* ================= QB ACTIFS ================= */
 
-    const {
-      data: qbsData,
-    } =
-      await supabase
-        .from("qbs")
-        .select("*")
-        .eq(
-          "active",
-          true
-        )
-        .eq(
-          "is_active_starter",
-          true
-        )
-        .order(
-          "name",
-          {
-            ascending: true,
-          }
-        );
+    const { data: qbsData } = await readStartingQbs();
 
     setQbs(
       qbsData || []
@@ -2174,8 +2159,9 @@ export default function Matchs() {
        Darnold n'est PAS consommé et pourra être
        sélectionné de nouveau plus tard.
 
-       Le remplaçant automatique n'est pas consommé
-       non plus puisqu'il n'a jamais été sélectionné.
+       Drew Lock est consommé pour ce participant.
+       Son ESPN Athlete ID reste la référence même si
+       une ligne du catalogue change de titulaire.
 
        Tant qu'un ancien choix n'a pas encore de
        qb_ratings officiel, on le considère utilisé
@@ -2307,45 +2293,37 @@ export default function Matchs() {
       }
     );
 
-    /* =========================================================
-       QB DISPONIBLES
-       ========================================================= */
-
-    const filteredQbs =
-      (
-        qbsData ||
-        []
-      ).filter(
-        (qb) => {
-          const teamIsPlaying =
-            playingTeams.has(
-              normalizeName(
-                qb.team
-              )
-            );
-
-          const alreadyTaken =
-            takenQbIds.has(
-              qb.id
-            );
-
-          const alreadyUsed = isQbConsumed(qb, previousQbPicks, previousRatings);
-
-          return (
-            teamIsPlaying &&
-            !alreadyTaken &&
-            !alreadyUsed
-          );
-        }
-      );
-
-    setAvailableQbs(
-      filteredQbs
-    );
+    setQbMenuContext({ playingTeams, takenQbIds, previousQbPicks, previousRatings });
   }
      useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    if (!user?.id || currentWeek == null || existingQbPick) return;
+    let cancelled = false;
+    let version = 0;
+    async function refreshQbCatalog() {
+      const request = ++version;
+      const { data, error } = await readStartingQbs();
+      if (cancelled || request !== version || error || !data) return;
+      setQbs(data);
+      setSelectedQb(previous => previous && data.some(qb => qb.id === previous.id
+        && qb.espn_athlete_id === previous.espn_athlete_id) ? previous : null);
+    }
+    const channel = rawSupabase.channel(`regular-qb-catalog-${currentWeek}`)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "qbs" }, refreshQbCatalog)
+      .subscribe();
+    window.addEventListener("focus", refreshQbCatalog);
+    refreshQbCatalog();
+    const fallback = qbMenuOpen ? window.setInterval(refreshQbCatalog, 5000) : null;
+    return () => {
+      cancelled = true;
+      window.removeEventListener("focus", refreshQbCatalog);
+      if (fallback != null) window.clearInterval(fallback);
+      rawSupabase.removeChannel(channel);
+    };
+  }, [user?.id, currentWeek, Boolean(existingQbPick), qbMenuOpen]);
 
      /* =========================================================
      ESPN TEMPORAIRE — LIVE + POST
@@ -2719,13 +2697,6 @@ export default function Matchs() {
      QB AFFICHÉ
      ========================================================= */
 
-  const selectedQb =
-    qbs.find(
-      (qb) =>
-        qb.id ===
-        selectedQbId
-    );
-
   /*
    * Données ESPN temporaires
    * associées au QB choisi.
@@ -3037,6 +3008,8 @@ export default function Matchs() {
 
               qb_id:
                 selectedQbId,
+              selected_espn_athlete_id:
+                selectedQb.espn_athlete_id,
             });
 
         if (qbError) {
@@ -4359,9 +4332,7 @@ export default function Matchs() {
                                 key={qb.id}
                                 type="button"
                                 onClick={() => {
-                                  setSelectedQbId(
-                                    qb.id
-                                  );
+                                  setSelectedQb(qb);
 
                                   setQbMenuOpen(
                                     false
@@ -5180,9 +5151,7 @@ export default function Matchs() {
                                 key={qb.id}
                                 type="button"
                                 onClick={() => {
-                                  setSelectedQbId(
-                                    qb.id
-                                  );
+                                  setSelectedQb(qb);
                                   setQbMenuOpen(
                                     false
                                   );

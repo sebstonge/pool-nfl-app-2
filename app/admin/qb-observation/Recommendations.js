@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { torontoDate } from '../../../lib/notifications/adminLog.mjs';
 import { buildQbRecommendations } from '../../../lib/qb-observation/recommendations.mjs';
+import RecommendationDecision from './RecommendationDecision';
 import styles from './journal.module.css';
 
 const CONFIDENCE = {
@@ -34,51 +35,19 @@ function menuImpact(recommendation) {
   if (recommendation.teamInMenu === false || recommendation.reservation == null) {
     return 'L’effet sur le menu et la réservation doit être vérifié avant toute correction.';
   }
-  if (recommendation.action === 'reviewExclusion') {
-    return 'Un retrait masquerait l’équipe pour les nouveaux choix. Les choix déjà soumis sont conservés.';
-  }
-  if (recommendation.action === 'reviewReplacement' || recommendation.action === 'reviewReturn') {
-    return 'Une affectation confirmée changerait l’offre pour les nouveaux choix de cette équipe. Les choix déjà soumis sont conservés.';
-  }
-  return 'L’offre reste en place pendant la vérification.';
+  return 'Un changement de titulaire s’applique aux nouveaux choix. Les choix déjà soumis sont conservés.';
 }
 
-function Recommendation({ recommendation }) {
-  const { team, teamName, match, currentQb, currentStatus, candidates, recommendedQb } = recommendation;
-  const [draft, setDraft] = useState({ recommended: false, other: '', prepared: false });
-  const choice = draft.recommended ? recommendedQb?.name : draft.other.trim();
-  const absent = currentStatus === 'unavailable';
-  const alternatives = candidates.filter(candidate => candidate.id !== recommendedQb?.id);
-
+function Recommendation({ recommendation, menu, now, onRequest, onRefresh }) {
+  const { team, teamName, match, candidates, potentialQb } = recommendation;
+  const alternatives = candidates.filter(candidate => candidate.id !== potentialQb?.id);
   return (
     <article className={styles.recommendation}>
       <header className={styles.recommendationHeader}>
         <h3>{teamName ?? team}{match?.opponent && ` c. ${match.opponent}`}</h3>
       </header>
-      <div className={styles.currentQb}>
-        <strong>{currentQb?.name ?? 'QB non identifié'}</strong>
-        <span className={`${styles.certainty} ${absent ? styles.contradictory : styles.uncertain}`}
-          title={absent ? 'Absence signalée par la source' : undefined}>{absent ? 'Absent' : 'Incertain'}</span>
-      </div>
-      <form className={styles.draft} onSubmit={event => {
-        event.preventDefault();
-        if (choice) setDraft({ ...draft, prepared: true });
-      }}>
-        {recommendedQb ? (
-          <button type="button" className={styles.suggestion} aria-pressed={draft.recommended}
-            onClick={() => setDraft({ recommended: true, other: '', prepared: false })}>
-            <span className={styles.note}>Remplaçant recommandé</span>
-            <strong>{recommendedQb.name}</strong>
-          </button>
-        ) : <span className={styles.note}>Aucun remplaçant recommandé</span>}
-        <div className={styles.otherRow}>
-          <input type="text" className={styles.otherInput} placeholder="Autre QB"
-            aria-label={`Autre QB pour ${teamName ?? team}`} value={draft.other} maxLength={120}
-            onChange={event => setDraft({ recommended: false, other: event.target.value, prepared: false })} />
-          <button type="submit" className={styles.draftSubmit} disabled={!choice || draft.prepared}>OK</button>
-        </div>
-      </form>
-      {draft.prepared && <p className={styles.note} role="status">Préparé : {choice} · sans effet sur le menu.</p>}
+      <RecommendationDecision recommendation={recommendation} menu={menu} now={now}
+        onRequest={onRequest} onRefresh={onRefresh} />
 
       <details className={styles.review}>
         <summary>Sources et effets</summary>
@@ -97,7 +66,7 @@ function Recommendation({ recommendation }) {
   );
 }
 
-export default function Recommendations({ journal, menu, limited }) {
+export default function Recommendations({ journal, menu, limited, onRequest, onRefresh }) {
   const [now, setNow] = useState(Date.now);
 
   useEffect(() => {
@@ -116,7 +85,7 @@ export default function Recommendations({ journal, menu, limited }) {
           <h2 id="qb-recommendations">Recommandations</h2>
           {menu?.week != null && <p className={styles.note}>Saison {menu.season} · Semaine {menu.week}</p>}
         </div>
-        {menu && <span className={styles.observation}>Lecture seule</span>}
+        {menu && <span className={styles.observation}>{menu.manualOpen ? 'Confirmation Admin' : 'Lecture seule'}</span>}
       </header>
       {!menu ? <p>Contexte du menu indisponible. Actualise la page pour vérifier les recommandations.</p> : <>
         {Number.isFinite(kickoff) && (
@@ -127,7 +96,8 @@ export default function Recommendations({ journal, menu, limited }) {
         {!frozen && recommendations.length > 0 && (
           <div className={styles.recommendationGrid}>
             {recommendations.map(recommendation => (
-              <Recommendation key={recommendation.id} recommendation={recommendation} />
+              <Recommendation key={`${recommendation.entryId}:${recommendation.runId}`} recommendation={recommendation}
+                menu={menu} now={now} onRequest={onRequest} onRefresh={onRefresh} />
             ))}
           </div>
         )}

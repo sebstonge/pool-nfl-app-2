@@ -1,4 +1,5 @@
 import {regularEventKey,regularClient} from "../../../../lib/seasons/regularClient.mjs";
+import { selectionSnapshot } from "../../../../lib/seasons/qbSnapshot.mjs";
 import { finalRatingMessage } from '../../../../lib/notifications/teamFrench.mjs';
 import { loadLifecycle, regularIsOpen } from '../../../../lib/lifecycle/context.mjs';
 import {
@@ -325,12 +326,9 @@ export async function GET(
           user_id,
           week,
           qb_id,
-          qbs (
-            id,
-            name,
-            team,
-            espn_athlete_id
-          )
+          selected_qb_name,
+          selected_espn_athlete_id,
+          selected_team
         `)
         .eq(
           "week",
@@ -414,8 +412,7 @@ export async function GET(
     for (
       const pick of qbPicks
     ) {
-      const selectedQB =
-        pick.qbs;
+      const selectedQB = selectionSnapshot(pick);
 
       if (
         !selectedQB?.id ||
