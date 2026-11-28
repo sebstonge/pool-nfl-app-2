@@ -1,6 +1,7 @@
 import {createClient} from '@supabase/supabase-js';
 import {advanceRegularWeek} from '../../../../lib/regular-admin/operations.mjs';
 export const runtime='nodejs';
+export const maxDuration=60;
 
 export async function POST(request) {
   const token=request.headers.get('authorization')?.match(/^Bearer (.+)$/)?.[1];

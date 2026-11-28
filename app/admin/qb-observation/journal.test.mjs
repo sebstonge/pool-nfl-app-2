@@ -100,9 +100,9 @@ test('renders the quarterback, probable replacement, evidence and reserved team 
 
 test('player and scoring consumers preserve the captured identity after a catalogue slot changes', async () => {
   const choices = await read('../../matchs/RegularPage.js');
-  const ratings = await read('../../api/push/qb-final/route.js');
+  const ratings = await read('../../../lib/regular-admin/espnWeek.mjs');
   assert.match(choices, /selected_espn_athlete_id:\s+selectedQb\.espn_athlete_id/);
   assert.match(choices, /postgres_changes[^\n]+table: "qbs"/);
-  assert.match(ratings, /const selectedQB = selectionSnapshot\(pick\)/);
+  assert.match(ratings, /selectionSnapshot\(pick\)/);
   assert.doesNotMatch(ratings, /pick\.qbs\b/);
 });
