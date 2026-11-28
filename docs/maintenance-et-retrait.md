@@ -6,6 +6,12 @@ Le dépôt [sebstonge/pool-nfl-app-2](https://github.com/sebstonge/pool-nfl-app-
 
 Dans l’Observatoire Admin, sélectionne le titulaire à maintenir ou le remplaçant suggéré. Pour « Autre QB », vérifie l’identité proposée par ESPN avant de cliquer sur « Confirmer le titulaire ». Les sources et les effets sont repliés sous la fiche. Une projection reste une indication à vérifier. L’action manuelle est disponible avant le premier kickoff lorsque `manual_admin_enabled` est actif. Les deux réglages du menu automatisé, `enabled` et `automation_enabled`, restent à `false`.
 
+## Publication des résultats réguliers en direct
+
+Quand **Mes choix** ou **Tous les choix** détecte un match `FINAL` pendant son rafraîchissement habituel de 30 secondes, la page signale son identifiant. Le serveur vérifie la session du participant, la pertinence du match pour la semaine active et le résultat ESPN avant de réutiliser le moteur de publication du bouton Admin. Un résultat incomplet peut être réessayé au prochain rafraîchissement. GitHub Actions conserve son horaire de secours lorsque les pages sont fermées ou suspendues. Le bouton Admin et le passage manuel à la semaine suivante avec vérification ESPN restent disponibles.
+
+Dans les variables Vercel de l’environnement **Production**, définir `REGULAR_AUTO_RESULTS_ENABLED=true` puis publier un nouveau déploiement Production. Vérifier son état **Ready** et le commit attendu. Un `POST /api/push/qb-final` avec le jeton fictif `Bearer verification` et le JSON `{"gameIds":[]}` doit renvoyer **400** lorsque le réglage est actif. Ce contrôle se termine avant l’accès aux données et ne modifie aucun résultat. Pour suspendre la publication automatique, définir `REGULAR_AUTO_RESULTS_ENABLED=false` puis redéployer.
+
 ## Ressources et coûts
 
 | Ressource | Rôle |

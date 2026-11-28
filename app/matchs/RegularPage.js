@@ -3,6 +3,7 @@ import {regularPickResult,REGULAR_TIE_NOTE} from "../../lib/seasons/regularResul
 import {confirmLegacyRegularResults} from "../../lib/seasons/regularResultEvidence.mjs";
 import {regularClient} from "../../lib/seasons/regularClient.mjs";
 import {loadRegularOrder,remainingSelectionOrder,assertRegularTurn} from "../../lib/seasons/selectionOrder.mjs";
+import {createLiveFinalSignal,isFinalEspnCompetition} from "../../lib/regular-admin/liveFinalSignal.mjs";
 const supabase=regularClient(rawSupabase);
 
 import { useEffect, useMemo, useState } from "react";
@@ -1501,6 +1502,7 @@ marginTop:
    ========================================================= */
 
 export default function Matchs() {
+  const [signalFinalGames] = useState(() => createLiveFinalSignal(rawSupabase.auth));
   const [regularWritesPaused,setRegularWritesPaused]=useState(false);
   const [
     user,
@@ -2365,6 +2367,7 @@ export default function Matchs() {
 
       const results =
         {};
+      const finalGameIds = [];
 
       await Promise.all(
         gamesToMonitor.map(
@@ -2387,6 +2390,9 @@ export default function Matchs() {
 
               const summary =
                 await response.json();
+              if (isFinalEspnCompetition(summary?.header?.competitions?.[0])) {
+                finalGameIds.push(game.id);
+              }
 
               const status =
                 getLiveGameStatus(
@@ -2502,6 +2508,7 @@ export default function Matchs() {
             ...results,
           })
         );
+        void signalFinalGames(finalGameIds);
       }
     }
 
@@ -2523,6 +2530,7 @@ export default function Matchs() {
   }, [
     allWeekGames,
     currentWeek,
+    signalFinalGames,
   ]);
 
   /* =========================================================

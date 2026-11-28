@@ -3,6 +3,7 @@ import {regularGameResult,regularPickResult,REGULAR_TIE_NOTE} from "../../lib/se
 import {confirmLegacyRegularResults} from "../../lib/seasons/regularResultEvidence.mjs";
 import {regularClient} from "../../lib/seasons/regularClient.mjs";
 import { regularQbResult, selectionSnapshot } from "../../lib/seasons/qbSnapshot.mjs";
+import {createLiveFinalSignal,isFinalEspnCompetition} from "../../lib/regular-admin/liveFinalSignal.mjs";
 const supabase=regularClient(rawSupabase);
 
 import { useEffect, useState } from "react";
@@ -2369,6 +2370,7 @@ function GamePicksCard({
    ========================================================= */
 
 export default function TousLesChoix() {
+  const [signalFinalGames] = useState(() => createLiveFinalSignal(rawSupabase.auth));
   const [
     players,
     setPlayers,
@@ -2958,6 +2960,7 @@ const [
 }
 
       const results = {};
+      const finalGameIds = [];
 
     await Promise.all(
   gamesToMonitor.map(
@@ -2978,6 +2981,9 @@ const [
 
               const summary =
                 await response.json();
+              if (isFinalEspnCompetition(summary?.header?.competitions?.[0])) {
+                finalGameIds.push(game.id);
+              }
 
               const status =
                 getLiveGameStatus(
@@ -3110,6 +3116,7 @@ const [
             ...results,
           })
         );
+        void signalFinalGames(finalGameIds);
       }
     }
 
@@ -3139,6 +3146,7 @@ const [
   allWeekGames,
   viewedWeek,
   currentWeek,
+  signalFinalGames,
 ]);
 
   /* =========================================================
